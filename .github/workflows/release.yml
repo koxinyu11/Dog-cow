@@ -1,0 +1,21 @@
+name: Build Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build universal Mac app
+        run: chmod +x scripts/build.sh && ./scripts/build.sh
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "dist/狗牛-通用版-Mac安装包.zip" --generate-notes --title "狗牛 $GITHUB_REF_NAME"
