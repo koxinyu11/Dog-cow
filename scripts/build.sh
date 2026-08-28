@@ -34,7 +34,7 @@ ditto "$SPARKLE_FRAMEWORK" "$APP_DIR/Contents/Frameworks/Sparkle.framework"
   -c "Add :NSHighResolutionCapable bool true" "$APP_DIR/Contents/Info.plist"
 if [[ -n "${SPARKLE_PUBLIC_ED_KEY:-}" ]]; then
   /usr/libexec/PlistBuddy \
-    -c "Add :SUFeedURL string https://koxinyu11.github.io/Dog-cow/appcast.xml" \
+    -c "Add :SUFeedURL string https://koxinyu11.github.io/Dog-cow/appcast.xml?from=$VERSION" \
     -c "Add :SUPublicEDKey string $SPARKLE_PUBLIC_ED_KEY" \
     "$APP_DIR/Contents/Info.plist"
 fi
