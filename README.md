@@ -21,7 +21,7 @@
 
 ## 应用内更新
 
-公开仓库发布可使用 Sparkle 下载、验证并安装更新，用户无需手动解压替换 App。首次启用需要仓库维护者生成 EdDSA 密钥、在 GitHub Actions 配置公钥与私钥，并开启 GitHub Pages；具体步骤见 [`docs/UPDATER_SETUP.md`](docs/UPDATER_SETUP.md)。未配置该密钥时，App 会继续使用旧的 token 检查逻辑，避免影响已安装版本。
+App 使用 Sparkle 下载、验证、安装更新并重启，用户无需手动解压替换。因为 Release 位于私人仓库，App 会沿用现有的 GitHub fine-grained token（只需 Contents 只读权限）为 Sparkle 下载请求授权；token 只保存在用户自己的 macOS 钥匙串。维护配置见 [`docs/UPDATER_SETUP.md`](docs/UPDATER_SETUP.md)。
 
 版本由根目录 `VERSION` 管理。推送 `v*` 标签后，GitHub Actions 会构建通用安装包并创建 Release。
 

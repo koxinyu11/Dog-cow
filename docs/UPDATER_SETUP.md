@@ -19,7 +19,7 @@
 - Variable `SPARKLE_PUBLIC_ED_KEY`：上一步输出的 base64 公钥。
 - Secret `SPARKLE_ED_KEY`：按 Sparkle `generate_keys -x` 导出的私钥文本；该 Secret 只在 Release 工作流中使用。
 
-在 Settings → Pages 中选择从 `main` 分支的 `/docs` 目录发布。更新 feed 固定为 `https://koxinyu11.github.io/Dog-cow/appcast.xml`。
+在 Settings → Pages 中选择从 `main` 分支的 `/docs` 目录发布。更新 feed 固定为 `https://koxinyu11.github.io/Dog-cow/appcast.xml`。仓库是私有的，因此 App 会从 macOS 钥匙串读取现有的 GitHub fine-grained token，并只在下载私人 Release 附件时把授权头交给 Sparkle。
 
 ## 3. 发布工作流
 

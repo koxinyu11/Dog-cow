@@ -30,6 +30,7 @@ ditto "$SPARKLE_FRAMEWORK" "$APP_DIR/Contents/Frameworks/Sparkle.framework"
   -c "Add :CFBundleShortVersionString string $VERSION" \
   -c "Add :CFBundleVersion string ${GITHUB_RUN_NUMBER:-1}" \
   -c "Add :LSMinimumSystemVersion string 11.0" \
+  -c "Add :SUEnableAutomaticChecks bool false" \
   -c "Add :NSHighResolutionCapable bool true" "$APP_DIR/Contents/Info.plist"
 if [[ -n "${SPARKLE_PUBLIC_ED_KEY:-}" ]]; then
   /usr/libexec/PlistBuddy \
