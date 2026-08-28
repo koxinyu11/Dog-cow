@@ -123,7 +123,7 @@ static NSString *const DogCowKeychainService = @"app.dogcow.updater";
         }
         NSDictionary *asset = nil;
         for (NSDictionary *candidate in release[@"assets"]) {
-            if ([candidate[@"name"] hasSuffix:@"Mac安装包.zip"]) { asset = candidate; break; }
+            if ([candidate[@"name"] isEqualToString:@"DogCow-Mac.zip"] || [candidate[@"name"] hasSuffix:@"Mac安装包.zip"]) { asset = candidate; break; }
         }
         if (!asset[@"url"]) {
             dispatch_async(dispatch_get_main_queue(), ^{ [self showAlert:@"发现新版本" detail:@"Release 中暂时没有 Mac 安装包。"] ;});

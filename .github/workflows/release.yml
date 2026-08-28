@@ -14,8 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build universal Mac app
-        run: chmod +x scripts/build.sh && ./scripts/build.sh
+        run: chmod +x scripts/build.sh && ./scripts/build.sh && cp "dist/狗牛-通用版-Mac安装包.zip" dist/DogCow-Mac.zip
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" "dist/狗牛-通用版-Mac安装包.zip" --generate-notes --title "狗牛 $GITHUB_REF_NAME"
+        run: gh release create "$GITHUB_REF_NAME" dist/DogCow-Mac.zip --generate-notes --title "狗牛 $GITHUB_REF_NAME"
