@@ -25,6 +25,16 @@ App 首次点击“检查更新”时会要求 GitHub fine-grained personal acce
 
 版本由根目录 `VERSION` 管理。推送 `v*` 标签后，GitHub Actions 会构建通用安装包并创建 Release。
 
+## 自动提交和推送
+
+在这台 Mac 上运行一次：
+
+```sh
+./scripts/install-auto-sync.sh
+```
+
+后台服务每两分钟检查一次这个独立仓库。发现改动后会自动提交并推送到 `main`；不会扫描或上传外层目录。
+
 ## 数据说明
 
 任务存储在 WebKit 的本机存储中。仓库和安装包仅包含空白通用模板，不包含任何个人任务。
