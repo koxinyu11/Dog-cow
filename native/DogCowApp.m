@@ -1,6 +1,7 @@
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
 #import <Security/Security.h>
+#import <Sparkle/Sparkle.h>
 
 static NSString *const DogCowRepository = @"koxinyu11/Dog-cow";
 static NSString *const DogCowKeychainService = @"app.dogcow.updater";
@@ -8,6 +9,7 @@ static NSString *const DogCowKeychainService = @"app.dogcow.updater";
 @interface DogCowAppDelegate : NSObject <NSApplicationDelegate, WKNavigationDelegate, WKScriptMessageHandler>
 @property(nonatomic, strong) NSWindow *window;
 @property(nonatomic, strong) WKWebView *webView;
+@property(nonatomic, strong) SPUStandardUpdaterController *updaterController;
 @end
 
 @implementation DogCowAppDelegate
@@ -42,7 +44,14 @@ static NSString *const DogCowKeychainService = @"app.dogcow.updater";
     [self.webView loadFileURL:indexURL allowingReadAccessToURL:resourceURL];
     [self.window makeKeyAndOrderFront:nil];
     [NSApp activateIgnoringOtherApps:YES];
-    if ([self savedToken]) [self checkForUpdatesPrompting:NO];
+    // The public key is intentionally supplied by the repository maintainer at build time.
+    // Until that happens, keep the legacy token-based checker available for existing builds.
+    NSString *publicKey = [NSBundle.mainBundle objectForInfoDictionaryKey:@"SUPublicEDKey"];
+    if (publicKey.length) {
+        self.updaterController = [[SPUStandardUpdaterController alloc] initWithUpdaterDelegate:nil userDriverDelegate:nil];
+    } else if ([self savedToken]) {
+        [self checkForUpdatesPrompting:NO];
+    }
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender { return YES; }
@@ -53,7 +62,12 @@ static NSString *const DogCowKeychainService = @"app.dogcow.updater";
 - (BOOL)applicationSupportsSecureRestorableState:(NSApplication *)app { return YES; }
 
 - (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message {
-    if ([message.name isEqualToString:@"dogCowUpdater"]) [self checkForUpdatesPrompting:YES];
+    if (![message.name isEqualToString:@"dogCowUpdater"]) return;
+    if (self.updaterController) {
+        [self.updaterController checkForUpdates:nil];
+    } else {
+        [self checkForUpdatesPrompting:YES];
+    }
 }
 
 - (NSString *)savedToken {
