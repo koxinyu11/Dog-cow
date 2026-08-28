@@ -28,7 +28,7 @@ ditto "$SPARKLE_FRAMEWORK" "$APP_DIR/Contents/Frameworks/Sparkle.framework"
   -c "Add :CFBundlePackageType string APPL" \
   -c "Add :CFBundleIconFile string 狗牛.icns" \
   -c "Add :CFBundleShortVersionString string $VERSION" \
-  -c "Add :CFBundleVersion string ${GITHUB_RUN_NUMBER:-1}" \
+  -c "Add :CFBundleVersion string $VERSION" \
   -c "Add :LSMinimumSystemVersion string 11.0" \
   -c "Add :SUEnableAutomaticChecks bool false" \
   -c "Add :NSHighResolutionCapable bool true" "$APP_DIR/Contents/Info.plist"
