@@ -1,13 +1,15 @@
 #import <Cocoa/Cocoa.h>
 #import <WebKit/WebKit.h>
 #import <Security/Security.h>
+#import <Sparkle/Sparkle.h>
 
 static NSString *const DogCowRepository = @"koxinyu11/Dog-cow";
 static NSString *const DogCowKeychainService = @"app.dogcow.updater";
 
-@interface DogCowAppDelegate : NSObject <NSApplicationDelegate, WKNavigationDelegate, WKScriptMessageHandler>
+@interface DogCowAppDelegate : NSObject <NSApplicationDelegate, WKNavigationDelegate, WKScriptMessageHandler, SPUUpdaterDelegate>
 @property(nonatomic, strong) NSWindow *window;
 @property(nonatomic, strong) WKWebView *webView;
+@property(nonatomic, strong) SPUStandardUpdaterController *updaterController;
 @end
 
 @implementation DogCowAppDelegate
@@ -42,7 +44,14 @@ static NSString *const DogCowKeychainService = @"app.dogcow.updater";
     [self.webView loadFileURL:indexURL allowingReadAccessToURL:resourceURL];
     [self.window makeKeyAndOrderFront:nil];
     [NSApp activateIgnoringOtherApps:YES];
-    if ([self savedToken]) [self checkForUpdatesPrompting:NO];
+    // The public key is intentionally supplied by the repository maintainer at build time.
+    // Until that happens, keep the legacy token-based checker available for existing builds.
+    NSString *publicKey = [NSBundle.mainBundle objectForInfoDictionaryKey:@"SUPublicEDKey"];
+    if (publicKey.length) {
+        self.updaterController = [[SPUStandardUpdaterController alloc] initWithUpdaterDelegate:self userDriverDelegate:nil];
+    } else if ([self savedToken]) {
+        [self checkForUpdatesPrompting:NO];
+    }
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender { return YES; }
@@ -53,7 +62,22 @@ static NSString *const DogCowKeychainService = @"app.dogcow.updater";
 - (BOOL)applicationSupportsSecureRestorableState:(NSApplication *)app { return YES; }
 
 - (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message {
-    if ([message.name isEqualToString:@"dogCowUpdater"]) [self checkForUpdatesPrompting:YES];
+    if (![message.name isEqualToString:@"dogCowUpdater"]) return;
+    if (self.updaterController) {
+        NSString *token = [self savedToken] ?: [self requestToken];
+        if (!token.length) return;
+        [self.updaterController checkForUpdates:nil];
+    } else {
+        [self checkForUpdatesPrompting:YES];
+    }
+}
+
+- (void)updater:(SPUUpdater *)updater willDownloadUpdate:(SUAppcastItem *)item withRequest:(NSMutableURLRequest *)request {
+    NSString *token = [self savedToken];
+    if (!token.length) return;
+    [request setValue:[@"Bearer " stringByAppendingString:token] forHTTPHeaderField:@"Authorization"];
+    [request setValue:@"application/octet-stream" forHTTPHeaderField:@"Accept"];
+    [request setValue:@"2022-11-28" forHTTPHeaderField:@"X-GitHub-Api-Version"];
 }
 
 - (NSString *)savedToken {

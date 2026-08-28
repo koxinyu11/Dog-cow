@@ -1,5 +1,6 @@
 .DS_Store
 dist/
+.build-dependencies/
 build/
 .autosync.lock/
 *.log
