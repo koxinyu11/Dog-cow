@@ -14,6 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build universal Mac app
+        env:
+          SPARKLE_PUBLIC_ED_KEY: ${{ vars.SPARKLE_PUBLIC_ED_KEY }}
         run: chmod +x scripts/build.sh && ./scripts/build.sh && cp "dist/狗牛-通用版-Mac安装包.zip" dist/DogCow-Mac.zip
       - name: Create GitHub Release
         env:
