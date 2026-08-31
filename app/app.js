@@ -24,6 +24,17 @@ function weekDates(base = new Date()) {
 const weekKey = (base = new Date()) => toISO(mondayOf(base));
 const tagId = () => `tag-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 const validColor = value => /^#[0-9a-f]{6}$/i.test(value || '') ? value : '#6b7280';
+const tagKey = label => String(label || '').trim().toLocaleLowerCase('zh-CN');
+
+function mergeTagCatalog(catalog = [], tasks = []) {
+  const merged = new Map();
+  [...catalog, ...tasks.flatMap(task => Array.isArray(task.tags) ? task.tags : [])].forEach(tag => {
+    const label = String(tag?.label || '').trim();
+    if (!label) return;
+    merged.set(tagKey(label), { label, color: validColor(tag.color) });
+  });
+  return [...merged.values()].sort((a, b) => a.label.localeCompare(b.label, 'zh-CN'));
+}
 
 function normalizeTask(task) {
   const label = task.category || '工作';
@@ -64,7 +75,8 @@ function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (saved && Array.isArray(saved.tasks)) {
-      return { tasks: saved.tasks.map(normalizeTask), seededWeeks: saved.seededWeeks || [], settings: { ...defaultSettings, ...(saved.settings || {}) } };
+      const tasks = saved.tasks.map(normalizeTask);
+      return { tasks, tags: mergeTagCatalog(saved.tags, tasks), seededWeeks: saved.seededWeeks || [], settings: { ...defaultSettings, ...(saved.settings || {}) } };
     }
   } catch {}
 
@@ -74,17 +86,46 @@ function loadState() {
       if (legacy && Array.isArray(legacy.tasks)) {
         return {
           tasks: legacy.tasks.map(normalizeTask),
+          tags: mergeTagCatalog([], legacy.tasks),
           seededWeeks: legacy.seededWeeks || (legacy.week ? [legacy.week] : []),
           settings: { ...defaultSettings }
         };
       }
     } catch {}
   }
-  return { tasks: [], seededWeeks: [], settings: { ...defaultSettings } };
+  return { tasks: [], tags: [], seededWeeks: [], settings: { ...defaultSettings } };
 }
 
 let state = loadState();
-const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+const save = (syncTags = true) => {
+  if (syncTags) state.tags = mergeTagCatalog(state.tags, state.tasks);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+};
+
+function reusableTagOptions(task = null) {
+  const used = new Set((task?.tags || []).map(tag => tagKey(tag.label)));
+  return state.tags.filter(tag => !used.has(tagKey(tag.label))).map(tag =>
+    `<option value="${escapeHtml(tag.label)}">${escapeHtml(tag.label)}</option>`
+  ).join('');
+}
+
+function findReusableTag(label) {
+  return state.tags.find(tag => tagKey(tag.label) === tagKey(label));
+}
+
+function tagFromInput(label, fallbackColor) {
+  const existing = findReusableTag(label);
+  return { id: tagId(), label: String(label).trim(), color: existing?.color || validColor(fallbackColor) };
+}
+
+function refreshReusableTagInputs() {
+  const options = reusableTagOptions();
+  ['tagReuseInput', 'weeklyTagReuseInput'].forEach(id => {
+    const select = document.getElementById(id);
+    if (!select) return;
+    select.innerHTML = `<option value="">请选择已有标签</option>${options}`;
+  });
+}
 
 function ensureCurrentWeek() {
   const key = weekKey(new Date());
@@ -145,10 +186,13 @@ function priorityOptions(current) {
 function tagsHtml(task) {
   return `<div class="tags-editor">${task.tags.map(tag => `
     <span class="custom-tag" style="--tag-color:${validColor(tag.color)}">
-      <input class="tag-text" data-tag-text="${task.id}" data-tag-id="${tag.id}" value="${escapeHtml(tag.label)}" maxlength="20" aria-label="修改标签" />
+      <input class="tag-text" data-tag-text="${task.id}" data-tag-id="${tag.id}" value="${escapeHtml(tag.label)}" maxlength="20" placeholder="输入标签" aria-label="修改标签" />
       <input class="tag-color" data-tag-color="${task.id}" data-tag-id="${tag.id}" type="color" value="${validColor(tag.color)}" aria-label="选择标签颜色" />
       <button class="tag-remove" data-tag-remove="${task.id}" data-tag-id="${tag.id}" aria-label="删除标签">×</button>
-    </span>`).join('')}<button class="tag-add" data-tag-add="${task.id}">＋ 标签</button></div>`;
+    </span>`).join('')}
+    <select class="tag-reuse-inline" data-tag-reuse="${task.id}" aria-label="复用已有标签"><option value="">＋ 已有标签</option>${reusableTagOptions(task)}</select>
+    <button class="tag-add" data-tag-add="${task.id}">＋ 新标签</button>
+  </div>`;
 }
 
 function timeHtml(task) {
@@ -157,7 +201,8 @@ function timeHtml(task) {
 }
 
 function progressAndMarkerHtml(task) {
-  return `<div class="task-progress"><span>当前进展</span><div class="cow-progress" style="--progress:${task.progress}%"><div class="grass-track"></div><span class="cow-runner">🐄</span><input data-progress="${task.id}" type="range" min="0" max="100" step="5" value="${task.progress}" aria-label="任务进展" /></div><output data-progress-output="${task.id}">${task.progress}% 🌿</output></div>`;
+  const finished = task.progress === 100;
+  return `<div class="task-progress"><span>当前进展</span><div class="cow-progress ${finished ? 'is-finished' : ''}" style="--progress:${task.progress}%"><div class="grass-track"></div><span class="cow-runner">🐄</span><span class="cow-bubble" aria-hidden="true">吃完啦</span><input data-progress="${task.id}" type="range" min="0" max="100" step="5" value="${task.progress}" aria-label="任务进展" /></div><output data-progress-output="${task.id}">${finished ? '100% 吃饱啦' : `${task.progress}% 🌿`}</output></div>`;
 }
 
 function renderWeeklySummary(visibleWeek) {
@@ -235,7 +280,7 @@ function bindTaskEvents() {
     textarea.oninput = () => { state.tasks.find(item => item.id === textarea.dataset.note).note = textarea.value; save(); };
   });
   document.querySelectorAll('[data-tag-text]').forEach(input => {
-    input.oninput = () => { const task = state.tasks.find(item => item.id === input.dataset.tagText); task.tags.find(tag => tag.id === input.dataset.tagId).label = input.value; save(); };
+    input.oninput = () => { const task = state.tasks.find(item => item.id === input.dataset.tagText); task.tags.find(tag => tag.id === input.dataset.tagId).label = input.value; save(false); };
     input.onchange = () => { const task = state.tasks.find(item => item.id === input.dataset.tagText); task.tags.find(tag => tag.id === input.dataset.tagId).label = input.value.trim() || '标签'; save(); render(); };
   });
   document.querySelectorAll('[data-tag-color]').forEach(input => {
@@ -245,7 +290,18 @@ function bindTaskEvents() {
     button.onclick = () => { const task = state.tasks.find(item => item.id === button.dataset.tagRemove); task.tags = task.tags.filter(tag => tag.id !== button.dataset.tagId); save(); render(); };
   });
   document.querySelectorAll('[data-tag-add]').forEach(button => {
-    button.onclick = () => { const task = state.tasks.find(item => item.id === button.dataset.tagAdd); task.tags.push({ id: tagId(), label: '新标签', color: '#8b5cf6' }); save(); render(); };
+    button.onclick = () => { const task = state.tasks.find(item => item.id === button.dataset.tagAdd); task.tags.push({ id: tagId(), label: '', color: '#8b5cf6' }); save(false); render(); };
+  });
+  document.querySelectorAll('[data-tag-reuse]').forEach(select => {
+    select.onchange = () => {
+      if (!select.value) return;
+      const label = select.value;
+      const task = state.tasks.find(item => item.id === select.dataset.tagReuse);
+      task.tags.push(tagFromInput(label, '#6b7280'));
+      save();
+      render();
+      showToast(`已添加标签「${label}」`);
+    };
   });
   document.querySelectorAll('[data-time-add]').forEach(button => {
     button.onclick = () => { const task = state.tasks.find(item => item.id === button.dataset.timeAdd); task.hasTime = true; task.startTime = '09:00'; task.endTime = '10:00'; save(); render(); };
@@ -256,7 +312,25 @@ function bindTaskEvents() {
   document.querySelectorAll('[data-start-time]').forEach(input => { input.onchange = () => { state.tasks.find(item => item.id === input.dataset.startTime).startTime = input.value; save(); }; });
   document.querySelectorAll('[data-end-time]').forEach(input => { input.onchange = () => { state.tasks.find(item => item.id === input.dataset.endTime).endTime = input.value; save(); }; });
   document.querySelectorAll('[data-progress]').forEach(input => {
-    input.oninput = () => { const task = state.tasks.find(item => item.id === input.dataset.progress); task.progress = Number(input.value); input.closest('.cow-progress').style.setProperty('--progress', `${task.progress}%`); document.querySelector(`[data-progress-output="${task.id}"]`).textContent = `${task.progress}% 🌿`; save(); renderWeeklySummary(weekDates(fromISO(selected))); };
+    input.oninput = () => {
+      const task = state.tasks.find(item => item.id === input.dataset.progress);
+      const wasFinished = task.progress === 100;
+      task.progress = Number(input.value);
+      const progress = input.closest('.cow-progress');
+      const finished = task.progress === 100;
+      progress.style.setProperty('--progress', `${task.progress}%`);
+      progress.classList.toggle('is-finished', finished);
+      if (finished && !wasFinished) {
+        progress.classList.remove('is-eating');
+        void progress.offsetWidth;
+        progress.classList.add('is-eating');
+      } else if (!finished) {
+        progress.classList.remove('is-eating');
+      }
+      document.querySelector(`[data-progress-output="${task.id}"]`).textContent = finished ? '100% 吃饱啦' : `${task.progress}% 🌿`;
+      save();
+      renderWeeklySummary(weekDates(fromISO(selected)));
+    };
   });
 }
 
@@ -357,6 +431,7 @@ document.getElementById('addBtn').onclick = event => {
   dateField.value = selected;
   dateField.min = toISO(days[0]);
   dateField.max = toISO(days[6]);
+  refreshReusableTagInputs();
   modal.classList.add('show');
   setTimeout(() => document.getElementById('titleInput').focus(), 50);
 };
@@ -367,8 +442,19 @@ document.getElementById('timeModeInput').onchange = event => { document.getEleme
 const weeklyModal = document.getElementById('weeklyModalBackdrop');
 document.getElementById('weeklyBtn').onclick = () => {
   document.getElementById('weeklyStartInput').value = toISO(mondayOf(fromISO(selected)));
+  refreshReusableTagInputs();
   weeklyModal.classList.add('show');
   setTimeout(() => document.getElementById('weeklyTasksInput').focus(), 50);
+};
+document.getElementById('tagReuseInput').onchange = event => {
+  const tag = findReusableTag(event.target.value);
+  if (!tag) return;
+  document.getElementById('tagInput').value = tag.label;
+  document.getElementById('tagColorInput').value = tag.color;
+};
+document.getElementById('weeklyTagReuseInput').onchange = event => {
+  const tag = findReusableTag(event.target.value);
+  document.getElementById('weeklyTagInput').value = tag?.label || '';
 };
 document.getElementById('weeklyCancelBtn').onclick = () => weeklyModal.classList.remove('show');
 weeklyModal.onclick = event => { if (event.target === weeklyModal) weeklyModal.classList.remove('show'); };
@@ -390,7 +476,7 @@ document.getElementById('weeklyTaskForm').onsubmit = event => {
     const date = availableDays[index % availableDays.length];
     const round = Math.floor(index / availableDays.length);
     const startMinutes = Math.min(baseMinutes + round * (duration + 30), 22 * 60 - duration);
-    return normalizeTask({ id: `weekly-${batchId}-${index}`, date: toISO(date), title, category: label || '工作', tags: label ? [{ id: tagId(), label, color: '#6b7280' }] : [], priority, note: '由每周任务自动安排，可继续人工修改。', progress: 0, calendarMark: false, markerColor: '#8b5cf6', hasTime: true, startTime: minutesToTime(startMinutes), endTime: minutesToTime(startMinutes + duration), done: false, fixed: false });
+    return normalizeTask({ id: `weekly-${batchId}-${index}`, date: toISO(date), title, category: label || '工作', tags: label ? [tagFromInput(label, '#6b7280')] : [], priority, note: '由每周任务自动安排，可继续人工修改。', progress: 0, calendarMark: false, markerColor: '#8b5cf6', hasTime: true, startTime: minutesToTime(startMinutes), endTime: minutesToTime(startMinutes + duration), done: false, fixed: false });
   });
   state.tasks.push(...generated);
   selected = generated[0].date;
@@ -413,7 +499,7 @@ document.getElementById('taskForm').onsubmit = event => {
     date,
     title: document.getElementById('titleInput').value.trim(),
     category: label || '工作',
-    tags: label ? [{ id: tagId(), label, color: document.getElementById('tagColorInput').value }] : [],
+    tags: label ? [tagFromInput(label, document.getElementById('tagColorInput').value)] : [],
     priority: document.getElementById('priorityInput').value,
     note: document.getElementById('noteInput').value.trim(),
     progress: 0,
@@ -430,6 +516,7 @@ document.getElementById('taskForm').onsubmit = event => {
   render();
   event.target.reset();
   document.getElementById('tagInput').value = '';
+  document.getElementById('tagReuseInput').value = '';
   document.getElementById('tagColorInput').value = '#6b7280';
   document.getElementById('timeFields').classList.remove('show');
   document.getElementById('markerModeInput').value = 'none';

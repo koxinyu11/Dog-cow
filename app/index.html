@@ -92,6 +92,7 @@
     .tag-color::-webkit-color-swatch { border: 0; border-radius: 50%; }
     .tag-remove { width: 18px; height: 18px; border: 0; border-radius: 50%; padding: 0; color: #777; background: rgba(255,255,255,.55); line-height: 1; }
     .tag-add { border: 1px dashed #bdc4bc; border-radius: 99px; padding: 3px 8px; color: #69736b; background: transparent; font-size: 12px; font-weight: 750; }
+    .tag-reuse-inline { width: auto; max-width: 132px; border: 1px solid #d9ddd6; border-radius: 99px; padding: 3px 24px 3px 8px; color: #526057; background: #f7f8f4; font-size: 12px; font-weight: 750; }
     .priority-select { width: auto; border: 0; border-radius: 99px; padding: 3px 24px 3px 8px; color: #545f56; background: #f0f1ec; font-size: 12px; font-weight: 750; }
     .priority-select.high { color: #a33c31; background: #fae7e4; }
     .priority-select.low { color: #68736a; background: #eff0ec; }
@@ -100,11 +101,18 @@
     .time-editor { display: flex; align-items: center; gap: 6px; margin-top: 9px; color: var(--muted); font-size: 12px; }
     .time-input { width: 106px; padding: 6px 8px; border-radius: 8px; font-size: 12px; }
     .time-toggle { border: 1px solid #dfe2db; border-radius: 8px; padding: 6px 9px; color: var(--green); background: #f7f8f4; font-size: 12px; font-weight: 750; }
-    .task-progress { display: grid; grid-template-columns: auto minmax(150px, 1fr) 58px; align-items: center; gap: 10px; margin-top: 11px; color: var(--muted); font-size: 12px; }
+    .task-progress { display: grid; grid-template-columns: auto minmax(150px, 1fr) 82px; align-items: center; gap: 10px; margin-top: 11px; color: var(--muted); font-size: 12px; }
     .cow-progress { --progress: 0%; height: 32px; position: relative; }
-    .grass-track { position: absolute; left: 0; right: 0; bottom: 4px; height: 9px; border-radius: 99px; background: linear-gradient(90deg, #c9dfb2, #6fa85f); box-shadow: inset 0 1px 2px rgba(37,92,72,.18); overflow: hidden; }
+    .grass-track { position: absolute; left: 0; right: 0; bottom: 4px; height: 9px; border-radius: 99px; background: linear-gradient(90deg, #c9dfb2, #6fa85f); box-shadow: inset 0 1px 2px rgba(37,92,72,.18); overflow: hidden; transform: scaleX(1); transform-origin: left center; transition: transform .65s cubic-bezier(.2,.8,.2,1), opacity .3s ease .35s; }
     .grass-track::after { content: "🌱  🌿  🌱  🌿  🌱  🌿  🌱  🌿  🌱"; position: absolute; right: 2px; bottom: -1px; white-space: nowrap; font-size: 11px; letter-spacing: 4px; opacity: .9; }
     .cow-runner { position: absolute; left: clamp(13px, var(--progress), calc(100% - 13px)); top: -2px; z-index: 2; font-size: 24px; line-height: 1; transform: translateX(-50%); transition: left .12s ease-out; filter: drop-shadow(0 2px 2px rgba(31,66,48,.2)); pointer-events: none; }
+    .cow-bubble { position: absolute; right: -2px; top: -25px; z-index: 2; padding: 3px 7px; border: 1px solid #cbd8cc; border-radius: 9px 9px 9px 3px; color: var(--green); background: #fff; box-shadow: 0 4px 12px rgba(37,92,72,.12); font-size: 10px; font-weight: 850; white-space: nowrap; opacity: 0; transform: translateY(4px) scale(.9); pointer-events: none; }
+    .cow-progress.is-finished .grass-track { opacity: .18; transform: scaleX(0); }
+    .cow-progress.is-finished .cow-runner { filter: drop-shadow(0 2px 2px rgba(31,66,48,.2)) saturate(.9); }
+    .cow-progress.is-eating .cow-runner { animation: cow-chew .75s cubic-bezier(.34,1.56,.64,1) 2; }
+    .cow-progress.is-eating .cow-bubble { animation: cow-bubble 1.9s cubic-bezier(.16,1,.3,1) forwards; }
+    @keyframes cow-chew { 0%, 100% { transform: translateX(-50%) rotate(0) scale(1); } 35% { transform: translateX(-50%) rotate(-7deg) scale(1.12,.9); } 65% { transform: translateX(-50%) rotate(5deg) scale(.96,1.08); } }
+    @keyframes cow-bubble { 0%, 18% { opacity: 0; transform: translateY(5px) scale(.86); } 30%, 78% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-4px) scale(.96); } }
     .cow-progress input[type="range"] { position: absolute; inset: 0; z-index: 3; height: 32px; margin: 0; padding: 0; border: 0; opacity: 0; cursor: grab; box-shadow: none; }
     .cow-progress input[type="range"]:active { cursor: grabbing; }
     .task-progress output { color: var(--green); font-weight: 850; text-align: right; white-space: nowrap; }
@@ -152,11 +160,18 @@
     .confetti-layer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
     .confetti { position: absolute; top: -18px; width: 10px; height: 16px; border-radius: 3px; animation: confetti-fall var(--duration) cubic-bezier(.15,.75,.45,1) forwards; transform: rotate(var(--rotation)); }
     @keyframes confetti-fall { 0% { transform: translate3d(0,-20px,0) rotate(0); opacity: 1; } 75% { opacity: 1; } 100% { transform: translate3d(var(--drift),105vh,0) rotate(820deg); opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) {
+      .grass-track, .cow-runner { transition: none; }
+      .cow-progress.is-eating .cow-runner, .cow-progress.is-eating .cow-bubble { animation: none; }
+      .cow-progress.is-finished .cow-bubble { opacity: 1; transform: none; }
+    }
     .button-edit { margin-left: 7px; font-size: 12px; opacity: .7; }
     .time-fields { display: none; grid-column: 1 / -1; grid-template-columns: 1fr 1fr; gap: 14px; }
     .time-fields.show { display: grid; }
     .tag-color-label { display: flex; align-items: center; gap: 8px; }
     .form-color { width: 44px; height: 42px; padding: 3px; }
+    .tag-picker { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 12px; border: 1px solid #e5e6df; border-radius: 13px; background: #f8f8f4; }
+    .tag-picker-note { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 12px; font-weight: 500; }
     @media (max-width: 820px) {
       .shell { padding: 22px 15px 60px; }
       header { align-items: flex-start; flex-direction: column; }
@@ -168,6 +183,8 @@
     @media (max-width: 520px) {
       .form-grid { grid-template-columns: 1fr; }
       label.full { grid-column: auto; }
+      .tag-picker { grid-template-columns: 1fr; }
+      .tag-picker-note { grid-column: auto; }
       .task { grid-template-columns: 30px 1fr auto; }
     }
   </style>
@@ -227,11 +244,15 @@
       <h3 id="modalTitle">新增工作需求</h3>
       <div class="form-grid">
         <label class="full">需求名称<input id="titleInput" required maxlength="60" placeholder="例如：临时活动海报修改" /></label>
-        <label>初始标签<input id="tagInput" maxlength="20" placeholder="例如：紧急、内容、客户" /></label>
-        <label class="tag-color-label">标签颜色<input class="form-color" id="tagColorInput" type="color" value="#6b7280" /></label>
+        <div class="tag-picker">
+          <label>标签列表<select id="tagReuseInput"><option value="">请选择已有标签</option></select></label>
+          <label>新建或修改标签<input id="tagInput" maxlength="20" placeholder="例如：紧急、内容、客户" /></label>
+          <label class="tag-color-label">标签颜色<input class="form-color" id="tagColorInput" type="color" value="#6b7280" /></label>
+          <p class="tag-picker-note">选择历史标签可直接复用；输入新名称后会自动保存到标签列表。</p>
+        </div>
         <label>优先级<select id="priorityInput"><option value="高">高</option><option value="中" selected>中</option><option value="低">低</option></select></label>
         <label>安排日期<input id="dateInput" type="date" required /></label>
-        <label class="full">时间类型<select id="timeModeInput"><option value="none" selected>无具体时间</option><option value="timed">设置具体时间</option></select></label>
+        <label class="full">截止时间<select id="timeModeInput"><option value="none" selected>无具体时间</option><option value="timed">设置具体时间</option></select></label>
         <div class="time-fields" id="timeFields"><label>开始时间<input id="startTimeInput" type="time" /></label><label>结束时间<input id="endTimeInput" type="time" /></label></div>
         <label>月历标识<select id="markerModeInput"><option value="none" selected>普通任务</option><option value="marked">显示彩色点</option></select></label>
         <label class="tag-color-label">标识颜色<input class="form-color" id="markerColorInput" type="color" value="#8b5cf6" /></label>
@@ -250,7 +271,11 @@
         <label>分配范围<select id="weeklyRangeInput"><option value="weekdays" selected>周一至周五</option><option value="allweek">整周（含周末）</option></select></label>
         <label>每天开始时间<input id="weeklyTimeInput" type="time" value="09:00" required /></label>
         <label>每项时长<select id="weeklyDurationInput"><option value="30">30 分钟</option><option value="60" selected>60 分钟</option><option value="90">90 分钟</option><option value="120">120 分钟</option></select></label>
-        <label>默认标签<input id="weeklyTagInput" maxlength="20" placeholder="例如：本周重点" /></label>
+        <div class="tag-picker">
+          <label>标签列表<select id="weeklyTagReuseInput"><option value="">请选择已有标签</option></select></label>
+          <label>默认标签<input id="weeklyTagInput" maxlength="20" placeholder="例如：本周重点" /></label>
+          <p class="tag-picker-note">可以直接复用以前创建过的标签。</p>
+        </div>
         <label>默认优先级<select id="weeklyPriorityInput"><option value="高">高</option><option value="中" selected>中</option><option value="低">低</option></select></label>
       </div>
       <div class="form-actions"><button type="button" class="btn ghost" id="weeklyCancelBtn">取消</button><button class="btn primary" type="submit">自动生成一周任务</button></div>
