@@ -5,12 +5,12 @@
     <link>https://github.com/koxinyu11/Dog-cow/releases</link>
     <description>Application updates for 狗牛.</description>
     <item>
-      <title>狗牛 2.5.5</title>
-      <sparkle:version>2.5.5</sparkle:version>
-      <sparkle:shortVersionString>2.5.5</sparkle:shortVersionString>
+      <title>狗牛 2.6.0</title>
+      <sparkle:version>2.6.0</sparkle:version>
+      <sparkle:shortVersionString>2.6.0</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>11.0</sparkle:minimumSystemVersion>
-      <pubDate>Fri, 28 Aug 2026 18:51:15 +0000</pubDate>
-      <enclosure url="https://github.com/koxinyu11/Dog-cow/releases/download/v2.5.5/DogCow-Mac.zip" length="1780703" type="application/octet-stream" sparkle:edSignature="DsPkdgsUjCQct1VU+KHGtCrLEljOeUAJ5L8+I9X4j2dHKtIqtwB4Ij+sshyd6sNFRjagn3/+XMeLWAYZpkYlBg==" />
+      <pubDate>Tue, 01 Sep 2026 09:19:55 +0000</pubDate>
+      <enclosure url="https://github.com/koxinyu11/Dog-cow/releases/download/v2.6.0/DogCow-Mac.zip" length="1765366" type="application/octet-stream" sparkle:edSignature="LcOh0JPRo9v774WLIBT2axWKAldApHkPlQB2YubX5fPm+9KyHQcfW8LHcRClfteYe2NrSYE8njs8nfNF5WHxBA==" />
     </item>
   </channel>
 </rss>
