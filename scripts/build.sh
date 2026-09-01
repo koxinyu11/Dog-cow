@@ -14,7 +14,7 @@ SPARKLE_FRAMEWORK="$SPARKLE_DIR/Sparkle.framework"
 rm -rf "$BUILD_DIR" "$DIST_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources" "$APP_DIR/Contents/Frameworks" "$DIST_DIR"
 xcrun clang -fobjc-arc -arch arm64 -arch x86_64 -mmacosx-version-min=11.0 \
-  -F"$SPARKLE_DIR" -framework Cocoa -framework WebKit -framework Security -framework Sparkle \
+  -F"$SPARKLE_DIR" -framework Cocoa -framework WebKit -framework Sparkle \
   -Wl,-rpath,@loader_path/../Frameworks \
   "$REPO_DIR/native/DogCowApp.m" -o "$APP_DIR/Contents/MacOS/狗牛"
 cp "$REPO_DIR/app/index.html" "$APP_DIR/Contents/Resources/index.html"

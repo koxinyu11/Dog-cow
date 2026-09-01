@@ -6,7 +6,8 @@
 
 - 周一至周日任务、日历和历史记录
 - 单项任务与整周任务快速创建
-- 时间/无具体时间、优先级、标签、备注和进展
+- 截止时间/无具体时间、优先级、可复用历史标签、备注和进展
+- 任务达到 100% 时显示牛吃草完成反馈，并适配系统“减少动态效果”
 - 增加你工作的成就感
 - GitHub Release 应用内更新检查（Sparkle）
 
@@ -21,7 +22,7 @@
 产物位于 `dist/狗牛-通用版-Mac安装包.zip`，支持 Apple Silicon 和 Intel Mac。
 ## 应用内更新
 
-App 使用 Sparkle 下载、验证、安装更新并重启，用户无需手动解压替换。因为 Release 位于私人仓库，App 会沿用现有的 GitHub fine-grained token（只需 Contents 只读权限）为 Sparkle 下载请求授权；token 只保存在用户自己的 macOS 钥匙串。维护配置见 [`docs/UPDATER_SETUP.md`](docs/UPDATER_SETUP.md)。
+App 使用 Sparkle 从公开可匿名访问的 appcast 与 GitHub Release 附件下载、验证、安装更新并重启，用户无需手动解压替换，也无需提供 GitHub 登录凭证。更新包仍必须通过 Sparkle EdDSA 签名验证。维护配置见 [`docs/UPDATER_SETUP.md`](docs/UPDATER_SETUP.md)。
 
 版本由根目录 `VERSION` 管理。推送 `v*` 标签后，GitHub Actions 会构建通用安装包并创建 Release。
 

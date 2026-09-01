@@ -19,7 +19,7 @@
 - Variable `SPARKLE_PUBLIC_ED_KEY`：上一步输出的 base64 公钥。
 - Secret `SPARKLE_ED_KEY`：按 Sparkle `generate_keys -x` 导出的私钥文本；该 Secret 只在 Release 工作流中使用。
 
-在 Settings → Pages 中选择从 `main` 分支的 `/docs` 目录发布。更新 feed 固定为 `https://koxinyu11.github.io/Dog-cow/appcast.xml`。仓库是私有的，因此 App 会从 macOS 钥匙串读取现有的 GitHub fine-grained token，并只在下载私人 Release 附件时把授权头交给 Sparkle。
+在 Settings → Pages 中选择从 `main` 分支的 `/docs` 目录发布。更新 feed 固定为 `https://koxinyu11.github.io/Dog-cow/appcast.xml`。appcast 和 `DogCow-Mac.zip` Release 附件必须保持公开、可匿名访问；App 不读取访问令牌、不访问系统钥匙串，也不会给下载请求添加认证信息。
 
 ## 3. 发布工作流
 
@@ -27,6 +27,6 @@
 
 ## 4. 首次发布前验证
 
-将 `SPARKLE_PUBLIC_ED_KEY` 临时导出后执行 `./scripts/build.sh`。打开构建出的 App，点击“检查更新”，并使用一份旧版本验证下载、安装和重启流程。
+将 `SPARKLE_PUBLIC_ED_KEY` 临时导出后执行 `./scripts/build.sh`。打开构建出的 App，点击“检查更新”会直接调用 Sparkle；使用一份旧版本验证匿名下载、EdDSA 验签、安装和重启流程。
 
 Sparkle 的 EdDSA 签名防止恶意更新包被安装。没有 Apple Developer ID 时，首次打开 App 仍可能需要用户在 macOS 安全设置中确认，这是独立于更新机制的系统提示。
