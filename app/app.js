@@ -188,6 +188,12 @@ function taskMatchesDate(task, dateIso) {
   return task.date <= dateIso && dateIso <= task.deadline;
 }
 
+function nextDateIso(date) {
+  const shifted = fromISO(date);
+  shifted.setDate(shifted.getDate() + 1);
+  return toISO(shifted);
+}
+
 function sortedTasks(tasks) {
   return tasks.map((task, index) => ({ task, index }))
     .sort((a, b) => priorityRank[a.task.priority] - priorityRank[b.task.priority] || a.index - b.index)
@@ -356,6 +362,17 @@ function bindTaskEvents() {
       }
     };
   });
+  document.querySelectorAll('[data-snooze]').forEach(button => {
+    button.onclick = () => {
+      const task = state.tasks.find(item => item.id === button.dataset.snooze);
+      if (!task || task.done) return;
+      task.date = nextDateIso(task.date);
+      if (task.deadline && task.deadline < task.date) task.deadline = task.date;
+      save();
+      showToast('已同步到下一日');
+      render();
+    };
+  });
   document.querySelectorAll('[data-progress]').forEach(input => {
     input.oninput = () => {
       const task = state.tasks.find(item => item.id === input.dataset.progress);
@@ -413,6 +430,7 @@ function render() {
         ${deadlineHtml(task)}
         ${progressAndMarkerHtml(task)}
         <textarea class="note-input" data-note="${task.id}" rows="1" maxlength="500" placeholder="添加备注、链接或进展…">${escapeHtml(task.note || '')}</textarea>
+        ${task.done ? '' : `<button class="snooze-toggle" data-snooze="${task.id}">同步到下一日</button>`}
       </div>
       <button class="delete" data-delete="${task.id}" aria-label="删除">删除</button>
     </div>`).join('') : '<div class="empty">这一天没有工作记录，可以添加一项新任务。</div>';
