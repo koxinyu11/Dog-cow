@@ -100,6 +100,14 @@
     .time-editor { display: flex; align-items: center; gap: 6px; margin-top: 9px; color: var(--muted); font-size: 12px; }
     .time-input { width: 106px; padding: 6px 8px; border-radius: 8px; font-size: 12px; }
     .time-toggle { border: 1px solid #dfe2db; border-radius: 8px; padding: 6px 9px; color: var(--green); background: #f7f8f4; font-size: 12px; font-weight: 750; }
+    .deadline-editor { display: flex; align-items: center; gap: 6px; margin-top: 9px; color: var(--muted); font-size: 12px; }
+    .deadline-label { font-weight: 600; }
+    .deadline-input { width: 130px; padding: 6px 8px; border: 1px solid #dfe2db; border-radius: 8px; font-size: 12px; background: #fafaf7; }
+    .deadline-status { font-weight: 600; color: var(--green); }
+    .deadline-editor.urgent .deadline-status { color: var(--orange); }
+    .deadline-editor.overdue .deadline-status { color: var(--red); }
+    .deadline-toggle { border: 1px solid #dfe2db; border-radius: 8px; padding: 6px 9px; color: var(--green); background: #f7f8f4; font-size: 12px; font-weight: 750; }
+    .snooze-toggle { border: 1px solid #dfe2db; border-radius: 8px; padding: 6px 9px; color: var(--green); background: #f7f8f4; font-size: 12px; font-weight: 750; margin-top: 9px; width: fit-content; }
     .task-progress { display: grid; grid-template-columns: auto minmax(150px, 1fr) 74px; align-items: center; gap: 10px; margin-top: 11px; color: var(--muted); font-size: 12px; }
     .cow-progress { --progress: 0%; height: 32px; position: relative; }
     .grass-track { position: absolute; left: 0; right: 0; bottom: 4px; height: 9px; border-radius: 99px; background: linear-gradient(90deg, #c9dfb2, #6fa85f); box-shadow: inset 0 1px 2px rgba(37,92,72,.18); overflow: hidden; }
@@ -248,8 +256,9 @@
         <label class="tag-color-label">标签颜色<input class="form-color" id="tagColorInput" type="color" value="#6b7280" /></label>
         <label>优先级<select id="priorityInput"><option value="高">高</option><option value="中" selected>中</option><option value="低">低</option></select></label>
         <label>安排日期<input id="dateInput" type="date" required /></label>
-        <label class="full">截止时间<select id="timeModeInput"><option value="none" selected>无具体时间</option><option value="timed">设置具体时间</option></select></label>
+        <label class="full">具体时间<select id="timeModeInput"><option value="none" selected>无具体时间</option><option value="timed">设置具体时间</option></select></label>
         <div class="time-fields" id="timeFields"><label>开始时间<input id="startTimeInput" type="time" /></label><label>结束时间<input id="endTimeInput" type="time" /></label></div>
+        <label class="full">截止日期（可选）<input id="deadlineInput" type="date" placeholder="选择截止日期" /></label>
         <label>月历标识<select id="markerModeInput"><option value="none" selected>普通任务</option><option value="marked">显示彩色点</option></select></label>
         <label class="tag-color-label">标识颜色<input class="form-color" id="markerColorInput" type="color" value="#8b5cf6" /></label>
         <label class="full">任务备注<textarea id="noteInput" rows="3" maxlength="500" placeholder="可选：记录要求、链接或进展"></textarea></label>
