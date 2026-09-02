@@ -6,6 +6,10 @@
 @property(nonatomic, strong) NSWindow *window;
 @property(nonatomic, strong) WKWebView *webView;
 @property(nonatomic, strong) SPUStandardUpdaterController *updaterController;
+@property(nonatomic, strong) NSTitlebarAccessoryViewController *compactAccessoryController;
+@property(nonatomic, strong) NSButton *compactButton;
+@property(nonatomic) NSRect expandedFrame;
+@property(nonatomic) BOOL compactMode;
 @end
 
 @implementation DogCowAppDelegate
@@ -29,6 +33,7 @@
     [self.window setFrameAutosaveName:@"DogCowMainWindow"];
     self.window.contentView = self.webView;
     [self.window center];
+    [self installCompactButton];
 
     NSURL *resourceURL = NSBundle.mainBundle.resourceURL;
     NSURL *indexURL = [resourceURL URLByAppendingPathComponent:@"index.html"];
@@ -41,6 +46,56 @@
     [self.window makeKeyAndOrderFront:nil];
     [NSApp activateIgnoringOtherApps:YES];
     self.updaterController = [[SPUStandardUpdaterController alloc] initWithUpdaterDelegate:nil userDriverDelegate:nil];
+}
+
+- (void)installCompactButton {
+    NSView *container = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 38, 28)];
+    self.compactButton = [[NSButton alloc] initWithFrame:NSMakeRect(5, 3, 28, 22)];
+    self.compactButton.bezelStyle = NSBezelStyleTexturedRounded;
+    self.compactButton.bordered = NO;
+    self.compactButton.target = self;
+    self.compactButton.action = @selector(toggleCompactMode:);
+    self.compactButton.toolTip = @"缩成条状";
+    self.compactButton.image = [NSImage imageWithSystemSymbolName:@"rectangle.compress.vertical"
+                                        accessibilityDescription:@"缩成条状"];
+    self.compactButton.imagePosition = NSImageOnly;
+    [container addSubview:self.compactButton];
+
+    self.compactAccessoryController = [[NSTitlebarAccessoryViewController alloc] init];
+    self.compactAccessoryController.view = container;
+    self.compactAccessoryController.layoutAttribute = NSLayoutAttributeRight;
+    [self.window addTitlebarAccessoryViewController:self.compactAccessoryController];
+}
+
+- (void)toggleCompactMode:(id)sender {
+    if (!self.compactMode) {
+        self.expandedFrame = self.window.frame;
+        CGFloat titlebarHeight = NSHeight(self.window.frame) - NSHeight(self.window.contentLayoutRect);
+        CGFloat compactHeight = MAX(36.0, titlebarHeight);
+        NSRect compactFrame = self.window.frame;
+        compactFrame.origin.y = NSMaxY(compactFrame) - compactHeight;
+        compactFrame.size.height = compactHeight;
+
+        self.compactMode = YES;
+        self.webView.hidden = YES;
+        self.window.titleVisibility = NSWindowTitleVisible;
+        self.window.styleMask &= ~NSWindowStyleMaskResizable;
+        self.window.minSize = NSMakeSize(320, compactHeight);
+        self.compactButton.image = [NSImage imageWithSystemSymbolName:@"rectangle.expand.vertical"
+                                            accessibilityDescription:@"展开狗牛"];
+        self.compactButton.toolTip = @"展开狗牛";
+        [self.window setFrame:compactFrame display:YES animate:YES];
+    } else {
+        self.compactMode = NO;
+        self.window.styleMask |= NSWindowStyleMaskResizable;
+        self.window.minSize = NSMakeSize(900, 620);
+        self.window.titleVisibility = NSWindowTitleHidden;
+        self.webView.hidden = NO;
+        self.compactButton.image = [NSImage imageWithSystemSymbolName:@"rectangle.compress.vertical"
+                                            accessibilityDescription:@"缩成条状"];
+        self.compactButton.toolTip = @"缩成条状";
+        [self.window setFrame:self.expandedFrame display:YES animate:YES];
+    }
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender { return YES; }
