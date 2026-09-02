@@ -25,6 +25,23 @@ function weekDates(base = new Date()) {
 const weekKey = (base = new Date()) => toISO(mondayOf(base));
 const tagId = () => `tag-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 const validColor = value => /^#[0-9a-f]{6}$/i.test(value || '') ? value : '#6b7280';
+const validISODate = value => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false;
+  const parsed = fromISO(value);
+  return !Number.isNaN(parsed.getTime()) && toISO(parsed) === value;
+};
+const addDaysISO = (value, days) => {
+  const date = fromISO(value);
+  return toISO(new Date(date.getFullYear(), date.getMonth(), date.getDate() + days));
+};
+const daysBetween = (start, end) => Math.round((fromISO(end) - fromISO(start)) / 86400000);
+function moveTaskToNextDay(task) {
+  if (!task || task.done || !validISODate(task.date)) return '';
+  const nextDate = addDaysISO(task.date, 1);
+  task.date = nextDate;
+  if (task.dueDate && task.dueDate < nextDate) task.dueDate = nextDate;
+  return nextDate;
+}
 const normalizeTag = tag => ({ label: String(tag?.label || '').trim().slice(0, 20), color: validColor(tag?.color) });
 
 function mergeTagLibrary(savedTags, tasks) {
@@ -54,7 +71,8 @@ function normalizeTask(task) {
     markerColor: validColor(task.markerColor || '#8b5cf6'),
     hasTime: Boolean(task.hasTime),
     startTime: task.startTime || '',
-    endTime: task.endTime || ''
+    endTime: task.endTime || '',
+    dueDate: validISODate(task.dueDate) ? task.dueDate : ''
   };
 }
 
@@ -206,6 +224,21 @@ function timeHtml(task) {
   return `<div class="time-editor"><input class="time-input" data-start-time="${task.id}" type="time" value="${task.startTime || ''}" aria-label="开始时间" /><span>至</span><input class="time-input" data-end-time="${task.id}" type="time" value="${task.endTime || ''}" aria-label="结束时间" /><button class="time-toggle" data-time-remove="${task.id}">移除时间</button></div>`;
 }
 
+function deadlineHtml(task) {
+  if (!task.dueDate) {
+    return `<div class="deadline-editor"><button class="deadline-toggle" data-deadline-add="${task.id}">＋ 设置截止日期</button><span class="deadline-hint">当前无截止日期</span></div>`;
+  }
+  const today = toISO(new Date());
+  const remainingDays = daysBetween(today, task.dueDate);
+  let status = task.done ? '已完成' : remainingDays < 0 ? `已过期 ${Math.abs(remainingDays)} 天` : remainingDays === 0 ? '今天截止' : `剩余 ${remainingDays} 天`;
+  const statusClass = task.done ? 'done' : remainingDays < 0 ? 'overdue' : remainingDays === 0 ? 'today' : '';
+  return `<div class="deadline-editor"><span class="deadline-label">截止日期</span><input class="deadline-input" data-deadline-date="${task.id}" type="date" min="${task.date}" value="${task.dueDate}" aria-label="截止日期" /><button class="deadline-toggle" data-deadline-remove="${task.id}">移除</button><span class="deadline-status ${statusClass}">${status}</span></div>`;
+}
+
+function taskMatchesDate(task, iso) {
+  return task.date === iso || Boolean(task.dueDate && task.dueDate === iso);
+}
+
 function progressAndMarkerHtml(task) {
   const complete = task.progress === 100;
   const celebrating = celebratingTasks.has(task.id);
@@ -214,7 +247,7 @@ function progressAndMarkerHtml(task) {
 
 function renderWeeklySummary(visibleWeek) {
   const weekIsos = new Set(visibleWeek.map(toISO));
-  const weekTasks = state.tasks.filter(task => weekIsos.has(task.date));
+  const weekTasks = state.tasks.filter(task => [...weekIsos].some(iso => taskMatchesDate(task, iso)));
   const averageProgress = weekTasks.length ? Math.round(weekTasks.reduce((sum, task) => sum + task.progress, 0) / weekTasks.length) : 0;
   document.getElementById('summaryTitle').textContent = `${visibleWeek[0].getMonth() + 1}月${visibleWeek[0].getDate()}日–${visibleWeek[6].getMonth() + 1}月${visibleWeek[6].getDate()}日`;
   document.getElementById('cnCount').textContent = weekTasks.length;
@@ -244,14 +277,21 @@ function renderCalendar() {
     if (iso === selected) classes.push('selected');
     if (iso === today) classes.push('today');
     const dayTasks = state.tasks.filter(task => task.date === iso);
+    const deadlineTasks = state.tasks.filter(task => task.dueDate === iso);
+    const matchedTasks = state.tasks.filter(task => taskMatchesDate(task, iso));
     const colors = dayTasks.length ? ['#db6d3a'] : [];
+    if (deadlineTasks.length) colors.push('#b84235');
     dayTasks.filter(task => task.calendarMark).forEach(task => colors.push(task.markerColor));
     const uniqueColors = [...new Set(colors)].slice(0, 3);
     const markedTitles = dayTasks.filter(task => task.calendarMark).map(task => task.title).filter(Boolean);
+    const deadlineTitles = deadlineTasks.map(task => task.title).filter(Boolean);
     if (uniqueColors.length) classes.push('has-tasks');
     const markers = uniqueColors.length ? `<span class="calendar-markers">${uniqueColors.map(color => `<i style="--marker:${validColor(color)}"></i>`).join('')}</span>` : '';
-    const title = markedTitles.length ? ` title="特别事件：${escapeHtml(markedTitles.join('、'))}"` : '';
-    cells.push(`<button class="${classes.join(' ')}" data-calendar-date="${iso}"${title}><span class="calendar-number">${date.getDate()}</span>${markers}</button>`);
+    const titleParts = [];
+    if (markedTitles.length) titleParts.push(`特别事件：${markedTitles.join('、')}`);
+    if (deadlineTitles.length) titleParts.push(`截止：${deadlineTitles.join('、')}`);
+    const title = titleParts.length ? ` title="${escapeHtml(titleParts.join('；'))}"` : '';
+    cells.push(`<button class="${classes.join(' ')}" data-calendar-date="${iso}" data-matched-tasks="${matchedTasks.length}"${title}><span class="calendar-number">${date.getDate()}</span>${markers}</button>`);
   }
   document.getElementById('calendarGrid').innerHTML = cells.join('');
   document.querySelectorAll('[data-calendar-date]:not(:disabled)').forEach(button => {
@@ -321,6 +361,33 @@ function bindTaskEvents() {
   });
   document.querySelectorAll('[data-start-time]').forEach(input => { input.onchange = () => { state.tasks.find(item => item.id === input.dataset.startTime).startTime = input.value; save(); }; });
   document.querySelectorAll('[data-end-time]').forEach(input => { input.onchange = () => { state.tasks.find(item => item.id === input.dataset.endTime).endTime = input.value; save(); }; });
+  document.querySelectorAll('[data-deadline-add]').forEach(button => {
+    button.onclick = () => { const task = state.tasks.find(item => item.id === button.dataset.deadlineAdd); task.dueDate = task.date; save(); render(); };
+  });
+  document.querySelectorAll('[data-deadline-remove]').forEach(button => {
+    button.onclick = () => { const task = state.tasks.find(item => item.id === button.dataset.deadlineRemove); task.dueDate = ''; save(); render(); showToast('截止日期已移除'); };
+  });
+  document.querySelectorAll('[data-deadline-date]').forEach(input => {
+    input.onchange = () => {
+      const task = state.tasks.find(item => item.id === input.dataset.deadlineDate);
+      task.dueDate = validISODate(input.value) ? input.value : '';
+      if (task.dueDate && task.dueDate < task.date) task.dueDate = task.date;
+      save();
+      render();
+    };
+  });
+  document.querySelectorAll('[data-sync-next-day]').forEach(button => {
+    button.onclick = () => {
+      const task = state.tasks.find(item => item.id === button.dataset.syncNextDay);
+      const nextDate = moveTaskToNextDay(task);
+      if (!nextDate) return;
+      selected = nextDate;
+      calendarMonth = new Date(fromISO(selected).getFullYear(), fromISO(selected).getMonth(), 1);
+      save();
+      render();
+      showToast(`已同步到 ${fromISO(nextDate).getMonth() + 1}月${fromISO(nextDate).getDate()}日`);
+    };
+  });
   document.querySelectorAll('[data-progress]').forEach(input => {
     input.oninput = () => {
       const task = state.tasks.find(item => item.id === input.dataset.progress);
@@ -375,10 +442,11 @@ function render() {
         <input class="task-title-input" data-task-title="${task.id}" value="${escapeHtml(task.title)}" maxlength="80" aria-label="修改任务标题" />
         <div class="meta">${tagsHtml(task)}<select class="priority-select ${task.priority === '高' ? 'high' : task.priority === '低' ? 'low' : ''}" data-priority="${task.id}">${priorityOptions(task.priority)}</select></div>
         ${timeHtml(task)}
+        ${deadlineHtml(task)}
         ${progressAndMarkerHtml(task)}
         <textarea class="note-input" data-note="${task.id}" rows="1" maxlength="500" placeholder="添加备注、链接或进展…">${escapeHtml(task.note || '')}</textarea>
       </div>
-      <button class="delete" data-delete="${task.id}" aria-label="删除">删除</button>
+      <div class="task-actions">${task.done ? '' : `<button class="sync-next-day" data-sync-next-day="${task.id}" aria-label="同步到下一日" title="将任务顺延到下一天">同步到下一日</button>`}<button class="delete" data-delete="${task.id}" aria-label="删除">删除</button></div>
     </div>`).join('') : '<div class="empty">这一天没有工作记录，可以添加一项新任务。</div>';
   bindTaskEvents();
 
@@ -443,12 +511,20 @@ document.getElementById('addBtn').onclick = event => {
   dateField.value = selected;
   dateField.min = toISO(days[0]);
   dateField.max = toISO(days[6]);
+  const dueDateField = document.getElementById('dueDateInput');
+  dueDateField.value = '';
+  dueDateField.min = selected;
   modal.classList.add('show');
   setTimeout(() => document.getElementById('titleInput').focus(), 50);
 };
 document.getElementById('cancelBtn').onclick = () => modal.classList.remove('show');
 modal.onclick = event => { if (event.target === modal) modal.classList.remove('show'); };
 document.getElementById('timeModeInput').onchange = event => { document.getElementById('timeFields').classList.toggle('show', event.target.value === 'timed'); };
+document.getElementById('dateInput').onchange = event => {
+  const dueDateField = document.getElementById('dueDateInput');
+  dueDateField.min = event.target.value;
+  if (dueDateField.value && dueDateField.value < event.target.value) dueDateField.value = event.target.value;
+};
 
 const weeklyModal = document.getElementById('weeklyModalBackdrop');
 document.getElementById('weeklyBtn').onclick = () => {
@@ -512,6 +588,7 @@ document.getElementById('taskForm').onsubmit = event => {
     hasTime,
     startTime: hasTime ? document.getElementById('startTimeInput').value : '',
     endTime: hasTime ? document.getElementById('endTimeInput').value : '',
+    dueDate: document.getElementById('dueDateInput').value,
     done: false,
     fixed: false
   }));
