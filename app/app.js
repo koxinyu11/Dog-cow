@@ -54,7 +54,8 @@ function normalizeTask(task) {
     markerColor: validColor(task.markerColor || '#8b5cf6'),
     hasTime: Boolean(task.hasTime),
     startTime: task.startTime || '',
-    endTime: task.endTime || ''
+    endTime: task.endTime || '',
+    deadline: task.deadline || ''
   };
 }
 
@@ -182,6 +183,11 @@ function launchConfetti() {
   setTimeout(() => { layer.innerHTML = ''; }, 4700);
 }
 
+function taskMatchesDate(task, dateIso) {
+  if (!task.deadline) return task.date === dateIso;
+  return task.date <= dateIso && dateIso <= task.deadline;
+}
+
 function sortedTasks(tasks) {
   return tasks.map((task, index) => ({ task, index }))
     .sort((a, b) => priorityRank[a.task.priority] - priorityRank[b.task.priority] || a.index - b.index)
@@ -206,6 +212,16 @@ function timeHtml(task) {
   return `<div class="time-editor"><input class="time-input" data-start-time="${task.id}" type="time" value="${task.startTime || ''}" aria-label="开始时间" /><span>至</span><input class="time-input" data-end-time="${task.id}" type="time" value="${task.endTime || ''}" aria-label="结束时间" /><button class="time-toggle" data-time-remove="${task.id}">移除时间</button></div>`;
 }
 
+function deadlineHtml(task) {
+  if (!task.deadline) return `<div class="deadline-editor"><button class="deadline-toggle" data-deadline-add="${task.id}">＋ 设置截止日期</button></div>`;
+  const deadlineDate = fromISO(task.deadline);
+  const today = new Date();
+  const daysLeft = Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
+  const statusText = daysLeft < 0 ? '已过期' : daysLeft === 0 ? '今天截止' : `还有 ${daysLeft} 天`;
+  const statusClass = daysLeft < 0 ? 'overdue' : daysLeft <= 3 ? 'urgent' : '';
+  return `<div class="deadline-editor ${statusClass}"><span class="deadline-label">截止日期：</span><input class="deadline-input" data-deadline="${task.id}" type="date" value="${task.deadline}" aria-label="截止日期" /><span class="deadline-status">${statusText}</span><button class="deadline-toggle" data-deadline-remove="${task.id}">×</button></div>`;
+}
+
 function progressAndMarkerHtml(task) {
   const complete = task.progress === 100;
   const celebrating = celebratingTasks.has(task.id);
@@ -214,7 +230,7 @@ function progressAndMarkerHtml(task) {
 
 function renderWeeklySummary(visibleWeek) {
   const weekIsos = new Set(visibleWeek.map(toISO));
-  const weekTasks = state.tasks.filter(task => weekIsos.has(task.date));
+  const weekTasks = state.tasks.filter(task => Array.from(weekIsos).some(iso => taskMatchesDate(task, iso)));
   const averageProgress = weekTasks.length ? Math.round(weekTasks.reduce((sum, task) => sum + task.progress, 0) / weekTasks.length) : 0;
   document.getElementById('summaryTitle').textContent = `${visibleWeek[0].getMonth() + 1}月${visibleWeek[0].getDate()}日–${visibleWeek[6].getMonth() + 1}月${visibleWeek[6].getDate()}日`;
   document.getElementById('cnCount').textContent = weekTasks.length;
@@ -243,7 +259,7 @@ function renderCalendar() {
     if (weekend) classes.push('weekend');
     if (iso === selected) classes.push('selected');
     if (iso === today) classes.push('today');
-    const dayTasks = state.tasks.filter(task => task.date === iso);
+    const dayTasks = state.tasks.filter(task => taskMatchesDate(task, iso));
     const colors = dayTasks.length ? ['#db6d3a'] : [];
     dayTasks.filter(task => task.calendarMark).forEach(task => colors.push(task.markerColor));
     const uniqueColors = [...new Set(colors)].slice(0, 3);
@@ -321,6 +337,25 @@ function bindTaskEvents() {
   });
   document.querySelectorAll('[data-start-time]').forEach(input => { input.onchange = () => { state.tasks.find(item => item.id === input.dataset.startTime).startTime = input.value; save(); }; });
   document.querySelectorAll('[data-end-time]').forEach(input => { input.onchange = () => { state.tasks.find(item => item.id === input.dataset.endTime).endTime = input.value; save(); }; });
+  document.querySelectorAll('[data-deadline-add]').forEach(button => {
+    button.onclick = () => { const task = state.tasks.find(item => item.id === button.dataset.deadlineAdd); task.deadline = task.date; save(); render(); };
+  });
+  document.querySelectorAll('[data-deadline-remove]').forEach(button => {
+    button.onclick = () => { const task = state.tasks.find(item => item.id === button.dataset.deadlineRemove); task.deadline = ''; save(); render(); };
+  });
+  document.querySelectorAll('[data-deadline]').forEach(input => {
+    input.onchange = () => {
+      const task = state.tasks.find(item => item.id === input.dataset.deadline);
+      if (input.value && input.value >= task.date) {
+        task.deadline = input.value;
+        save();
+        render();
+      } else {
+        showToast('截止日期不能早于创建日期');
+        input.value = task.deadline;
+      }
+    };
+  });
   document.querySelectorAll('[data-progress]').forEach(input => {
     input.oninput = () => {
       const task = state.tasks.find(item => item.id === input.dataset.progress);
@@ -359,12 +394,12 @@ function render() {
   const visibleWeek = weekDates(fromISO(selected));
   document.getElementById('tabs').innerHTML = visibleWeek.map(date => {
     const iso = toISO(date);
-    const count = state.tasks.filter(task => task.date === iso && !task.done).length;
+    const count = state.tasks.filter(task => taskMatchesDate(task, iso) && !task.done).length;
     return `<button class="day-tab ${selected === iso ? 'active' : ''}" data-date="${iso}"><b>${weekday[date.getDay()]}</b>${date.getMonth() + 1}月${date.getDate()}日 · ${count} 项</button>`;
   }).join('');
   document.querySelectorAll('.day-tab').forEach(button => { button.onclick = () => { selected = button.dataset.date; calendarMonth = new Date(fromISO(selected).getFullYear(), fromISO(selected).getMonth(), 1); render(); }; });
 
-  const dayTasks = sortedTasks(state.tasks.filter(task => task.date === selected));
+  const dayTasks = sortedTasks(state.tasks.filter(task => taskMatchesDate(task, selected)));
   const selectedDate = fromISO(selected);
   document.getElementById('listTitle').textContent = `${selectedDate.getMonth() + 1}月${selectedDate.getDate()}日 · ${weekday[selectedDate.getDay()]}`;
   document.getElementById('taskCount').textContent = `${dayTasks.filter(task => !task.done).length} 项待完成`;
@@ -375,6 +410,7 @@ function render() {
         <input class="task-title-input" data-task-title="${task.id}" value="${escapeHtml(task.title)}" maxlength="80" aria-label="修改任务标题" />
         <div class="meta">${tagsHtml(task)}<select class="priority-select ${task.priority === '高' ? 'high' : task.priority === '低' ? 'low' : ''}" data-priority="${task.id}">${priorityOptions(task.priority)}</select></div>
         ${timeHtml(task)}
+        ${deadlineHtml(task)}
         ${progressAndMarkerHtml(task)}
         <textarea class="note-input" data-note="${task.id}" rows="1" maxlength="500" placeholder="添加备注、链接或进展…">${escapeHtml(task.note || '')}</textarea>
       </div>
@@ -382,7 +418,7 @@ function render() {
     </div>`).join('') : '<div class="empty">这一天没有工作记录，可以添加一项新任务。</div>';
   bindTaskEvents();
 
-  const todays = state.tasks.filter(task => task.date === todayIso);
+  const todays = state.tasks.filter(task => taskMatchesDate(task, todayIso));
   const done = todays.filter(task => task.done).length;
   const percent = todays.length ? Math.round(done / todays.length * 100) : 100;
   document.getElementById('todaySummary').textContent = todays.length ? (done === todays.length ? `今天 ${todays.length} 项全部完成！` : `今天完成 ${done} / ${todays.length} 项`) : '今天没有安排，保持轻松';
@@ -498,6 +534,8 @@ document.getElementById('taskForm').onsubmit = event => {
   const label = document.getElementById('tagInput').value.trim();
   const tagColor = document.getElementById('tagColorInput').value;
   const hasTime = document.getElementById('timeModeInput').value === 'timed';
+  const deadline = document.getElementById('deadlineInput').value;
+  if (deadline && deadline < date) { showToast('截止日期不能早于创建日期'); return; }
   state.tasks.push(normalizeTask({
     id: `custom-${Date.now()}`,
     date,
@@ -512,6 +550,7 @@ document.getElementById('taskForm').onsubmit = event => {
     hasTime,
     startTime: hasTime ? document.getElementById('startTimeInput').value : '',
     endTime: hasTime ? document.getElementById('endTimeInput').value : '',
+    deadline,
     done: false,
     fixed: false
   }));
