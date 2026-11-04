@@ -1,0 +1,48 @@
+{
+  "name": "dogcow-desktop",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:income": "node scripts/build-income.mjs",
+    "start": "npm run build && electron .",
+    "test": "npm run build:electron && node --test tests/app.test.cjs tests/income/*.test.js tests/migration/*.test.js tests/desktop/*.test.mjs",
+    "check": "node --check app/app.js && node --check scripts/build-income.mjs && node --check app/income/income.bundle.js",
+    "dev": "node scripts/dev.mjs",
+    "legacy:preview": "npm run build:income && python3 -m http.server 5180 --bind 127.0.0.1 --directory app",
+    "build:renderer": "vite build",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
+    "build": "npm run typecheck && npm run build:renderer && npm run build:electron",
+    "make:mac": "npm run build && node scripts/make-mac.mjs",
+    "make:mac:x64": "npm run build && node scripts/make-mac.mjs x64",
+    "make:win": "npm run build && electron-forge make --platform=win32 --arch=x64",
+    "test:legacy": "node --test tests/app.test.cjs tests/income/*.test.js && python3 tests/auto_sync_test.py",
+    "test:migration": "node --test tests/migration/*.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "8.0.1",
+    "@electron-forge/maker-squirrel": "8.0.1",
+    "@electron-forge/maker-zip": "8.0.1",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.2.1",
+    "electron": "45.2.2",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2",
+    "vite": "8.3.5"
+  },
+  "dependencies": {
+    "electron-squirrel-startup": "1.0.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "productName": "狗牛",
+  "description": "狗牛：任务管理与工作时间计价",
+  "author": "DogCow contributors",
+  "main": "dist-electron/src/main/main.js"
+}

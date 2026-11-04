@@ -1,0 +1,56 @@
+:host {
+  background: transparent;
+}
+
+.income-settings {
+  min-width: 0;
+  padding: 4px;
+}
+
+.income-settings .panel {
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.income-settings .fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.income-settings .payroll-panel .fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-notices > :not([hidden]) {
+  margin: 0 0 12px;
+}
+
+.income-settings .notes {
+  padding: 2px 4px 8px;
+}
+
+.income-settings .notes p + p {
+  margin-top: 8px;
+}
+
+.income-settings #form-feedback {
+  min-width: 0;
+}
+
+.income-settings .form-actions {
+  flex-wrap: wrap;
+}
+
+[data-settings-section][hidden] {
+  display: none !important;
+}
+
+@media (max-width: 560px) {
+  .income-settings .panel {
+    padding: 16px 12px;
+  }
+
+  .income-settings .fields,
+  .income-settings .payroll-panel .fields {
+    grid-template-columns: 1fr;
+  }
+}

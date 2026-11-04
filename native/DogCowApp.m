@@ -18,6 +18,7 @@
     WKWebViewConfiguration *configuration = [[WKWebViewConfiguration alloc] init];
     configuration.websiteDataStore = WKWebsiteDataStore.defaultDataStore;
     [configuration.userContentController addScriptMessageHandler:self name:@"dogCowUpdater"];
+    [configuration.userContentController addScriptMessageHandler:self name:@"dogCowDataExport"];
     self.webView = [[WKWebView alloc] initWithFrame:NSZeroRect configuration:configuration];
     self.webView.navigationDelegate = self;
 
@@ -106,6 +107,27 @@
 - (BOOL)applicationSupportsSecureRestorableState:(NSApplication *)app { return YES; }
 
 - (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message {
+    if ([message.name isEqualToString:@"dogCowDataExport"]) {
+        if (!message.frameInfo.isMainFrame || ![message.body isKindOfClass:NSString.class]) return;
+        NSString *text = message.body;
+        NSData *data = [text dataUsingEncoding:NSUTF8StringEncoding];
+        if (!data || data.length > 20 * 1024 * 1024) {
+            [self.webView evaluateJavaScript:@"window.dispatchEvent(new CustomEvent('dogcow:export-result',{detail:'failed'}))" completionHandler:nil];
+            return;
+        }
+        NSSavePanel *panel = [NSSavePanel savePanel];
+        panel.nameFieldStringValue = @"dogcow-transfer.json";
+        [panel beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse result) {
+            NSString *status = @"canceled";
+            if (result == NSModalResponseOK) {
+                NSError *error = nil;
+                status = [data writeToURL:panel.URL options:NSDataWritingAtomic error:&error] ? @"saved" : @"failed";
+            }
+            NSString *script = [NSString stringWithFormat:@"window.dispatchEvent(new CustomEvent('dogcow:export-result',{detail:'%@'}))", status];
+            [self.webView evaluateJavaScript:script completionHandler:nil];
+        }];
+        return;
+    }
     if (![message.name isEqualToString:@"dogCowUpdater"]) return;
     [self.updaterController checkForUpdates:nil];
 }
@@ -119,6 +141,7 @@
 
 - (void)dealloc {
     [self.webView.configuration.userContentController removeScriptMessageHandlerForName:@"dogCowUpdater"];
+    [self.webView.configuration.userContentController removeScriptMessageHandlerForName:@"dogCowDataExport"];
 }
 @end
 

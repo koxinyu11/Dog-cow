@@ -4,3 +4,10 @@ dist/
 build/
 .autosync.lock/
 *.log
+node_modules/
+__pycache__/
+
+work/
+dist-renderer/
+dist-electron/
+out/

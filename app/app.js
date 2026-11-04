@@ -39,7 +39,6 @@ function moveTaskToNextDay(task) {
   if (!task || task.done || !validISODate(task.date)) return '';
   const nextDate = addDaysISO(task.date, 1);
   task.date = nextDate;
-  if (task.dueDate && task.dueDate < nextDate) task.dueDate = nextDate;
   return nextDate;
 }
 const normalizeTag = tag => ({ label: String(tag?.label || '').trim().slice(0, 20), color: validColor(tag?.color) });
@@ -93,16 +92,55 @@ function tasksForWeek(base) {
   return tasks;
 }
 
+let storageReadFailed = false;
+let storageWriteFailed = false;
+
+function validateSavedState(saved) {
+  if (!saved || !Array.isArray(saved.tasks)) throw new Error('Invalid tasks');
+  const ids = new Set();
+  saved.tasks.forEach(task => {
+    if (!task || typeof task !== 'object' || typeof task.id !== 'string' || !task.id ||
+        ids.has(task.id) || !validISODate(task.date) || typeof task.title !== 'string' ||
+        (task.tags !== undefined && (!Array.isArray(task.tags) || task.tags.some(tag =>
+          !tag || typeof tag.label !== 'string' || (tag.id !== undefined && typeof tag.id !== 'string'))))) {
+      throw new Error('Invalid task');
+    }
+    ids.add(task.id);
+  });
+  if (saved.seededWeeks !== undefined && (!Array.isArray(saved.seededWeeks) ||
+      saved.seededWeeks.some(key => !validISODate(key)))) throw new Error('Invalid weeks');
+  return saved;
+}
+
+function renderStorageStatus() {
+  const banner = document.getElementById('storageStatus');
+  banner.hidden = !storageReadFailed && !storageWriteFailed;
+  document.getElementById('storageMessage').textContent = storageReadFailed
+    ? '任务数据读取失败，已停止编辑和保存，原始记录未被覆盖。请保留本机数据，恢复后重试读取。'
+    : '未保存：本机存储写入失败。当前修改仍保留在窗口中，请勿关闭应用，恢复可用空间或存储权限后重试。';
+  const retry = document.getElementById('storageRetry');
+  retry.textContent = storageReadFailed ? '重试读取' : '重试保存';
+  retry.onclick = () => storageReadFailed ? window.location.reload() : save();
+  if (storageReadFailed) {
+    document.querySelectorAll('[data-task-module] button, [data-task-module] input, [data-task-module] select, [data-task-module] textarea, [data-task-action]').forEach(control => { control.disabled = true; });
+  }
+}
+
 function loadState() {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (localStorage.getItem('dogcow.migration.restore.v1') !== null) throw new Error('RESTORE_PENDING');
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const saved = raw === null ? null : validateSavedState(JSON.parse(raw));
     if (saved && Array.isArray(saved.tasks)) {
       const tasks = saved.tasks.map(normalizeTask);
       return { tasks, tagLibrary: mergeTagLibrary(saved.tagLibrary, tasks), seededWeeks: saved.seededWeeks || [], settings: { ...defaultSettings, ...(saved.settings || {}) } };
     }
-  } catch {}
+  } catch (error) {
+    storageReadFailed = true;
+    console.error('TASK_STORAGE_READ_FAILED', error.name);
+  }
 
-  for (const key of LEGACY_KEYS) {
+  for (const key of storageReadFailed ? [] : LEGACY_KEYS) {
     try {
       const legacy = JSON.parse(localStorage.getItem(key));
       if (legacy && Array.isArray(legacy.tasks)) {
@@ -120,7 +158,20 @@ function loadState() {
 }
 
 let state = loadState();
-const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function save() {
+  if (storageReadFailed || window.__dogCowRestorePending) return false;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    storageWriteFailed = false;
+    renderStorageStatus();
+    return true;
+  } catch (error) {
+    storageWriteFailed = true;
+    console.error('TASK_STORAGE_WRITE_FAILED', error.name);
+    renderStorageStatus();
+    return false;
+  }
+}
 const celebratingTasks = new Set();
 
 function rememberTag(label, color) {
@@ -151,6 +202,7 @@ function renderTagLibrary() {
 }
 
 function ensureCurrentWeek() {
+  if (storageReadFailed) return false;
   const key = weekKey(new Date());
   if (state.seededWeeks.includes(key)) return false;
   const ids = new Set(state.tasks.map(task => task.id));
@@ -232,7 +284,7 @@ function deadlineHtml(task) {
   const remainingDays = daysBetween(today, task.dueDate);
   let status = task.done ? '已完成' : remainingDays < 0 ? `已过期 ${Math.abs(remainingDays)} 天` : remainingDays === 0 ? '今天截止' : `剩余 ${remainingDays} 天`;
   const statusClass = task.done ? 'done' : remainingDays < 0 ? 'overdue' : remainingDays === 0 ? 'today' : '';
-  return `<div class="deadline-editor"><span class="deadline-label">截止日期</span><input class="deadline-input" data-deadline-date="${task.id}" type="date" min="${task.date}" value="${task.dueDate}" aria-label="截止日期" /><button class="deadline-toggle" data-deadline-remove="${task.id}">移除</button><span class="deadline-status ${statusClass}">${status}</span></div>`;
+  return `<div class="deadline-editor"><span class="deadline-label">截止日期</span><input class="deadline-input" data-deadline-date="${task.id}" type="date" value="${task.dueDate}" aria-label="截止日期" /><button class="deadline-toggle" data-deadline-remove="${task.id}">移除</button><span class="deadline-status ${statusClass}">${status}</span></div>`;
 }
 
 function taskMatchesDate(task, iso) {
@@ -371,7 +423,6 @@ function bindTaskEvents() {
     input.onchange = () => {
       const task = state.tasks.find(item => item.id === input.dataset.deadlineDate);
       task.dueDate = validISODate(input.value) ? input.value : '';
-      if (task.dueDate && task.dueDate < task.date) task.dueDate = task.date;
       save();
       render();
     };
@@ -426,12 +477,12 @@ function render() {
   const visibleWeek = weekDates(fromISO(selected));
   document.getElementById('tabs').innerHTML = visibleWeek.map(date => {
     const iso = toISO(date);
-    const count = state.tasks.filter(task => task.date === iso && !task.done).length;
+    const count = state.tasks.filter(task => taskMatchesDate(task, iso) && !task.done).length;
     return `<button class="day-tab ${selected === iso ? 'active' : ''}" data-date="${iso}"><b>${weekday[date.getDay()]}</b>${date.getMonth() + 1}月${date.getDate()}日 · ${count} 项</button>`;
   }).join('');
   document.querySelectorAll('.day-tab').forEach(button => { button.onclick = () => { selected = button.dataset.date; calendarMonth = new Date(fromISO(selected).getFullYear(), fromISO(selected).getMonth(), 1); render(); }; });
 
-  const dayTasks = sortedTasks(state.tasks.filter(task => task.date === selected));
+  const dayTasks = sortedTasks(state.tasks.filter(task => taskMatchesDate(task, selected)));
   const selectedDate = fromISO(selected);
   document.getElementById('listTitle').textContent = `${selectedDate.getMonth() + 1}月${selectedDate.getDate()}日 · ${weekday[selectedDate.getDay()]}`;
   document.getElementById('taskCount').textContent = `${dayTasks.filter(task => !task.done).length} 项待完成`;
@@ -439,6 +490,7 @@ function render() {
     <div class="task ${task.done ? 'done' : ''}">
       <button class="check ${task.done ? 'done' : ''}" data-check="${task.id}" aria-label="标记完成">${task.done ? '✓' : ''}</button>
       <div class="task-main">
+        <span class="task-date-context">${task.date === selected ? '当日安排' : `安排于 ${escapeHtml(task.date)}`}${task.dueDate === selected ? ' · 当日截止' : ''}</span>
         <input class="task-title-input" data-task-title="${task.id}" value="${escapeHtml(task.title)}" maxlength="80" aria-label="修改任务标题" />
         <div class="meta">${tagsHtml(task)}<select class="priority-select ${task.priority === '高' ? 'high' : task.priority === '低' ? 'low' : ''}" data-priority="${task.id}">${priorityOptions(task.priority)}</select></div>
         ${timeHtml(task)}
@@ -450,7 +502,7 @@ function render() {
     </div>`).join('') : '<div class="empty">这一天没有工作记录，可以添加一项新任务。</div>';
   bindTaskEvents();
 
-  const todays = state.tasks.filter(task => task.date === todayIso);
+  const todays = state.tasks.filter(task => taskMatchesDate(task, todayIso));
   const done = todays.filter(task => task.done).length;
   const percent = todays.length ? Math.round(done / todays.length * 100) : 100;
   document.getElementById('todaySummary').textContent = todays.length ? (done === todays.length ? `今天 ${todays.length} 项全部完成！` : `今天完成 ${done} / ${todays.length} 项`) : '今天没有安排，保持轻松';
@@ -463,6 +515,7 @@ function render() {
   renderWeeklySummary(visibleWeek);
   renderCalendar();
   celebratingTasks.clear();
+  renderStorageStatus();
 }
 
 function beginInlineEdit(elementId, settingKey, maxLength, allowEmpty = false) {
@@ -513,18 +566,12 @@ document.getElementById('addBtn').onclick = event => {
   dateField.max = toISO(days[6]);
   const dueDateField = document.getElementById('dueDateInput');
   dueDateField.value = '';
-  dueDateField.min = selected;
   modal.classList.add('show');
   setTimeout(() => document.getElementById('titleInput').focus(), 50);
 };
 document.getElementById('cancelBtn').onclick = () => modal.classList.remove('show');
 modal.onclick = event => { if (event.target === modal) modal.classList.remove('show'); };
 document.getElementById('timeModeInput').onchange = event => { document.getElementById('timeFields').classList.toggle('show', event.target.value === 'timed'); };
-document.getElementById('dateInput').onchange = event => {
-  const dueDateField = document.getElementById('dueDateInput');
-  dueDateField.min = event.target.value;
-  if (dueDateField.value && dueDateField.value < event.target.value) dueDateField.value = event.target.value;
-};
 
 const weeklyModal = document.getElementById('weeklyModalBackdrop');
 document.getElementById('weeklyBtn').onclick = () => {

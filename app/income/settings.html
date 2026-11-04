@@ -1,0 +1,114 @@
+<div class="income-settings">
+  <div class="settings-notices">
+    <p id="migration-notice" class="notice" role="status" hidden></p>
+    <p id="storage-feedback" class="notice" role="status" hidden></p>
+    <button id="save-settings" class="secondary" type="button" hidden>重试保存</button>
+    <p id="calculation-feedback" class="notice" role="status" hidden></p>
+  </div>
+  <section class="panel" data-settings-section="income" aria-labelledby="settings-heading">
+        <h2 id="settings-heading">工资与排班</h2>
+        <form id="settings-form" novalidate>
+          <div class="fields">
+            <div class="field">
+              <label for="salary-mode">月薪输入口径</label>
+              <select id="salary-mode" name="salaryMode"><option value="net">税后月薪（直接计价）</option><option value="gross">税前月薪（杭州税后估算）</option></select>
+              <p id="salaryMode-error" class="field-error" hidden></p>
+            </div>
+            <div class="field">
+              <label for="monthly-salary">月薪（元）</label>
+              <input id="monthly-salary" name="monthlySalary" type="number" inputmode="decimal" min="0" step="any" placeholder="例如 8400" required aria-describedby="monthlySalary-error" />
+              <p class="field-error" id="monthlySalary-error" hidden></p>
+            </div>
+            <div class="field">
+              <label for="calendar-mode">日历模式</label>
+              <select id="calendar-mode" name="calendarMode" aria-describedby="calendar-help calendarMode-error">
+                <option value="cn">国家调休＋每周排班</option>
+                <option value="weekly">仅按每周排班（不含调休）</option>
+              </select>
+              <p class="field-error" id="calendarMode-error" hidden></p>
+            </div>
+            <div class="field">
+              <label for="start-time">上班时间</label>
+              <input id="start-time" name="startTime" type="time" value="09:00" required aria-describedby="startTime-error" />
+              <p class="field-error" id="startTime-error" hidden></p>
+            </div>
+            <div class="field">
+              <label for="end-time">下班时间</label>
+              <input id="end-time" name="endTime" type="time" value="18:00" required aria-describedby="endTime-error" />
+              <p class="field-error" id="endTime-error" hidden></p>
+            </div>
+          </div>
+          <p id="salary-help" class="help">税后输入直接计价，不再扣税；税前输入按杭州个人扣款和个税估算到手月薪。</p>
+          <section id="payroll-panel" class="payroll-panel" aria-label="杭州税后月薪估算" hidden></section>
+          <p id="payroll-error" class="field-error" hidden></p>
+          <fieldset class="lunch-settings">
+            <legend>标准午休</legend>
+            <label class="whole-day-option"><input id="lunch-counts" name="lunchCountsAsWork" type="checkbox" checked />午休计入标准工时和时间差</label>
+            <p class="help">勾选：实际午休全部参与“偷出来的金额”。不勾选：扣除下方标准午休，正常午休不算偷出。</p>
+            <div class="fields lunch-times">
+              <div class="field"><label for="lunch-start">标准午休开始</label><input id="lunch-start" name="lunchStartTime" type="time" value="12:00" disabled aria-describedby="lunchStartTime-error" /><p id="lunchStartTime-error" class="field-error" hidden></p></div>
+              <div class="field"><label for="lunch-end">标准午休结束</label><input id="lunch-end" name="lunchEndTime" type="time" value="13:00" disabled aria-describedby="lunchEndTime-error" /><p id="lunchEndTime-error" class="field-error" hidden></p></div>
+            </div>
+            <p id="lunchCountsAsWork-error" class="field-error" hidden></p>
+          </fieldset>
+          <fieldset class="mode-settings">
+            <legend>时间统计模式</legend>
+            <label class="whole-day-option"><input id="steal-mode" name="stealMode" type="checkbox" />偷时间模式（记录午休和偷出金额）</label>
+            <p id="stealMode-error" class="field-error" hidden></p>
+            <label class="whole-day-option"><input id="clock-mode" name="clockMode" type="checkbox" disabled />上下班模式（补卡、上班晚和下班早）</label>
+            <p id="clockMode-error" class="field-error" hidden></p>
+            <p class="help">工资始终按规定排班自动累计。上下班模式需要先开启偷时间模式；不开上下班模式时，只计算午休。</p>
+          </fieldset>
+          <fieldset id="workdays-group" tabindex="-1" aria-describedby="calendar-help workdays-error">
+            <legend>每周工作日</legend>
+            <div class="weekday-options">
+              <label><input type="checkbox" name="workdays" value="1" checked />周一</label>
+              <label><input type="checkbox" name="workdays" value="2" checked />周二</label>
+              <label><input type="checkbox" name="workdays" value="3" checked />周三</label>
+              <label><input type="checkbox" name="workdays" value="4" checked />周四</label>
+              <label><input type="checkbox" name="workdays" value="5" checked />周五</label>
+              <label><input type="checkbox" name="workdays" value="6" />周六</label>
+              <label><input type="checkbox" name="workdays" value="0" />周日</label>
+            </div>
+            <p class="field-error" id="workdays-error" hidden></p>
+          </fieldset>
+          <p id="calendar-help" class="help">国家调休模式中，公告指定的放假和补班优先于每周排班。工作日数按当前月份自动计算，请假不改变秒薪分母。</p>
+          <div class="calendar-summary">
+            <p id="draft-workdays">正在计算本月工作日…</p>
+            <button id="refresh-calendar" class="secondary" type="button">刷新调休日历</button>
+          </div>
+          <p id="calendar-feedback" class="help" role="status"></p>
+          <p class="help">调休数据：<a href="https://github.com/NateScarlet/holiday-cn" target="_blank" rel="noopener noreferrer">holiday-cn</a>（MIT），保留年度快照，联网时检查更新。</p>
+          <div class="form-actions">
+            <p id="form-feedback" role="status">填写后自动保存；有效修改立即生效。</p>
+          </div>
+        </form>
+      </section>
+  <section data-settings-section="records" aria-label="请假与打卡记录" hidden>
+    <section id="clock-panel" class="panel" aria-label="打卡和补录"></section>
+    <section class="panel" aria-labelledby="leave-heading">
+        <h2 id="leave-heading">请假记录</h2>
+        <p class="help">先填写工资与排班，再登记请假。支持补录；已有记录修改后自动保存，新增记录点击添加。</p>
+        <form id="leave-form" novalidate>
+          <fieldset id="leave-controls" disabled>
+            <legend class="sr-only">添加或修改请假</legend>
+            <div class="fields">
+              <div class="field"><label for="leave-date">请假日期</label><input id="leave-date" type="date" required aria-describedby="leave-date-error" /><p id="leave-date-error" class="field-error" hidden></p></div>
+              <div class="field"><label for="leave-paid">是否扣薪</label><select id="leave-paid" aria-describedby="leave-paid-error"><option value="true">带薪请假（不扣钱）</option><option value="false">扣薪请假（按时长扣钱）</option></select><p id="leave-paid-error" class="field-error" hidden></p></div>
+              <div class="field"><label for="leave-start">请假开始时间</label><input id="leave-start" type="time" value="09:00" disabled aria-describedby="leave-startTime-error" /><p id="leave-startTime-error" class="field-error" hidden></p></div>
+              <div class="field"><label for="leave-end">请假结束时间</label><input id="leave-end" type="time" value="18:00" disabled aria-describedby="leave-endTime-error" /><p id="leave-endTime-error" class="field-error" hidden></p></div>
+            </div>
+            <label class="whole-day-option"><input id="leave-full-day" type="checkbox" checked />整天请假（覆盖当天原定上班时段）</label>
+            <p id="leave-general-error" class="field-error" tabindex="-1" hidden></p>
+            <div class="form-actions"><button id="save-leave" type="submit">添加请假</button><button id="cancel-leave-edit" class="secondary" type="button" hidden>结束编辑</button></div>
+          </fieldset>
+          <p id="leave-feedback" class="help" role="status">还没有请假记录。</p>
+        </form>
+        <ul id="leave-list" class="leave-list" aria-label="已登记的请假"></ul>
+      </section>
+  </section>
+  <footer class="notes">
+    <p>有效设置和已有请假修改自动保存；输入未完成时保留草稿，继续使用上次有效设置。首页显示开关不改变工资与时间统计模式。</p>
+    <p>工资、扣款、请假和打卡仅保存在本机当前应用环境；联网仅请求公开年度调休数据，不上传个人薪税或打卡。修改设置或请假不会改写原始实际时间。</p>
+  </footer>
+</div>

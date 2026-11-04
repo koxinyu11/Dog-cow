@@ -1,3 +1,5 @@
+> 本文仅适用于旧 WKWebView/Sparkle 壳。Electron 3.x 使用独立的更新链路，见 [RELEASES.md](RELEASES.md)。不要用旧 appcast 投递新版 Electron。
+
 # 自动更新配置（维护者一次性操作）
 
 此项目的 PR 已接入 Sparkle 2：用户在 App 中点击“检查更新”后，可以下载、验证、安装并重启，不再需要手动解压替换 App。项目仍可采用 ad-hoc 签名；Apple Developer ID 和 Mac App Store 都不是 Sparkle 的前置条件。

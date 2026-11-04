@@ -1,0 +1,48 @@
+name: Build and test desktop
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      windows:
+        type: boolean
+        default: false
+        description: Also build the Windows installer (runtime acceptance is separate)
+permissions:
+  contents: read
+jobs:
+  mac:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: node node_modules/electron/install.js
+      - run: npm test
+      - run: python3 tests/auto_sync_test.py
+      - run: npm run make:mac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dogcow-mac-${{ runner.arch }}
+          path: out/make/
+  windows:
+    if: github.event_name == 'workflow_dispatch' && inputs.windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: node node_modules/electron/install.js
+      - run: node node_modules/electron-winstaller/script/select-7z-arch.js
+      - run: npm run make:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dogcow-windows-x64-unverified
+          path: out/make/

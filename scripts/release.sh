@@ -1,9 +1,4 @@
 #!/bin/zsh
 set -euo pipefail
-
-REPO_DIR="${0:A:h:h}"
-VERSION="$(tr -d '[:space:]' < "$REPO_DIR/VERSION")"
-cd "$REPO_DIR"
-"$REPO_DIR/scripts/build.sh"
-git tag -a "v$VERSION" -m "狗牛 v$VERSION"
-git push origin "v$VERSION"
+print "此命令仅构建本地候选，不创建标签或公开发布。发布边界见 docs/RELEASES.md。"
+"${0:A:h}/build.sh"

@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist-electron",
+    "rootDir": ".",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "declaration": false
+  },
+  "include": [
+    "src/main/**/*.ts",
+    "src/preload/**/*.cts",
+    "src/shared/**/*.ts",
+    "src/domain/**/*.ts",
+    "src/migration/*.js"
+  ],
+  "exclude": ["node_modules", "dist-electron", "src/renderer"]
+}

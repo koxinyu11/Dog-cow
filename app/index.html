@@ -19,6 +19,10 @@
       --shadow: 0 18px 54px rgba(32, 48, 38, .10);
     }
     * { box-sizing: border-box; }
+    .storage-status { margin: 16px 26px 0; padding: 14px; border: 1px solid var(--red); border-radius: 10px; background: #fff0e8; color: var(--red); }
+    .storage-status[hidden] { display: none; }
+    .storage-status button { margin-left: 12px; }
+    .task-date-context { display: block; margin-bottom: 6px; color: var(--muted); font-size: 12px; }
     body {
       margin: 0;
       min-height: 100vh;
@@ -46,7 +50,6 @@
     .btn:hover { transform: translateY(-1px); border-color: #b9bdb4; }
     .btn.primary { color: white; background: var(--green); border-color: var(--green); }
     .btn.ghost { background: transparent; box-shadow: none; }
-    .top-grid { display: grid; grid-template-columns: 1.35fr .65fr; gap: 18px; margin-bottom: 22px; }
     .panel { border: 1px solid rgba(205,208,199,.9); border-radius: 22px; background: var(--card); box-shadow: var(--shadow); backdrop-filter: blur(12px); }
     .today { padding: 25px; overflow: hidden; position: relative; }
     .today::after { content: ""; position: absolute; width: 170px; height: 170px; border: 34px solid rgba(37,92,72,.06); border-radius: 50%; right: -70px; top: -84px; }
@@ -71,7 +74,6 @@
     .day-tab b { display: block; color: var(--ink); font-size: 15px; margin-bottom: 3px; }
     .day-tab.active { color: rgba(255,255,255,.76); background: var(--ink); border-color: var(--ink); }
     .day-tab.active b { color: white; }
-    .workspace { display: grid; grid-template-columns: 1fr 290px; gap: 18px; }
     .list-panel { padding: 9px 20px 18px; min-height: 460px; }
     .list-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 2px 10px; border-bottom: 1px solid var(--line); }
     .list-head h3 { margin: 0; font-size: 17px; }
@@ -135,9 +137,8 @@
     .delete { border: 0; border-radius: 9px; padding: 7px 9px; color: #929890; background: transparent; }
     .delete:hover { color: var(--red); background: #fae8e5; }
     .empty { padding: 70px 20px; text-align: center; color: var(--muted); }
-    .side-stack { display: grid; gap: 18px; height: max-content; }
     .summary-panel, .calendar-panel { padding: 22px; }
-    .side-stack h3 { margin: 0 0 16px; }
+    .summary-panel h3 { margin: 0 0 16px; }
     .calendar-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
     .calendar-head h3 { margin: 0; text-align: center; font-size: 16px; }
     .calendar-nav { width: 31px; height: 31px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--ink); }
@@ -190,8 +191,6 @@
       .shell { padding: 22px 15px 60px; }
       header { align-items: flex-start; flex-direction: column; }
       .header-actions { justify-content: flex-start; }
-      .top-grid, .workspace { grid-template-columns: 1fr; }
-      .side-stack { order: -1; }
       .task { grid-template-columns: 32px 1fr auto; gap: 8px; }
     }
     @media (max-width: 520px) {
@@ -199,47 +198,67 @@
       label.full { grid-column: auto; }
       .task { grid-template-columns: 30px 1fr auto; }
     }
+
+    .dashboard-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; align-items: start; }
+    .home-module { min-width: 0; }
+    .home-module-wide, .dashboard-grid.single-module > .home-module { grid-column: 1 / -1; }
+    .home-module[hidden], #dashboardEmpty[hidden], #layoutSettings[hidden], #incomeSettingsHost[hidden], .income-feedback[hidden] { display: none !important; }
+    .dashboard-grid .tabs { margin-top: 0; }
+    .income-feedback { margin: 12px 26px; padding: 12px; border: 1px solid var(--orange); border-radius: 10px; color: var(--red); background: #fff5e5; }
+    .settings-dialog { width: min(1040px,calc(100% - 36px)); max-height: calc(100% - 36px); padding: 24px; border: 1px solid var(--line); border-radius: 18px; color: var(--ink); background: var(--paper); }
+    .settings-dialog::backdrop { background: rgba(15,25,18,.4); }
+    .settings-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .settings-heading h2 { margin: 0; }
+    .settings-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }
+    .settings-nav [aria-pressed="true"] { color: #fff; background: var(--green); border-color: var(--green); }
+    .home-module-settings-list { margin: 16px 0; padding: 0; list-style: none; }
+    .home-module-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .home-module-toggle { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+    .home-module-toggle input { width: 18px; height: 18px; accent-color: var(--green); }
+    .home-module-moves, .home-layout-actions { display: flex; gap: 8px; }
+    .home-module-move, .home-layout-actions button { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; background: #fff; color: var(--ink); }
+    .home-module-move[aria-disabled="true"] { opacity: .45; cursor: default; }
+    .home-layout-status { color: var(--muted); font-size: 14px; margin: 12px 0; }
+    @media (max-width:820px) { .dashboard-grid { grid-template-columns: 1fr; } .home-module-wide { grid-column: auto; } }
+    @media (max-width:520px) { .settings-dialog { padding: 16px; width: calc(100% - 20px); } .home-module-option { flex-wrap: wrap; } .home-module-moves { margin-left: auto; } }
   </style>
 </head>
 <body>
+  <div id="storageStatus" class="storage-status" role="alert" hidden><span id="storageMessage"></span><button type="button" id="storageRetry">重试</button></div>
+  <p id="incomeFeedback" class="income-feedback" role="status" hidden></p>
   <main class="shell">
     <header>
       <div class="header-copy">
-        <div class="header-edit-line"><div class="eyebrow" id="headerKicker">Weekly operations desk</div><button class="inline-edit-trigger" id="editHeaderKicker" aria-label="修改第一行">✎</button></div>
-        <div class="header-edit-line"><h1 id="appTitle">狗牛</h1><button class="inline-edit-trigger" id="editAppTitle" aria-label="修改第二行">✎</button></div>
-        <div class="header-edit-line"><div class="date-line" id="todayDate"></div><button class="inline-edit-trigger" id="editDateLine" aria-label="修改第三行" title="清空内容可恢复自动日期">✎</button></div>
+        <div class="header-edit-line"><div class="eyebrow" id="headerKicker">Weekly operations desk</div><button class="inline-edit-trigger" id="editHeaderKicker" data-task-action aria-label="修改第一行">✎</button></div>
+        <div class="header-edit-line"><h1 id="appTitle">狗牛</h1><button class="inline-edit-trigger" id="editAppTitle" data-task-action aria-label="修改第二行">✎</button></div>
+        <div class="header-edit-line"><div class="date-line" id="todayDate"></div><button class="inline-edit-trigger" id="editDateLine" data-task-action aria-label="修改第三行" title="清空内容可恢复自动日期">✎</button></div>
       </div>
-      <div class="header-actions"><button class="btn" id="updateBtn" title="通过 GitHub Release 检查新版本">↻ 检查更新</button><button class="btn" id="weeklyBtn">＋ 每周任务 🌾</button><button class="btn primary" id="addBtn">＋ <span id="addButtonLabel">新增任务</span><span class="button-edit" id="editAddButton" title="修改按钮标题">✎</span></button></div>
+      <div class="header-actions"><button type="button" class="btn" id="settingsBtn" aria-haspopup="dialog">设置</button><button class="btn" id="updateBtn" title="通过 GitHub Release 检查新版本">↻ 检查更新</button><button class="btn" id="weeklyBtn" data-task-action>＋ 每周任务 🌾</button><button class="btn primary" id="addBtn" data-task-action>＋ <span id="addButtonLabel">新增任务</span><span class="button-edit" id="editAddButton" title="修改按钮标题">✎</span></button></div>
     </header>
 
-    <section class="top-grid">
-      <div class="panel today">
+    <section class="dashboard-grid" id="dashboardGrid" aria-label="首页模块">
+      <div class="panel today home-module" data-home-module="progress" data-task-module>
         <div class="editable-heading"><div class="section-kicker" id="progressTitle">今日完成度</div><button class="edit-heading" id="editProgressTitle" aria-label="修改标题">✎</button></div>
         <h2 id="todaySummary">正在整理今天的工作</h2>
         <div class="progress-row"><div class="rocket-track"><span class="rocket-fill" id="progressBar"><span class="rocket">🚀</span></span></div><div class="progress-copy" id="progressText">0%</div></div>
       </div>
-      <div class="panel focus">
+      <div class="panel focus home-module" data-home-module="next-task" data-task-module>
         <div class="section-kicker">下一项</div>
         <div class="focus-time" id="focusNumber">—</div>
         <div class="focus-title" id="focusTitle">今天的工作已完成</div>
       </div>
-    </section>
-
-    <nav class="tabs" id="tabs" aria-label="选择日期"></nav>
-
-    <section class="workspace">
+      <section class="home-module home-module-wide" data-home-module="tasks" data-task-module><nav class="tabs" id="tabs" aria-label="选择日期"></nav>
       <div class="panel list-panel">
         <div class="list-head"><h3 id="listTitle">今日安排</h3><span class="count" id="taskCount"></span></div>
         <div id="taskList"></div>
-      </div>
-      <aside class="side-stack">
-        <div class="panel calendar-panel">
+      </div></section>
+      <div class="panel calendar-panel home-module" data-home-module="calendar" data-task-module>
           <div class="calendar-head"><button class="calendar-nav" id="prevMonth" aria-label="上个月">‹</button><h3 id="calendarTitle"></h3><button class="calendar-nav" id="nextMonth" aria-label="下个月">›</button></div>
           <div class="calendar-weekdays"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
           <div class="calendar-grid" id="calendarGrid"></div>
           <button class="btn ghost calendar-today" id="currentWeekBtn">回到本周</button>
         </div>
-        <div class="panel summary-panel">
+      <div class="panel summary-panel home-module" data-home-module="week-summary" data-task-module>
           <h3 id="summaryTitle">本周概览</h3>
           <div class="stat"><span>本周任务</span><strong id="cnCount">0</strong></div>
           <div class="stat"><span>平均进展</span><strong id="osCount">0%</strong></div>
@@ -247,9 +266,25 @@
           <div class="stat"><span>待完成</span><strong id="todoCount">0</strong></div>
           <div class="legend" id="weeklyInsights"></div>
         </div>
-      </aside>
+      <section class="panel home-module" data-home-module="income" aria-label="实时收入" hidden></section>
+      <section class="panel home-module" data-home-module="work-time" aria-label="工时与下班倒计时" hidden></section>
+      <section class="panel home-module" data-home-module="clock" aria-label="打卡操作" hidden></section>
+      <section class="panel home-module" data-home-module="stolen" aria-label="偷出金额" hidden></section>
     </section>
+    <section id="dashboardEmpty" class="empty" hidden><h2>首页还没有模块</h2><p>在设置中选择你想看到的内容。</p><button class="btn" id="emptySettingsBtn" type="button">去设置选择模块</button></section>
   </main>
+
+
+  <dialog id="appSettings" class="settings-dialog" aria-labelledby="appSettingsTitle">
+    <div class="settings-heading"><h2 id="appSettingsTitle">设置</h2><button type="button" class="btn ghost" id="settingsClose">关闭设置</button></div>
+    <nav class="settings-nav" aria-label="设置分类">
+      <button type="button" class="btn" data-settings-tab="home" aria-pressed="true">首页模块</button>
+      <button type="button" class="btn" data-settings-tab="income" aria-pressed="false">工资与排班</button>
+      <button type="button" class="btn" data-settings-tab="records" aria-pressed="false">请假与打卡记录</button>
+    </nav>
+    <div id="layoutSettings"></div>
+    <div id="incomeSettingsHost" hidden></div>
+  </dialog>
 
   <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <form class="modal" id="taskForm">
@@ -291,5 +326,6 @@
   <datalist id="tagLibraryOptions"></datalist>
 
   <script src="app.js"></script>
+  <script src="income/income.bundle.js" defer></script>
 </body>
 </html>
