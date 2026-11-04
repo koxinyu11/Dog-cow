@@ -509,7 +509,7 @@ function StolenModule({ state, size, openSettings }: ModuleCtx) {
         </div>
         <div className="stolen-month">
           <span className="m-label">本月合计</span>
-          <strong>¥{money(s?.stolenMonthAmount)}</strong>
+          <strong><Rolling text={`¥${money(s?.stolenMonthAmount)}`} /></strong>
         </div>
       </div>
       {isBig(size) && (

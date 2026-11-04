@@ -166,7 +166,7 @@
 /* ---------- Rolling digits ---------- */
 .ui-rolling { display: inline-flex; align-items: flex-start; line-height: 1.15; font-variant-numeric: tabular-nums; font-family: var(--f-num); }
 .ui-digit { display: inline-block; vertical-align: top; width: 0.62em; height: 1.15em; overflow: hidden; line-height: 1.15; text-align: center; }
-.ui-digit > span { display: flex; flex-direction: column; transition: transform 180ms var(--ease-out); }
+.ui-digit > span { display: flex; flex-direction: column; transition: transform 320ms var(--ease-out); }
 .ui-digit > span > span { height: 1.15em; }
 
 /* ---------- Context menu ---------- */

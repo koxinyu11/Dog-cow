@@ -1,3 +1,4 @@
+import { CalendarDays, Clock3, Coffee, Timer, Wallet } from 'lucide-react';
 import { TimePicker } from '../../components/TimePicker';
 import { FormSelect } from '../../components/FormSelect';
 import { DEFAULT_SETTINGS, validateSettings } from '../../../../app/income/src/calculator.js';
@@ -8,12 +9,10 @@ import { Field } from '../../components/Modal';
 import { NumberField } from '../../components/NumberField';
 import { ErrorList } from '../../components/ErrorList';
 import { PayrollFields } from './PayrollFields';
-import { Check, Segmented, Switch } from '../../ui';
+import { BonusFields } from './BonusFields';
+import { Button, Segmented, Switch } from '../../ui';
 
-export function IncomeSettingsPanel({
-  income,
-  notify,
-}: {
+export function IncomeSettingsPanel({ income, notify }: {
   income: IncomeState;
   notify: (message: string) => void;
 }) {
@@ -24,135 +23,80 @@ export function IncomeSettingsPanel({
   );
   const d = auto.draft;
   const set = (key: keyof IncomeSettings, value: unknown) => auto.change({ ...d, [key]: value });
+  const estimating = d.payBasis === 'monthly' && d.salaryMode === 'gross';
   return (
-    <section onBlur={() => void auto.flush()}>
-      <h3>工资与排班</h3>
-      <div className="pay-mode">
-        <Segmented<IncomeSettings['payBasis']>
-          label="计薪方式"
-          value={d.payBasis}
-          options={[[ 'monthly', '包月上班' ], [ 'daily', '按天营业' ]]}
-          onChange={(payBasis) => set('payBasis', payBasis)}
-        />
-        <p className="muted">{d.payBasis === 'daily'
-          ? '按天计价，输入每天到手金额；不代表每天发工资。本月预计随排班天数变化。'
-          : '固定月薪，按本月排班分配到每天；提前上班或晚下班都不会增加工资总额。'}</p>
-        {d.payBasis === 'monthly' && <Switch
-          label="算算到手"
-          hint="开启后输入税前月薪，按现有杭州薪税配置估算到手金额；关闭时直接输入到手月薪。"
-          checked={d.salaryMode === 'gross'}
-          onChange={(on) => set('salaryMode', on ? 'gross' : 'net')}
-        />}
-      </div>
-      <div className="fields">
-        {d.payBasis === 'daily' ? <NumberField
-          label="到手日薪（元）"
-          error={auto.errors.dailySalary}
-          value={d.dailySalary}
-          onChange={(value) => set('dailySalary', value)}
-        /> : <NumberField
-          label={d.salaryMode === 'gross' ? '税前月薪（元）' : '到手月薪（元）'}
-          error={auto.errors.monthlySalary}
-          value={d.monthlySalary}
-          onChange={(value) => set('monthlySalary', value)}
-        />}
-        <Field label="日历模式" error={auto.errors.calendarMode}>
-          <FormSelect value={d.calendarMode} onChange={(nextValue) => set('calendarMode', nextValue)}>
-            <option value="cn">国家调休＋每周排班</option>
-            <option value="weekly">仅按每周排班</option>
-          </FormSelect>
-        </Field>
-        <Field label="上班时间" error={auto.errors.startTime}>
-          <TimePicker
-            value={d.startTime}
-            onChange={(nextValue) => set('startTime', nextValue)}
-          />
-        </Field>
-        <Field label="下班时间" error={auto.errors.endTime}>
-          <TimePicker value={d.endTime} onChange={(nextValue) => set('endTime', nextValue)} />
-        </Field>
-      </div>
-      <fieldset>
-        <legend>每周工作日</legend>
-        {[1, 2, 3, 4, 5, 6, 0].map((day) => (
-          <Check
-            key={day}
-            checked={d.workdays.includes(day)}
-            onChange={(on) => set('workdays', on ? [...d.workdays, day] : d.workdays.filter((v) => v !== day))}
-            label={['周日', '周一', '周二', '周三', '周四', '周五', '周六'][day]}
-          />
-        ))}
-      </fieldset>
-      <fieldset>
-        <legend>标准午休</legend>
-        <Switch
-          checked={d.lunchCountsAsWork}
-          onChange={(on) => set('lunchCountsAsWork', on)}
-          label="午休计入标准工时和时间差"
-          hint="打开后实际午休全部参与偷出金额；关闭时排除以下标准午休。"
-        />
-        {!d.lunchCountsAsWork && (
-          <div className="fields">
-            <Field label="标准午休开始" error={auto.errors.lunchStartTime}>
-              <TimePicker
-                value={d.lunchStartTime}
-                onChange={(nextValue) => set('lunchStartTime', nextValue)}
-              />
-            </Field>
-            <Field label="标准午休结束" error={auto.errors.lunchEndTime}>
-              <TimePicker
-                value={d.lunchEndTime}
-                onChange={(nextValue) => set('lunchEndTime', nextValue)}
-              />
-            </Field>
+    <section className={`income-settings ${estimating ? 'has-payroll' : ''}`} onBlur={() => void auto.flush()}>
+      <div className="income-settings-main">
+        <section className="setting-group">
+          <h3><Wallet size={16} /> 工资</h3>
+          <Segmented<IncomeSettings['payBasis']> label="计薪方式" value={d.payBasis}
+            options={[[ 'monthly', '包月上班' ], [ 'daily', '按天营业' ]]}
+            onChange={(payBasis) => set('payBasis', payBasis)} />
+          <div className="salary-setting">
+            <NumberField label={d.payBasis === 'daily' ? '到手日薪（元）' : estimating ? '税前月薪（元）' : '到手月薪（元）'}
+              error={d.payBasis === 'daily' ? auto.errors.dailySalary : auto.errors.monthlySalary}
+              value={d.payBasis === 'daily' ? d.dailySalary : d.monthlySalary}
+              onChange={(value) => set(d.payBasis === 'daily' ? 'dailySalary' : 'monthlySalary', value)} />
+            {d.payBasis === 'monthly' && <Switch label="算算到手" checked={estimating}
+              onChange={(on) => set('salaryMode', on ? 'gross' : 'net')} />}
           </div>
-        )}
-      </fieldset>
-      <fieldset>
-        <legend>时间统计模式</legend>
-        <Switch
-          checked={d.stealMode}
-          label="偷时间模式"
-          onChange={(on) => auto.change({ ...d, stealMode: on, clockMode: on ? d.clockMode : false })}
-        />
-        <Switch
-          checked={d.clockMode}
-          disabled={!d.stealMode}
-          label="上下班模式"
-          hint={d.stealMode ? undefined : '需先打开偷时间模式'}
-          onChange={(on) => set('clockMode', on)}
-        />
-        <p>每日应得工资固定；上下班模式中提前上班开始累计，点击下班补齐当日应得工资，差额计入下班早，收入不超过日薪。</p>
-      </fieldset>
-      {d.payBasis === 'monthly' && d.salaryMode === 'gross' && (
-        <PayrollFields
-          value={d.payroll}
-          change={(value) => set('payroll', value)}
-          income={income}
-        />
-      )}
-      <ErrorList errors={auto.errors} />
-      <p role="status">{auto.feedback}</p>
-      {income.migrationNotice && <p className="notice">{income.migrationNotice}</p>}
-      {income.calculationError && <p className="notice">{income.calculationError.message}</p>}
-      <p>
-        调休加载：{income.calendar.busy ? '检查中' : '已检查'}；
-        {income.snapshot ? `本月工作日 ${income.snapshot.monthlyWorkdays} 天` : '计算待就绪'}
-      </p>
-      <button onClick={() => void command('refreshCalendar').then((r) => notify(r.message))}>
-        刷新调休日历
-      </button>
-      <p className="muted">
-        {Object.entries(income.calendar.results)
-          .map(
-            ([year, result]) =>
-              `${year}：${result.status === 'ready' ? '可用' : '不可用'} / ${result.source || '无来源'}${result.refreshFailed ? '（联网刷新失败）' : ''}`,
-          )
-          .join('；')}
-      </p>
-      <p className="muted">
-        有效输入自动保存，输入未完成时继续用上次有效设置。修改设置按当前口径重算整月。
-      </p>
+        </section>
+        <BonusFields settings={d} now={income.now} change={(bonus) => set('bonus', bonus)} />
+        <section className="setting-group">
+          <h3><CalendarDays size={16} /> 排班</h3>
+          <Field label="日历" error={auto.errors.calendarMode}>
+            <FormSelect value={d.calendarMode} onChange={(value) => set('calendarMode', value)}>
+              <option value="cn">国家调休＋每周排班</option><option value="weekly">每周排班</option>
+            </FormSelect>
+          </Field>
+          <div className="weekday-setting" role="group" aria-label="每周工作日">
+            {[1, 2, 3, 4, 5, 6, 0].map((day) => <button type="button" key={day}
+              aria-label={['周日', '周一', '周二', '周三', '周四', '周五', '周六'][day]}
+              aria-pressed={d.workdays.includes(day)}
+              onClick={() => set('workdays', d.workdays.includes(day) ? d.workdays.filter((v) => v !== day) : [...d.workdays, day])}>
+              <span>周</span>{['日', '一', '二', '三', '四', '五', '六'][day]}
+            </button>)}
+          </div>
+          <div className="settings-pair">
+            <Field label="上班" error={auto.errors.startTime}><TimePicker value={d.startTime} onChange={(v) => set('startTime', v)} /></Field>
+            <Field label="下班" error={auto.errors.endTime}><TimePicker value={d.endTime} onChange={(v) => set('endTime', v)} /></Field>
+          </div>
+          <div className="calendar-setting-status">
+            <span>{income.calendar.busy ? '调休同步中…' : income.snapshot ? `本月 ${income.snapshot.monthlyWorkdays} 个工作日` : '日历待就绪'}</span>
+            <Button size="sm" variant="ghost" disabled={income.calendar.busy}
+              onClick={() => void command('refreshCalendar').then((r) => notify(r.message))}>刷新调休</Button>
+          </div>
+        </section>
+        <section className="setting-group">
+          <h3><Coffee size={16} /> 午休</h3>
+          <Switch checked={d.lunchCountsAsWork} onChange={(on) => set('lunchCountsAsWork', on)} label="午休计入工时" />
+          {!d.lunchCountsAsWork && <div className="settings-pair">
+            <Field label="午休开始" error={auto.errors.lunchStartTime}><TimePicker value={d.lunchStartTime} onChange={(v) => set('lunchStartTime', v)} /></Field>
+            <Field label="午休结束" error={auto.errors.lunchEndTime}><TimePicker value={d.lunchEndTime} onChange={(v) => set('lunchEndTime', v)} /></Field>
+          </div>}
+        </section>
+        <section className="setting-group">
+          <h3><Timer size={16} /> 时间记录</h3>
+          <Switch checked={d.stealMode} label="偷时间" onChange={(on) => auto.change({ ...d, stealMode: on, clockMode: on ? d.clockMode : false })} />
+          <Switch checked={d.clockMode} disabled={!d.stealMode} label="上下班打卡"
+            hint={!d.stealMode ? '先开启偷时间' : undefined} onChange={(on) => set('clockMode', on)} />
+        </section>
+        <details className="settings-help">
+          <summary><Clock3 size={14} /> 计薪规则与日历状态</summary>
+          <p>{d.payBasis === 'daily' ? '日薪乘以排班天数计算本月预计收入。' : '月薪固定，按排班分配到每天。提前上班不增加日薪；点击下班补齐当天应得收入，差额计入下班早。'}</p>
+          <p>有效输入自动保存，修改后按当前口径重算整月；输入未完成时保留上次有效设置。</p>
+          {Object.entries(income.calendar.results).map(([year, result]) => <p key={year}>
+            {year} · {result.status === 'ready' ? '可用' : '不可用'} · {String(result.source || '无来源')}{result.refreshFailed ? ' · 刷新失败' : ''}
+          </p>)}
+        </details>
+      </div>
+      {estimating && <PayrollFields value={d.payroll} change={(value) => set('payroll', value)} settings={d} now={income.now} />}
+      <div className="income-settings-feedback">
+        <ErrorList errors={auto.errors} />
+        <span role="status">{auto.feedback}</span>
+        {income.migrationNotice && <p className="notice">{income.migrationNotice}</p>}
+        {income.calculationError && <p className="notice">{income.calculationError.message}</p>}
+      </div>
     </section>
   );
 }

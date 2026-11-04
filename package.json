@@ -18,7 +18,8 @@
     "make:mac:x64": "npm run build && node scripts/make-mac.mjs x64",
     "make:win": "npm run build && electron-forge make --platform=win32 --arch=x64",
     "test:legacy": "node --test tests/app.test.cjs tests/income/*.test.js && python3 tests/auto_sync_test.py",
-    "test:migration": "node --test tests/migration/*.test.js"
+    "test:migration": "node --test tests/migration/*.test.js",
+    "postinstall": "node scripts/patch-build-dependencies.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -45,5 +46,11 @@
   "productName": "狗牛",
   "description": "狗牛：任务管理与工作时间计价",
   "author": "DogCow contributors",
-  "main": "dist-electron/src/main/main.js"
+  "main": "dist-electron/src/main/main.js",
+  "overrides": {
+    "@electron/asar": "4.3.1",
+    "glob": "14.0.3",
+    "minimatch": "11.0.4",
+    "rimraf": "6.1.3"
+  }
 }

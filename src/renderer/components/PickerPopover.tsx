@@ -26,6 +26,7 @@ export function PickerPopover({ id, open, anchor, onClose, children, label, clas
       const rect = control.getBoundingClientRect();
       const width = popup.offsetWidth;
       const height = popup.offsetHeight;
+      popup.dataset.side = rect.bottom + height + 8 <= innerHeight ? 'bottom' : 'top';
       popup.style.left = `${Math.max(8, Math.min(rect.left, innerWidth - width - 8))}px`;
       popup.style.top = `${Math.max(8, rect.bottom + height + 8 <= innerHeight ? rect.bottom + 6 : rect.top - height - 6)}px`;
     };

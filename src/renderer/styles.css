@@ -59,7 +59,7 @@ dialog > form, dialog > div:last-child { padding-bottom: 24px; }
 @keyframes fade-in { from { opacity: 0; } }
 
 /* ---------- Forms ---------- */
-input:not([type='checkbox']):not([type='range']):not([type='color']):not([type='file']), select, textarea {
+:where(input:not([type='checkbox']):not([type='range']):not([type='color']):not([type='file']), select, textarea) {
   min-height: 36px;
   padding: 7px 10px;
   border: 1px solid var(--c-line);

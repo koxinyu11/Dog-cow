@@ -323,7 +323,7 @@ export function Stat({ label, value, icon: Icon }: { label: ReactNode; value: Re
         {Icon && <Icon size={14} strokeWidth={2.2} aria-hidden="true" />}
         {label}
       </span>
-      <span className="ui-stat-value">{value}</span>
+      <span className="ui-stat-value">{typeof value === 'string' && /^¥[\d,.-]+$/.test(value) ? <Rolling text={value} /> : value}</span>
     </div>
   );
 }

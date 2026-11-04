@@ -4,13 +4,13 @@
 .field-hint { color: var(--c-muted); font-size: 11.5px; line-height: 1.5; font-weight: 400; }
 .field-error { display: block; color: var(--c-danger); font-size: 11.5px; line-height: 1.5; font-weight: 500; }
 .fields { grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: 0 16px; align-items: start; }
-input:not([type='checkbox']):not([type='range']):not([type='color']):not([type='file']):not([type='hidden']), textarea, .form-select-trigger {
+:where(input:not([type='checkbox']):not([type='range']):not([type='color']):not([type='file']):not([type='hidden'])), textarea, .form-select-trigger {
   min-height: 42px; padding: 10px 12px; border: 1px solid var(--c-line); border-radius: 12px;
   background: color-mix(in srgb, var(--c-surface-2) 55%, var(--c-surface-solid)); color: var(--c-ink);
   box-shadow: inset 0 1px 2px color-mix(in srgb, var(--c-ink) 2%, transparent);
   transition: border-color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast);
 }
-input:not([type='checkbox']):not([type='range']):not([type='color']):not([type='file']):not([type='hidden']):hover:not(:disabled), textarea:hover:not(:disabled), .form-select-trigger:hover:not(:disabled) { border-color: color-mix(in srgb, var(--c-brand) 45%, var(--c-line)); }
+:where(input:not([type='checkbox']):not([type='range']):not([type='color']):not([type='file']):not([type='hidden'])):hover:not(:disabled), textarea:hover:not(:disabled), .form-select-trigger:hover:not(:disabled) { border-color: color-mix(in srgb, var(--c-brand) 45%, var(--c-line)); }
 input::placeholder, textarea::placeholder { color: var(--c-muted); font-weight: 400; }
 input:focus-visible, textarea:focus-visible, .form-select-trigger:focus-visible { outline: none; border-color: var(--c-brand); background: var(--c-surface-solid); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-brand) 18%, transparent); }
 input:disabled, textarea:disabled, .form-select-trigger:disabled { color: var(--c-muted); opacity: 0.65; cursor: not-allowed; }
@@ -40,7 +40,16 @@ legend { color: var(--c-ink-2); font-size: 12px; letter-spacing: 0.02em; }
 .form-select-trigger > svg { flex: none; color: var(--c-muted); }
 
 .form-popover { position: fixed; inset: auto; margin: 0; width: min(310px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow: auto; padding: 14px; border: 1px solid var(--c-line); border-radius: 18px; color: var(--c-ink); background: var(--c-surface-solid); box-shadow: var(--e-3); font: 13px/1.5 var(--f-sans); }
-.form-popover:popover-open { animation: form-open 140ms var(--ease-out); }
+.form-popover {
+  opacity: 0; transform: translateY(6px) scale(0.96); transform-origin: top left; pointer-events: none;
+  transition: opacity 180ms var(--ease-out), transform 220ms var(--ease-out), display 220ms allow-discrete, overlay 220ms allow-discrete;
+}
+.form-popover[data-side='top'] { transform-origin: bottom left; }
+.form-popover:popover-open { opacity: 1; transform: none; pointer-events: auto; }
+@starting-style { .form-popover:popover-open { opacity: 0; transform: translateY(6px) scale(0.96); } }
+.form-select-trigger > svg, .picker-open > svg { transition: transform 220ms var(--ease-out); }
+.form-select-trigger[aria-expanded='true'] > svg, .picker-open[aria-expanded='true'] > svg { transform: rotate(180deg); }
+.select-panel button[role='option'], .time-column button, .date-grid button { transition: color 160ms, background 160ms, box-shadow 160ms; }
 .form-popover button:not(.ui-btn) { margin: 0; min-height: 0; box-shadow: none; transform: none; font: inherit; cursor: pointer; }
 .form-popover button:disabled { opacity: 0.35; cursor: not-allowed; }
 .form-popover button:focus-visible { outline: 2px solid var(--c-brand); outline-offset: -2px; }
@@ -80,10 +89,86 @@ legend { color: var(--c-ink-2); font-size: 12px; letter-spacing: 0.02em; }
 .task-card .priority-select { flex: 0 1 84px; min-width: 65px; }
 .task-card .tag-reuse { flex: 0 1 140px; }
 .task-card .priority-select .form-select-trigger { color: inherit; background: inherit; }
-@keyframes form-open { from { opacity: 0; translate: 0 4px; } }
-@media (prefers-reduced-motion: reduce) { .form-popover:popover-open { animation: none; } }
+
 
 .pay-mode { margin-bottom: 18px; }
 .pay-mode > .ui-segmented { margin-bottom: 8px; }
 .pay-mode > .muted { margin: 0; }
 .pay-mode .ui-switch-row { margin-top: 10px; padding: 12px; border: 1px solid var(--c-line); border-radius: 12px; background: var(--c-surface-2); }
+
+/* Settings: keep the pay/schedule flow beside its optional payroll workspace. */
+.settings-dialog { width: min(820px, 94vw); }
+.settings-dialog:has(.settings-pane:not([hidden]) .has-payroll) { width: min(1120px, 94vw); }
+.income-settings { display: grid; gap: 20px; padding-top: 20px; }
+.income-settings.has-payroll { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
+.income-settings-main { min-width: 0; }
+.setting-group { padding: 0 0 22px; margin-bottom: 22px; border-bottom: 1px solid var(--c-line); }
+.setting-group h3, .payroll-pane h3 { margin: 0 0 14px; font-size: 14px; }
+.setting-group h3 svg, .payroll-pane h3 svg { color: var(--c-muted); flex: none; }
+.settings-pair { align-items: start; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.salary-setting { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, 0.8fr); gap: 18px; align-items: center; margin-top: 18px; }
+.salary-setting .field { margin-bottom: 0; }
+.salary-setting .ui-switch-row { border: 0; padding: 0; margin: 16px 0 0; background: transparent; gap: 12px; }
+.setting-group > .ui-switch-row { padding: 8px 0; }
+.setting-group > .ui-switch-row + .settings-pair { margin-top: 14px; }
+.weekday-setting { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 6px 0 18px; }
+.weekday-setting button { display: grid; justify-items: center; gap: 2px; min-width: 0; min-height: 54px; margin: 0; padding: 7px 0; border: 1px solid var(--c-line); border-radius: 12px; box-shadow: none; font-size: 15px; background: transparent; }
+.weekday-setting button span { color: var(--c-muted); font-size: 10px; font-weight: 500; }
+.weekday-setting button[aria-pressed='true'] { color: var(--c-brand); border-color: color-mix(in srgb, var(--c-brand) 30%, var(--c-line)); background: var(--c-brand-2); }
+.weekday-setting button[aria-pressed='true'] span { color: inherit; }
+.weekday-setting button:focus-visible { outline: 2px solid var(--c-brand); outline-offset: 2px; }
+.calendar-setting-status { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--c-muted); font-size: 11.5px; }
+.settings-help { margin: 0; background: transparent; padding: 0; color: var(--c-muted); font-size: 12px; }
+.settings-help summary { display: flex; align-items: center; gap: 6px; }
+.income-settings-feedback { grid-column: 1 / -1; font-size: 12px; color: var(--c-muted); }
+.payroll-pane { min-width: 0; padding: 20px; border: 1px solid var(--c-line); border-radius: 18px; background: color-mix(in srgb, var(--c-surface-2) 45%, var(--c-surface-solid)); }
+.setting-subheading { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.setting-subheading h3, .setting-subheading h4 { margin: 0; }
+.setting-subheading h4 { font-size: 12px; }
+.policy-badge { color: var(--c-brand); background: var(--c-brand-2); padding: 3px 7px; border-radius: 6px; font-size: 10px; }
+.policy-badge.needs-input { color: var(--c-warning-ink); background: var(--c-accent-2); }
+.payroll-preview { padding: 18px; border-radius: 14px; background: var(--c-brand-2); margin: 14px 0 18px; }
+.payroll-preview > span { font-size: 11px; color: var(--c-ink-2); }
+.payroll-preview > strong { display: block; font: 700 clamp(25px, 3vw, 34px)/1.4 var(--f-num); color: var(--c-brand); overflow-wrap: anywhere; }
+.payroll-preview.is-pending { background: var(--c-surface-solid); }
+.payroll-preview dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; margin: 14px 0 0; }
+.payroll-preview dl > div { min-width: 0; }
+.payroll-preview dt { font-size: 10px; color: var(--c-muted); }
+.payroll-preview dd { margin: 2px 0 0; font: 650 13px var(--f-num); overflow-wrap: anywhere; }
+.payroll-options { margin: 0; padding: 14px 0; border-top: 1px solid var(--c-line); border-radius: 0; background: transparent; font-size: 12px; }
+.payroll-options > summary { font-size: 12px; }
+.payroll-options[open] > summary { margin-bottom: 16px; }
+.payroll-base-settings { margin-top: 14px; }
+.payroll-deduction { padding: 16px 0; border-top: 1px solid var(--c-line); }
+.payroll-deduction .field:last-child { margin-bottom: 0; }
+.payroll-deduction .setting-subheading { margin-bottom: 12px; }
+.payroll-pane .form-select-trigger { font-size: 12px; }
+@media (max-width: 880px) {
+  .income-settings.has-payroll { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  .salary-setting, .settings-pair { grid-template-columns: minmax(0, 1fr); }
+  .salary-setting .ui-switch-row { margin: 0; }
+  .weekday-setting { gap: 3px; }
+  .payroll-pane { padding: 14px; }
+}
+
+/* Standalone bonus tax calculator. Its result has no connection to income totals. */
+.bonus-settings > .ui-switch-row { padding: 0; }
+.bonus-settings .ui-switch-text > span { display: inline-flex; align-items: center; gap: 7px; }
+.bonus-settings .ui-switch-text svg { color: var(--c-muted); }
+.bonus-content { margin-top: 16px; }
+.bonus-content .ui-segmented { font-size: 12px; }
+.bonus-content .ui-segmented button { min-width: 0; padding-left: 7px; padding-right: 7px; }
+.bonus-amount-field, .bonus-tax-inputs { margin-top: 16px; }
+.bonus-tax-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+.bonus-preview { margin-bottom: 12px; }
+.bonus-help { padding-top: 4px; }
+.payroll-preview .ui-rolling { max-width: 100%; }
+.no-fx .form-popover, .no-fx .form-select-trigger > svg, .no-fx .picker-open > svg,
+.no-fx .select-panel button, .no-fx .time-column button, .no-fx .date-grid button,
+.no-fx .ui-digit > span { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .form-popover, .form-select-trigger > svg, .picker-open > svg, .ui-digit > span { transition: none; }
+}
+@media (max-width: 480px) { .bonus-tax-inputs { grid-template-columns: minmax(0, 1fr); } }

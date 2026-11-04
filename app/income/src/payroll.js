@@ -1,4 +1,4 @@
-import { HANGZHOU_PAYROLL_POLICY as POLICY } from '../data/payroll/hangzhou.js';
+import { PAYROLL_POLICIES, getPayrollPolicy, payrollEstimateRule, defaultPayrollItems } from '../data/payroll/cities.js';
 
 export const DEFAULT_PAYROLL_CONFIG = {
   city: 'hangzhou',
@@ -60,7 +60,8 @@ export function validatePayrollConfig(raw) {
     config[key] = input[key];
   };
 
-  choice('city', ['hangzhou'], '城市，目前仅支持杭州市区');
+  choice('city', Object.keys(PAYROLL_POLICIES), '城市');
+  const cityPolicy = getPayrollPolicy(config.city) || getPayrollPolicy('hangzhou');
   choice('taxMode', ['estimate', 'cumulative'], '个税计算方式');
   config.taxMonth = parseNumber(input.taxMonth);
   if (!Number.isInteger(config.taxMonth) || config.taxMonth < 1 || config.taxMonth > 12) {
@@ -78,8 +79,8 @@ export function validatePayrollConfig(raw) {
 
   config.items = {};
   if (!isRecord(input.items)) errors.items = '个人险金扣款设置格式不正确。';
-  for (const [id, policy] of Object.entries(POLICY.items)) {
-    const source = isRecord(input.items?.[id]) ? input.items[id] : DEFAULT_PAYROLL_CONFIG.items[id];
+  for (const [id, policy] of Object.entries(cityPolicy.items)) {
+    const source = isRecord(input.items?.[id]) ? input.items[id] : defaultPayrollItems(cityPolicy.city)[id];
     if (input.items && Object.hasOwn(input.items, id) && !isRecord(input.items[id])) {
       errors[`items.${id}.method`] = `${policy.name}设置格式不正确。`;
     }
@@ -89,6 +90,15 @@ export function validatePayrollConfig(raw) {
     }
     item.rate = number(source.rate, `items.${id}.rate`, `${policy.name}比例`, 100);
     item.amount = number(source.amount, `items.${id}.amount`, `${policy.name}固定金额`);
+    if (source.baseMode !== undefined) {
+      if (!['inherit', 'salary', 'custom'].includes(source.baseMode)) errors[`items.${id}.baseMode`] = '请选择有效的基数方式。';
+      item.baseMode = source.baseMode;
+      item.base = number(source.base ?? 0, `items.${id}.base`, `${policy.name}基数`);
+    }
+    if (source.taxDeductibleAmount !== undefined) {
+      item.taxDeductibleAmount = number(source.taxDeductibleAmount, `items.${id}.taxDeductibleAmount`, `${policy.name}税前可扣金额`);
+      if (item.method === 'fixed' && item.taxDeductibleAmount > item.amount) errors[`items.${id}.taxDeductibleAmount`] = '税前可扣金额不能超过实际扣款。';
+    }
     config.items[id] = item;
   }
 
@@ -140,7 +150,7 @@ function sum(values) {
   return values.reduce((total, value) => finite(total + value), 0);
 }
 
-function cumulativeTax(taxableIncome) {
+export function cumulativeTax(taxableIncome) {
   const income = Math.max(0, finite(taxableIncome));
   const bracket = TAX_BRACKETS.find((item) => income <= item.maximum);
   return money(Math.max(0, finite(income * bracket.rate - bracket.deduction)));
@@ -175,39 +185,45 @@ export function calculatePayroll(settings, now = new Date()) {
   try {
     const grossSalary = money(salary);
     const warnings = [];
-    const bases = {};
-    for (const type of ['social', 'fund']) {
-      const policy = POLICY[type];
-      bases[type] = config[`${type}BaseMode`] === 'salary'
-        ? Math.min(policy.maximumBase, Math.max(policy.minimumBase, grossSalary))
-        : config[`${type}Base`];
-      if (config[`${type}BaseMode`] === 'custom'
-        && (bases[type] < policy.minimumBase || bases[type] > policy.maximumBase)) {
-        warnings.push(`${type === 'social' ? '社保' : '公积金'}自定义基数超出本期政策范围：现金按输入扣款，税前可扣额另按政策上限限制，请核对工资条。`);
-      }
-    }
-
-    const items = Object.entries(POLICY.items).map(([id, policy]) => {
+    const policy = getPayrollPolicy(config.city);
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const items = [];
+    for (const [id, definition] of Object.entries(policy.items)) {
       const item = config.items[id];
-      const base = bases[policy.base];
+      const rule = payrollEstimateRule(config.city, id, date);
+      const available = !rule.generic;
+      if (rule.expired && item.method === 'percent') {
+        return invalid(`${policy.cityName} · ${definition.name}政策缺失或超出适用期，请按工资条填写固定金额及税前可扣金额。`);
+      }
+      const mode = item.baseMode && item.baseMode !== 'inherit' ? item.baseMode : config[`${definition.base}BaseMode`];
+      const customBase = item.baseMode === 'custom' ? item.base : config[`${definition.base}Base`];
+      const base = mode === 'salary'
+        ? (rule.usePolicyBounds ? Math.min(rule.maximumBase, Math.max(rule.minimumBase, grossSalary)) : grossSalary)
+        : customBase;
+      const fee = item.method === 'percent' && available ? (definition.fixedFee || 0) : 0;
       const amount = money(item.method === 'none' ? 0 : item.method === 'fixed'
-        ? item.amount : finite(base * (item.rate / 100)));
-      const legalBase = Math.min(base, POLICY[policy.base].maximumBase);
-      const legalRate = item.method === 'percent' ? Math.min(item.rate, policy.rate) : policy.rate;
-      const taxDeductibleAmount = money(Math.min(amount, finite(legalBase * (legalRate / 100))));
-      if (amount > taxDeductibleAmount) {
-        warnings.push(`${policy.name}实际扣款有 ¥${money(amount - taxDeductibleAmount).toFixed(2)} 超出本工具的税前扣除上限，超出部分仍计入应税收入。`);
+        ? item.amount : finite(base * (item.rate / 100) + fee));
+      // Fixed amount includes the whole payroll line; never add the surcharge twice.
+      const legalBase = rule.usePolicyBounds ? Math.min(base, rule.maximumBase) : base;
+      const rateLimit = id === 'fund' ? rule.maximumRate : rule.rate;
+      const legalRate = item.method === 'percent' ? Math.min(item.rate, rateLimit) : rateLimit;
+      const taxDeductibleAmount = item.method === 'none' ? 0 : money(item.method === 'fixed' && item.taxDeductibleAmount !== undefined
+        ? item.taxDeductibleAmount : available || item.method === 'percent' ? Math.min(amount, finite(legalBase * (legalRate / 100))) : 0);
+      if (taxDeductibleAmount > amount) return invalid(`${definition.name}税前可扣金额不能超过实际扣款。`);
+      if (!available && item.method === 'percent') warnings.push(`${definition.name}使用通用估算，比例及基数可修改，税前可扣额为估算值，请按工资条核对。`);
+      if (!available && item.method === 'fixed') warnings.push(`${definition.name}使用工资条金额；税前可扣 ¥${taxDeductibleAmount.toFixed(2)}。`);
+      if (mode === 'custom' && available && (base < rule.minimumBase || base > rule.maximumBase)) {
+        warnings.push(`${definition.name}自定义基数超出本期政策范围，请核对工资条。`);
       }
-      if (id === 'fund' && item.method === 'percent'
-        && (item.rate < POLICY.fund.minimumRate || item.rate > POLICY.fund.maximumRate)) {
-        warnings.push('公积金自定义比例不在普通职工 5%–12% 的政策范围内，请按工资条核实；税前可扣比例最高按 12%。');
+      if (amount > taxDeductibleAmount) warnings.push(`${definition.name}实际扣款有 ¥${money(amount - taxDeductibleAmount).toFixed(2)} 超出本工具的税前扣除上限，超出部分仍计入应税收入。`);
+      if (id === 'fund' && item.method === 'percent' && (item.rate < rule.minimumRate || item.rate > rule.maximumRate)) {
+        warnings.push(`公积金比例范围为 ${rule.minimumRate}%–${rule.maximumRate}%，税前可扣比例最高按 ${rule.maximumRate}%。`);
       }
-      return {
-        id, name: policy.name, method: item.method, amount, taxDeductibleAmount,
+      items.push({ id, name: definition.name, method: item.method, amount, taxDeductibleAmount,
         base: item.method === 'none' ? null : base,
-        rate: item.method === 'percent' ? item.rate : null,
-      };
-    });
+        estimateMode: available ? 'city' : 'general',
+        rate: item.method === 'percent' ? item.rate : null, fixedFee: fee });
+    }
 
     for (const item of config.extras) {
       const amount = money(item.method === 'fixed' ? item.amount : finite(grossSalary * (item.rate / 100)));
@@ -247,10 +263,6 @@ export function calculatePayroll(settings, now = new Date()) {
     if (totalDeductions > grossSalary) warnings.push('扣款合计超过税前月薪，税后计费月薪按 0 计，请核对固定扣款和缴费基数。');
     if (config.socialBaseMode === 'salary' || config.fundBaseMode === 'salary') {
       warnings.push('部分缴费基数由本月工资在政策上下限内估算，实际通常按上年度平均工资或单位申报值；可切换为自定义基数。');
-    }
-    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    if (now.getFullYear() !== POLICY.social.year || date < POLICY.fund.effectiveFrom || date > POLICY.fund.effectiveTo) {
-      warnings.push('当前日期超出部分内置政策参数的适用期，请按最新政策或实际工资条调整基数和扣款。');
     }
     assumption += ' 每月基本减除费用 5000 元；不含奖金、补缴补差和年度汇算。结果用于时间收入折算，不按每日请假重新计算个税。';
     return {

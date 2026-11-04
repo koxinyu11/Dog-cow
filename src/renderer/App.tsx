@@ -224,6 +224,7 @@ export function App() {
             }}
           />
           <Modal
+            className="settings-dialog"
             open={settings}
             title="设置"
             onClose={() => {

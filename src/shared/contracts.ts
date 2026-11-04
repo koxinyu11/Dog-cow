@@ -58,6 +58,9 @@ export interface Leave {
   paid: boolean;
 }
 export interface Deduction {
+  baseMode?: string;
+  base?: number | string;
+  taxDeductibleAmount?: number | string;
   method: string;
   rate: number | string;
   amount: number | string;
@@ -81,7 +84,19 @@ export interface Payroll {
   items: Record<string, Deduction>;
   extras: Extra[];
 }
+export interface BonusConfig {
+  enabled: boolean;
+  amountMode: string;
+  baseSalary: number | string;
+  customAmount: number | string;
+  taxMode: string;
+  taxYear: number | string;
+  annualMode: string;
+  annualIncome: number | string;
+  annualDeductions: number | string;
+}
 export interface IncomeSettings {
+  bonus?: BonusConfig;
   payBasis: 'monthly' | 'daily';
   dailySalary: number | string;
   monthlySalary: number | string;

@@ -1,3 +1,4 @@
+import { DEFAULT_BONUS_CONFIG, validateBonusConfig } from './bonus.js';
 import { getMonthPlan } from './calendar.js';
 import { getLeaveIntervalsForDay } from './leave.js';
 import { getAttendanceDay } from './attendance.js';
@@ -18,6 +19,7 @@ export const DEFAULT_SETTINGS = {
   clockMode: false,
   salaryMode: 'net',
   payroll: DEFAULT_PAYROLL_CONFIG,
+  bonus: DEFAULT_BONUS_CONFIG,
 };
 
 const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
@@ -46,6 +48,7 @@ export function validateSettings(raw) {
   const payBasis = fallback('payBasis');
   const dailySalary = parseNumber(fallback('dailySalary'));
   const payrollCheck = validatePayrollConfig(fallback('payroll'));
+  const bonusCheck = validateBonusConfig(fallback('bonus'));
   const validStart = validTime(input.startTime);
   const validEnd = validTime(input.endTime);
 
@@ -76,6 +79,7 @@ export function validateSettings(raw) {
   if (typeof clockMode !== 'boolean') errors.clockMode = '请选择是否开启上下班模式。';
   if (clockMode === true && stealMode !== true) errors.clockMode = '请先开启偷时间模式，再开启上下班模式。';
   if (salaryMode !== 'net' && salaryMode !== 'gross') errors.salaryMode = '请选择税后月薪或税前月薪。';
+  if (!bonusCheck.valid) errors.bonus = Object.values(bonusCheck.errors).join(' ');
   if (!payrollCheck.valid) errors.payroll = '工资换算配置无效，请检查社保、公积金及个税设置。';
 
   if (lunchCountsAsWork === false && validStart && validEnd
@@ -109,6 +113,7 @@ export function validateSettings(raw) {
       clockMode,
       salaryMode,
       payroll: payrollCheck.config,
+      bonus: bonusCheck.config,
     },
     errors,
   };

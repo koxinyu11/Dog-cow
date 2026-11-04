@@ -5,7 +5,9 @@ export function Modal({
   title,
   onClose,
   children,
+  className,
 }: {
+  className?: string;
   open: boolean;
   title: string;
   onClose: () => void;
@@ -20,6 +22,7 @@ export function Modal({
   return (
     <dialog
       ref={ref}
+      className={className}
       onCancel={(event) => {
         event.preventDefault();
         onClose();

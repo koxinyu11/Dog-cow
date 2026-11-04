@@ -34,7 +34,7 @@ test('validates finite nonnegative money, percentage range, month and city', () 
     assert.equal(validatePayrollConfig(raw).valid, false);
   }
   for (const taxMonth of [0, 13, 1.5]) assert.equal(validatePayrollConfig(config({ taxMonth })).valid, false);
-  assert.equal(validatePayrollConfig(config({ city: 'shanghai' })).valid, false);
+  assert.equal(validatePayrollConfig(config({ city: 'unsupported' })).valid, false);
   assert.equal(validatePayrollConfig(null).valid, false);
 });
 
@@ -194,6 +194,6 @@ test('nonfinite salary and overflowing intermediate sums are rejected in Chinese
 
 test('policy dates outside verified applicability are identified', () => {
   const result = calculatePayroll({ monthlySalary: 10000, salaryMode: 'gross', payroll: config() }, new Date(2028, 0, 1));
-  assert.equal(result.valid, true);
-  assert.ok(result.warnings.some((warning) => warning.includes('适用期')));
+  assert.equal(result.valid, false);
+  assert.match(result.error, /适用期/);
 });
