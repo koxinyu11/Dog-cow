@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { type Fields, type Tag, type Task } from '../../../shared/contracts';
 import { localDate } from '../../../domain/tasks/model';
 import { dateLabel } from '../../format';
 import { AutoText } from '../../components/AutoText';
+import { ArrowRightToLine, CalendarClock, Clock, Trash2, X } from 'lucide-react';
+import { Button, Check, IconButton } from '../../ui';
+import { CowProgress } from './CowProgress';
 
 export function TaskCard({
   task,
@@ -17,24 +19,6 @@ export function TaskCard({
   act: (action: string, id: string, extra?: Fields) => Promise<void>;
   patch: (id: string, patch: Fields) => Promise<void>;
 }) {
-  const [progress, setProgress] = useState(task.progress);
-  const current = useRef(task.progress);
-  const saving = useRef(false);
-  useEffect(() => {
-    if (!saving.current) {
-      setProgress(task.progress);
-      current.current = task.progress;
-    }
-  }, [task.progress]);
-  const commitProgress = async () => {
-    if (current.current === task.progress || saving.current) return;
-    saving.current = true;
-    try {
-      await act('progress', task.id, { progress: current.current });
-    } finally {
-      saving.current = false;
-    }
-  };
   const updateTag = (id: string, change: Partial<Tag>) =>
     patch(task.id, {
       tags: task.tags.map((tag) => (tag.id === id ? { ...tag, ...change } : tag)),
@@ -50,13 +34,13 @@ export function TaskCard({
     : '';
   return (
     <article className={`task-card ${task.done ? 'done' : ''}`} data-task-id={task.id}>
-      <div className="row">
-        <button
-          aria-label={task.done ? `取消完成 ${task.title}` : `完成 ${task.title}`}
-          onClick={() => void act('toggle', task.id)}
-        >
-          {task.done ? '✓ 已完成' : '○ 完成'}
-        </button>
+      <div className="row task-head">
+        <Check
+          round
+          checked={task.done}
+          label={<span className="sr-only">{task.done ? `取消完成 ${task.title}` : `完成 ${task.title}`}</span>}
+          onChange={() => void act('toggle', task.id)}
+        />
         <AutoText
           value={task.title}
           label="任务标题"
@@ -64,6 +48,7 @@ export function TaskCard({
         />
         <select
           aria-label="优先级"
+          className={`priority-select p-${task.priority}`}
           value={task.priority}
           onChange={(e) => void patch(task.id, { priority: e.target.value })}
         >
@@ -78,7 +63,7 @@ export function TaskCard({
         area
         onCommit={(value) => patch(task.id, { note: value })}
       />
-      <div className="row">
+      <div className="row task-tags">
         {task.tags.map((tag) => (
           <span className="tag-pill" key={tag.id}>
             <AutoText
@@ -93,6 +78,7 @@ export function TaskCard({
               onChange={(e) => void updateTag(tag.id, { color: e.target.value })}
             />
             <button
+              className="tag-remove"
               aria-label="删除标签"
               onClick={() =>
                 void patch(task.id, {
@@ -105,6 +91,7 @@ export function TaskCard({
           </span>
         ))}
         <select
+          className="tag-reuse"
           aria-label="复用或新增标签"
           value=""
           onChange={(e) => {
@@ -138,7 +125,7 @@ export function TaskCard({
           ))}
         </select>
       </div>
-      <div className="row">
+      <div className="row task-meta">
         {task.hasTime ? (
           <>
             <input
@@ -154,7 +141,10 @@ export function TaskCard({
               value={task.endTime}
               onChange={(e) => void patch(task.id, { endTime: e.target.value })}
             />
-            <button
+            <IconButton
+              size="sm"
+              variant="ghost"
+              label="移除时间"
               onClick={() =>
                 void patch(task.id, {
                   hasTime: false,
@@ -163,11 +153,14 @@ export function TaskCard({
                 })
               }
             >
-              移除时间
-            </button>
+              <X size={13} />
+            </IconButton>
           </>
         ) : (
-          <button
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<Clock size={13} />}
             onClick={() =>
               void patch(task.id, {
                 hasTime: true,
@@ -177,7 +170,7 @@ export function TaskCard({
             }
           >
             添加时间
-          </button>
+          </Button>
         )}
         {task.dueDate ? (
           <>
@@ -187,52 +180,23 @@ export function TaskCard({
               value={task.dueDate}
               onChange={(e) => void patch(task.id, { dueDate: e.target.value })}
             />
-            <span>{due}</span>
-            <button onClick={() => void patch(task.id, { dueDate: '' })}>移除截止日</button>
+            <span className={`due-chip ${due === '已逾期' ? 'is-late' : due === '今天截止' ? 'is-today' : ''}`}>{due}</span>
+            <IconButton size="sm" variant="ghost" label="移除截止日" onClick={() => void patch(task.id, { dueDate: '' })}><X size={13} /></IconButton>
           </>
         ) : (
-          <button onClick={() => void patch(task.id, { dueDate: task.date })}>设置截止日</button>
+          <Button size="sm" variant="ghost" icon={<CalendarClock size={13} />} onClick={() => void patch(task.id, { dueDate: task.date })}>设置截止日</Button>
         )}
       </div>
-      <div
-        className={`task-progress ${task.done ? 'complete' : ''} ${celebrating ? 'celebrating' : ''}`}
-      >
-        <span>当前进展</span>
-        <div className="cow-progress" style={{ '--progress': `${progress}%` } as CSSProperties}>
-          <div className="grass-track" />
-          <span className="cow-runner" aria-hidden="true">
-            🐄
-          </span>
-          <input
-            aria-label={`任务进展 ${task.title}`}
-            type="range"
-            min="0"
-            max="100"
-            step="5"
-            value={progress}
-            onChange={(e) => {
-              setProgress(Number(e.target.value));
-              current.current = Number(e.target.value);
-            }}
-            onPointerUp={() => void commitProgress()}
-            onKeyUp={() => void commitProgress()}
-            onBlur={() => void commitProgress()}
-          />
-        </div>
-        <output>
-          {task.done ? (
-            <span className="completion-feedback">
-              <b>吃完啦</b>
-              <i>✨</i>
-            </span>
-          ) : (
-            `${progress}% 🌿`
-          )}
-        </output>
-      </div>
-      <div className="actions">
-        {!task.done && <button onClick={() => void act('move', task.id)}>同步到下一日</button>}
-        <button onClick={() => void act('delete', task.id)}>删除</button>
+      <CowProgress task={task} act={act} celebrating={celebrating} />
+      <div className="task-actions">
+        {!task.done && (
+          <Button size="sm" variant="soft" icon={<ArrowRightToLine size={13} />} onClick={() => void act('move', task.id)}>
+            同步到下一日
+          </Button>
+        )}
+        <Button size="sm" variant="danger" icon={<Trash2 size={13} />} onClick={() => void act('delete', task.id)}>
+          删除
+        </Button>
       </div>
     </article>
   );

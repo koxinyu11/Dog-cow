@@ -4,7 +4,7 @@ import { HOME_MODULES } from '../../app/income/src/home-layout.js';
 export const RESTORE_KEY = 'dogcow.migration.restore.v1';
 export const MAX_TRANSFER_BYTES = 20 * 1024 * 1024;
 const fixedKeys = ['work-todolist-generic-v1', 'dogcow.home.v1', ...[1, 2, 3, 4].map(v => `niuma-calculator.settings.v${v}`)];
-export const allowedKey = key => fixedKeys.includes(key) || /^niuma-calculator\.holidays\.v1\.[1-9]\d{3}$/.test(key);
+export const allowedKey = key => fixedKeys.includes(key) || key === 'dogcow.board.v2' || /^niuma-calculator\.holidays\.v1\.[1-9]\d{3}$/.test(key);
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const fail = message => { throw new Error(message); };
 const validDate = value => {

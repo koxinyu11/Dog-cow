@@ -1,0 +1,64 @@
+/* Design tokens: colour, radius, elevation, type, motion. Everything else reads from these. */
+:root {
+  --c-ink: #1d2420;
+  --c-ink-2: #4f5a53;
+  --c-muted: #7b857e;
+  --c-line: rgba(29, 36, 32, 0.1);
+  --c-surface: rgba(255, 255, 255, 0.78);
+  --c-surface-solid: #ffffff;
+  --c-surface-2: rgba(246, 245, 238, 0.9);
+  --c-brand: #2c6a50;
+  --c-brand-2: #e3f0e8;
+  --c-brand-ink: #ffffff;
+  --c-accent: #f08a3e;
+  --c-accent-2: #fff0e2;
+  --c-gold: #f4b740;
+  --c-danger: #d2493a;
+  --c-danger-2: #fde8e5;
+  --c-sky: #5a8dee;
+  --c-grass-1: #cfe7b5;
+  --c-grass-2: #6fae5f;
+
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --r-pill: 999px;
+
+  --e-1: 0 1px 2px rgba(20, 40, 28, 0.06), 0 2px 8px rgba(20, 40, 28, 0.05);
+  --e-2: 0 6px 22px rgba(20, 40, 28, 0.1), 0 1px 3px rgba(20, 40, 28, 0.06);
+  --e-3: 0 24px 60px rgba(20, 40, 28, 0.2), 0 4px 12px rgba(20, 40, 28, 0.08);
+
+  --f-sans: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --f-display: 'Songti SC', Georgia, serif;
+  --f-num: ui-rounded, 'SF Pro Rounded', -apple-system, sans-serif;
+
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --t-fast: 140ms;
+  --t-mid: 260ms;
+  --t-slow: 480ms;
+
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --c-ink: #eef2ee;
+    --c-ink-2: #c0c9c2;
+    --c-muted: #8f9a92;
+    --c-line: rgba(255, 255, 255, 0.1);
+    --c-surface: rgba(30, 36, 33, 0.78);
+    --c-surface-solid: #222925;
+    --c-surface-2: rgba(40, 47, 43, 0.9);
+    --c-brand: #5fbf91;
+    --c-brand-2: rgba(95, 191, 145, 0.16);
+    --c-brand-ink: #10241a;
+    --c-accent-2: rgba(240, 138, 62, 0.16);
+    --c-danger-2: rgba(210, 73, 58, 0.18);
+    --e-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --e-2: 0 6px 22px rgba(0, 0, 0, 0.35);
+    --e-3: 0 24px 60px rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+  }
+}

@@ -6,6 +6,7 @@ import { Field } from '../../components/Modal';
 import { NumberField } from '../../components/NumberField';
 import { ErrorList } from '../../components/ErrorList';
 import { PayrollFields } from './PayrollFields';
+import { Check, Switch } from '../../ui';
 
 export function IncomeSettingsPanel({
   income,
@@ -56,32 +57,24 @@ export function IncomeSettingsPanel({
       <fieldset>
         <legend>每周工作日</legend>
         {[1, 2, 3, 4, 5, 6, 0].map((day) => (
-          <label className="check-field" key={day}>
-            <input
-              type="checkbox"
-              checked={d.workdays.includes(day)}
-              onChange={(e) =>
-                set(
-                  'workdays',
-                  e.target.checked ? [...d.workdays, day] : d.workdays.filter((v) => v !== day),
-                )
-              }
-            />
-            {['周日', '周一', '周二', '周三', '周四', '周五', '周六'][day]}
-          </label>
+          <Check
+            key={day}
+            checked={d.workdays.includes(day)}
+            onChange={(on) => set('workdays', on ? [...d.workdays, day] : d.workdays.filter((v) => v !== day))}
+            label={['周日', '周一', '周二', '周三', '周四', '周五', '周六'][day]}
+          />
         ))}
       </fieldset>
       <fieldset>
         <legend>标准午休</legend>
-        <label className="check-field">
-          <input
-            type="checkbox"
-            checked={d.lunchCountsAsWork}
-            onChange={(e) => set('lunchCountsAsWork', e.target.checked)}
-          />
-          午休计入标准工时和时间差
-        </label>
-        <p className="muted">勾选后实际午休全部参与偷出金额；不勾选时排除以下标准午休。</p>
+        <Switch
+          checked={d.lunchCountsAsWork}
+          onChange={(on) => set('lunchCountsAsWork', on)}
+         
+         
+          label="午休计入标准工时和时间差"
+          hint="打开后实际午休全部参与偷出金额；关闭时排除以下标准午休。"
+        />
         {!d.lunchCountsAsWork && (
           <div className="fields">
             <Field label="标准午休开始">
@@ -103,29 +96,22 @@ export function IncomeSettingsPanel({
       </fieldset>
       <fieldset>
         <legend>时间统计模式</legend>
-        <label className="check-field">
-          <input
-            type="checkbox"
-            checked={d.stealMode}
-            onChange={(e) =>
-              auto.change({
-                ...d,
-                stealMode: e.target.checked,
-                clockMode: e.target.checked ? d.clockMode : false,
-              })
-            }
-          />
-          偷时间模式
-        </label>
-        <label className="check-field">
-          <input
-            type="checkbox"
-            disabled={!d.stealMode}
-            checked={d.clockMode}
-            onChange={(e) => set('clockMode', e.target.checked)}
-          />
-          上下班模式
-        </label>
+        <Switch
+          checked={d.stealMode}
+         
+         
+          label="偷时间模式"
+          onChange={(on) => auto.change({ ...d, stealMode: on, clockMode: on ? d.clockMode : false })}
+        />
+        <Switch
+          checked={d.clockMode}
+          disabled={!d.stealMode}
+         
+         
+          label="上下班模式"
+          hint={d.stealMode ? undefined : '需先打开偷时间模式'}
+          onChange={(on) => set('clockMode', on)}
+        />
         <p>工资按标准排班自动累计；打开上下班模式后拆分上班晚、午休和下班早。</p>
       </fieldset>
       {d.salaryMode === 'gross' && (

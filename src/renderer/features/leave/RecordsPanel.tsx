@@ -6,6 +6,7 @@ import { time } from '../../format';
 import { command } from '../../state';
 import { Field } from '../../components/Modal';
 import { ErrorList } from '../../components/ErrorList';
+import { Switch } from '../../ui';
 import { ClockButtons } from '../attendance/ClockButtons';
 import { useAutoDraft } from '../../hooks/useAutoDraft';
 
@@ -111,21 +112,20 @@ export function RecordsPanel({
               />
             </Field>
           </div>
-          <label className="check-field">
-            <input
-              type="checkbox"
-              checked={d.fullDay}
-              onChange={(e) =>
-                auto.change({
-                  ...d,
-                  fullDay: e.target.checked,
-                  startTime: e.target.checked ? '' : d.startTime || '09:00',
-                  endTime: e.target.checked ? '' : d.endTime || '18:00',
-                })
-              }
-            />
-            整天请假
-          </label>
+          <Switch
+            checked={d.fullDay}
+           
+           
+            label="整天请假"
+            onChange={(on) =>
+              auto.change({
+                ...d,
+                fullDay: on,
+                startTime: on ? '' : d.startTime || '09:00',
+                endTime: on ? '' : d.endTime || '18:00',
+              })
+            }
+          />
           <ErrorList errors={auto.errors} />
           <p role="status">{editing ? auto.feedback : ''}</p>
           <button type="submit">{editing ? '保存修改' : '添加请假'}</button>

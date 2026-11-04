@@ -3,6 +3,8 @@ import { type Fields, type Result } from '../../../shared/contracts';
 import { weekDates } from '../../../domain/tasks/model';
 import { dateLabel } from '../../format';
 import { Modal, Field } from '../../components/Modal';
+import { CalendarRange, Plus } from 'lucide-react';
+import { Button, Switch } from '../../ui';
 
 export function NewTask({
   open,
@@ -92,14 +94,7 @@ export function NewTask({
         <Field label="备注">
           <textarea value={draft.note} onChange={(e) => change('note', e.target.value)} />
         </Field>
-        <label className="check-field">
-          <input
-            type="checkbox"
-            checked={draft.hasTime}
-            onChange={(e) => change('hasTime', e.target.checked)}
-          />
-          设置时段
-        </label>
+        <Switch checked={draft.hasTime} label="设置时段" onChange={(on) => change('hasTime', on)} />
         {draft.hasTime && (
           <div className="fields">
             <Field label="开始">
@@ -118,14 +113,7 @@ export function NewTask({
             </Field>
           </div>
         )}
-        <label className="check-field">
-          <input
-            type="checkbox"
-            checked={draft.calendarMark}
-            onChange={(e) => change('calendarMark', e.target.checked)}
-          />
-          月历特别事件色标
-        </label>
+        <Switch checked={draft.calendarMark} label="月历特别事件色标" onChange={(on) => change('calendarMark', on)} />
         {draft.calendarMark && (
           <input
             aria-label="月历色标"
@@ -135,7 +123,7 @@ export function NewTask({
           />
         )}
         <p role="status">{message}</p>
-        <button type="submit">创建任务</button>
+        <div className="dialog-actions"><Button variant="primary" type="submit" icon={<Plus size={15} />}>创建任务</Button></div>
       </form>
     </Modal>
   );
@@ -186,14 +174,7 @@ export function WeeklyDialog({
         <Field label="每行一项，最多 50 项">
           <textarea required value={titles} onChange={(e) => setTitles(e.target.value)} />
         </Field>
-        <label className="check-field">
-          <input
-            type="checkbox"
-            checked={weekends}
-            onChange={(e) => setWeekends(e.target.checked)}
-          />
-          安排至整周（否则仅周一到周五）
-        </label>
+        <Switch checked={weekends} label="安排至整周" hint="关闭时仅周一到周五" onChange={setWeekends} />
         <div className="fields">
           <Field label="开始时间">
             <input type="time" value={startTime} onChange={(e) => setStart(e.target.value)} />
@@ -220,7 +201,7 @@ export function WeeklyDialog({
         </div>
         <p>轮转分配到该周，下一轮开始时间增加“时长 + 30 分钟”。</p>
         <p role="status">{message}</p>
-        <button>生成任务</button>
+        <div className="dialog-actions"><Button variant="primary" type="submit" icon={<CalendarRange size={15} />}>生成任务</Button></div>
       </form>
     </Modal>
   );

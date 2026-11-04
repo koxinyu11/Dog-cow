@@ -1,0 +1,92 @@
+/* Motion library: keyframes for emoji idle loops (.m-*), host reactions (.fx-*), particles and captions. */
+
+.fx-layer { position: fixed; inset: 0; z-index: 2000; pointer-events: none; overflow: hidden; }
+.fx-particle { position: absolute; line-height: 1; will-change: transform, opacity; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.15)); }
+.fx-caption {
+  position: absolute;
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--c-accent), #e85d75);
+  font: 800 15px var(--f-sans);
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(232, 93, 117, 0.35);
+  transform: translate(-50%, -50%);
+  animation: caption 1300ms var(--ease-out) forwards;
+}
+@keyframes caption {
+  0% { opacity: 0; transform: translate(-50%, -20%) scale(0.4) rotate(-8deg); }
+  18% { opacity: 1; transform: translate(-50%, -110%) scale(1.15) rotate(3deg); }
+  30% { transform: translate(-50%, -100%) scale(1) rotate(0); }
+  75% { opacity: 1; transform: translate(-50%, -130%); }
+  100% { opacity: 0; transform: translate(-50%, -170%) scale(0.9); }
+}
+
+/* Emoji loops play only while hovered, so the screen stays still until you touch it. */
+:hover > .m-bob, .m-bob:hover { animation: e-bob 2.6s var(--ease-in-out) infinite; }
+:hover > .m-wiggle, .m-wiggle:hover { animation: e-wiggle 1.2s ease-in-out infinite; }
+:hover > .m-spin, .m-spin:hover { animation: e-flip 3.2s var(--ease-in-out) infinite; }
+:hover > .m-bounce, .m-bounce:hover { animation: e-bounce 1.6s var(--ease-out) infinite; }
+:hover > .m-pulse, .m-pulse:hover { animation: e-pulse 1.4s ease-in-out infinite; }
+:hover > .m-run, .m-run:hover { animation: e-run 0.5s ease-in-out infinite alternate; }
+:hover > .m-chew, .m-chew:hover { animation: e-chew 0.35s ease-in-out infinite alternate; }
+:hover > .m-float, .m-float:hover { animation: e-float 4s ease-in-out infinite; }
+@keyframes e-bob { 50% { transform: translateY(-3px); } }
+@keyframes e-wiggle { 0%, 70%, 100% { transform: rotate(0); } 76% { transform: rotate(-14deg); } 84% { transform: rotate(12deg); } 92% { transform: rotate(-6deg); } }
+@keyframes e-flip { 0%, 40% { transform: rotate(0); } 50%, 90% { transform: rotate(180deg); } 100% { transform: rotate(360deg); } }
+@keyframes e-bounce { 0%, 60%, 100% { transform: translateY(0) scale(1); } 20% { transform: translateY(-7px) scale(1.05, 0.95); } 40% { transform: translateY(0) scale(1.1, 0.88); } }
+@keyframes e-pulse { 50% { transform: scale(1.18); } }
+@keyframes e-run { from { transform: translateY(0) rotate(-4deg); } to { transform: translateY(-3px) rotate(4deg); } }
+@keyframes e-chew { from { transform: scale(1) rotate(-3deg); } to { transform: scale(1.1, 0.9) rotate(3deg); } }
+@keyframes e-float { 0%, 100% { transform: translate(0, 0) rotate(0); } 33% { transform: translate(2px, -5px) rotate(4deg); } 66% { transform: translate(-2px, -2px) rotate(-3deg); } }
+
+/* Host reactions (added briefly by fx()) */
+.fx-jelly { animation: h-jelly 600ms var(--ease-out); }
+.fx-squish { animation: h-squish 500ms var(--ease-spring); }
+.fx-stomp { animation: h-stomp 560ms var(--ease-out); }
+.fx-wiggle { animation: h-wiggle 520ms ease-in-out; }
+.fx-shake { animation: shake 420ms ease-in-out; }
+.fx-nod { animation: h-nod 480ms var(--ease-spring); }
+.fx-pop { animation: h-pop 260ms var(--ease-spring); }
+.fx-flip { animation: h-flip 520ms var(--ease-in-out); }
+.fx-rewind { animation: h-rewind 520ms var(--ease-out); }
+.fx-poof { animation: h-poof 380ms var(--ease-in-out) forwards; }
+.fx-slide-out { animation: h-slide 600ms var(--ease-in-out); }
+.fx-drop-in { animation: h-drop 520ms var(--ease-spring); }
+.fx-squash { animation: h-squash 380ms var(--ease-spring); }
+.fx-stretch { animation: h-stretch 420ms var(--ease-spring); }
+@keyframes h-jelly { 0% { transform: scale(1); } 30% { transform: scale(1.12, 0.88); } 45% { transform: scale(0.92, 1.08); } 60% { transform: scale(1.04, 0.96); } 100% { transform: none; } }
+@keyframes h-squish { 40% { transform: scale(1.15, 0.8); } 100% { transform: none; } }
+@keyframes h-stomp { 0% { transform: translateY(0); } 25% { transform: translateY(-14px) scale(1.04); } 45% { transform: translateY(2px) scale(1.1, 0.9); } 70% { transform: translateY(-3px); } 100% { transform: none; } }
+@keyframes h-wiggle { 20% { transform: rotate(-4deg); } 40% { transform: rotate(4deg); } 60% { transform: rotate(-2deg); } 80% { transform: rotate(2deg); } }
+@keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+@keyframes h-nod { 40% { transform: translateY(3px) scale(0.98); } 100% { transform: none; } }
+@keyframes h-pop { 50% { transform: scale(1.08); } }
+@keyframes h-flip { 50% { transform: perspective(500px) rotateX(90deg); } }
+@keyframes h-rewind { 30% { transform: translateX(-10px) rotate(-2deg); } 100% { transform: none; } }
+@keyframes h-poof { to { opacity: 0; transform: scale(0.6); filter: blur(6px); } }
+@keyframes h-slide { 45% { transform: translateX(60px); opacity: 0; } 46% { transform: translateX(-30px); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes h-drop { 0% { transform: translateY(-30px) scale(0.85); opacity: 0; } 60% { transform: translateY(4px) scale(1.02); opacity: 1; } 100% { transform: none; } }
+@keyframes h-squash { 35% { transform: scale(1.04, 0.95); } 70% { transform: scale(0.99, 1.02); } }
+@keyframes h-stretch { 30% { transform: scale(1.03); } 60% { transform: scale(0.99); } }
+
+/* Users can turn off playful motion; the OS setting always wins. */
+.no-fx *, .no-fx *::before, .no-fx *::after { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+  .fx-layer { display: none; }
+}
+
+/* Ambient life: slow, mostly-resting loops that use transform/opacity only (compositor-cheap). */
+.m-idle-peek { animation: idle-peek 9s ease-in-out infinite; }
+.brand-mascots .m-idle-peek:nth-child(2) { animation-delay: -4.5s; }
+.m-idle-chew { animation: idle-chew 5s ease-in-out infinite; }
+.m-idle-walk { animation: idle-walk 1.4s ease-in-out infinite; }
+@keyframes idle-peek { 0%, 86%, 100% { transform: none; } 89% { transform: rotate(-10deg) translateY(-2px); } 92% { transform: rotate(8deg); } 95% { transform: rotate(-3deg); } }
+@keyframes idle-chew { 0%, 70%, 100% { transform: none; } 74%, 82% { transform: scale(1.06, 0.94) rotate(-2deg); } 78%, 86% { transform: scale(0.97, 1.03) rotate(2deg); } }
+@keyframes idle-walk { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-2px) rotate(3deg); } }
+.ui-live-dot { --dot: var(--c-brand); position: relative; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--dot); vertical-align: 1px; }
+.ui-live-dot::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: var(--dot); animation: live-ping 2.4s var(--ease-out) infinite; }
+@keyframes live-ping { 0% { transform: scale(1); opacity: 0.55; } 70%, 100% { transform: scale(2.8); opacity: 0; } }
+.tone-in .clock-main-ripple, .tone-out .clock-main-ripple, .tone-resume .clock-main-ripple { animation: ripple-soft 3.6s var(--ease-out) infinite; }
+@keyframes ripple-soft { 0% { transform: scale(1); opacity: 0.35; } 60%, 100% { transform: scale(1.28); opacity: 0; } }

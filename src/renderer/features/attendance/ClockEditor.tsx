@@ -5,6 +5,9 @@ import { localDate } from '../../../domain/tasks/model';
 import { time } from '../../format';
 import { command } from '../../state';
 import { Modal, Field } from '../../components/Modal';
+import { fx } from '../../motion/fx';
+import { LogIn, LogOut, Save } from 'lucide-react';
+import { Button } from '../../ui';
 
 export function ClockEditor({
   draft,
@@ -51,12 +54,14 @@ export function ClockEditor({
         noValidate
         onSubmit={async (e) => {
           e.preventDefault();
+          const form = e.currentTarget;
           const validation = clockCommandError(
             { action: draft.action, method, startTime: startValue, endTime: endValue },
             income.settings,
           );
           if (validation) {
             setError(validation);
+            fx('error', form);
             return;
           }
           setBusy(true);
@@ -72,10 +77,15 @@ export function ClockEditor({
               },
               'income',
             );
+            const anchor = document.querySelector('.clock-main');
             if (result.applied) {
               notify(result.message);
               onClose();
-            } else setError(result.message);
+              fx(draft.action === 'start' ? 'clock-in' : draft.action === 'finish' ? 'clock-out' : 'save', anchor);
+            } else {
+              setError(result.message);
+              fx('error', form);
+            }
           } finally {
             setBusy(false);
           }
@@ -130,12 +140,12 @@ export function ClockEditor({
         <p className="error" role="alert">
           {error}
         </p>
-        <button disabled={busy} type="submit">
-          确认并保存
-        </button>
-        <button type="button" onClick={onClose}>
-          取消
-        </button>
+        <div className="dialog-actions">
+          <Button variant="ghost" onClick={onClose}>取消</Button>
+          <Button variant="primary" type="submit" disabled={busy} icon={draft.action === 'start' ? <LogIn size={15} /> : draft.action === 'finish' ? <LogOut size={15} /> : <Save size={15} />}>
+            确认并保存
+          </Button>
+        </div>
       </form>
     </Modal>
   );

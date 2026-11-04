@@ -42,6 +42,7 @@ import {
 import { createController, type IncomeController } from './legacy-adapter.js';
 import { applyAttendanceAction, setAttendanceTimes } from '../../app/income/src/attendance.js';
 import { HOME_MODULES } from '../../app/income/src/home-layout.js';
+import { BOARD_KEY, defaultBoard, validBoard, type Board } from '../shared/board.js';
 import {
   createTransfer,
   parseTransfer,
@@ -91,6 +92,7 @@ let layout: Layout = {
   order: [...moduleIds],
   enabled: HOME_MODULES.filter((item) => item.defaultEnabled).map((item) => item.id),
 };
+let board: Board = defaultBoard();
 let revisions = { tasks: 0, income: 0, home: 0 };
 let compact = false;
 let expanded: Electron.Rectangle | null = null;
@@ -127,6 +129,7 @@ function snapshot(): Snapshot {
     taskError,
     layout: structuredClone(layout),
     layoutWarning,
+    board: structuredClone(board),
     income: structuredClone(income),
     save: { dirty: repo.dirty, error: repo.error, readError: repo.readError },
     version: app.getVersion(),
@@ -158,6 +161,17 @@ function restoreModels() {
     }
   } catch {
     layoutWarning = '旧首页布局无效，暂用默认；调整后才保存，原始内容保留于备份。';
+  }
+  board = defaultBoard();
+  try {
+    const raw = repo.storage.getItem(BOARD_KEY);
+    if (raw !== null) {
+      const candidate: unknown = JSON.parse(raw);
+      if (!validBoard(candidate, Object.keys(copyDefaults))) throw Error();
+      board = candidate;
+    }
+  } catch {
+    layoutWarning = '首页看板数据无效，暂用默认看板；调整后才保存，原始内容保留于备份。';
   }
   unsubscribe?.();
   controller?.destroy();
@@ -466,6 +480,13 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     layoutWarning = '';
     repo.storage.setItem(layoutKey, JSON.stringify(layout));
     revisions.home++;
+  } else if (method === 'board') {
+    expected(p, 'home');
+    if (!validBoard(p.board, Object.keys(copyDefaults))) throw Error('看板配置无效。');
+    board = structuredClone(p.board);
+    layoutWarning = '';
+    repo.storage.setItem(BOARD_KEY, JSON.stringify(board));
+    revisions.home++;
   } else if (method === 'settings') {
     expected(p, 'income');
     result = controller.updateSettings(p.settings) as Result;
@@ -711,6 +732,9 @@ async function start() {
     minHeight: 620,
     title: '狗牛',
     show: false,
+    ...(process.platform === 'darwin'
+      ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 16, y: 14 }, backgroundColor: '#f6f5ef' }
+      : {}),
     webPreferences: {
       preload: path.join(app.getAppPath(), 'dist-electron/src/preload/index.cjs'),
       nodeIntegration: false,

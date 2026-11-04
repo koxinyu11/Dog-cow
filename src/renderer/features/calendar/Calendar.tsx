@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { type Task } from '../../../shared/contracts';
 import { addDays, localDate, matchesDate } from '../../../domain/tasks/model';
 
@@ -9,7 +10,7 @@ export function Calendar({
   selected,
   select,
 }: {
-  title: ReactNode;
+  title?: ReactNode;
   tasks: Task[];
   selected: string;
   select: (date: string) => void;
@@ -25,15 +26,16 @@ export function Calendar({
   };
   return (
     <>
-      <div className="toolbar">
+      <div className="cal-head">
         <button onClick={() => move(-1)} aria-label="上个月">
-          ‹
+          <ChevronLeft size={16} />
         </button>
-        <h2>{title}<br />
+        <b>
+          {title}
           {first.getFullYear()}年 {first.getMonth() + 1}月
-        </h2>
+        </b>
         <button onClick={() => move(1)} aria-label="下个月">
-          ›
+          <ChevronRight size={16} />
         </button>
       </div>
       <div className="calendar-grid">

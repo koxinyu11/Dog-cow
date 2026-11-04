@@ -1,3 +1,4 @@
+import type { Board } from './board.js';
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type Fields = Record<string, unknown>;
 export interface Tag {
@@ -114,6 +115,7 @@ export interface Snapshot {
   taskError: string;
   layout: Layout;
   layoutWarning: string;
+  board: Board;
   income: IncomeState;
   save: { dirty: boolean; error: string; readError: string };
   version: string;
@@ -132,6 +134,7 @@ export const methods = [
   'task',
   'copy',
   'layout',
+  'board',
   'settings',
   'leave',
   'removeLeave',

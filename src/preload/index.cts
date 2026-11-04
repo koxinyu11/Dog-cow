@@ -5,6 +5,7 @@ const allowed = new Set([
   'task',
   'copy',
   'layout',
+  'board',
   'settings',
   'leave',
   'removeLeave',

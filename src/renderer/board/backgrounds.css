@@ -1,0 +1,124 @@
+/* Background scenes. Animations move only transform/opacity and run slowly; they stop with
+   .no-fx (user switch) or prefers-reduced-motion (handled globally in motion.css). */
+
+.scene { position: absolute; inset: 0; overflow: hidden; container-type: size; pointer-events: none; }
+.scene > i { position: absolute; display: block; }
+.scene span { display: inline-block; }
+
+/* ---------- 工位米白 ---------- */
+.sc-classic { background: radial-gradient(circle at 10% 0%, rgba(219, 109, 58, 0.14), transparent 32%), radial-gradient(circle at 90% 12%, rgba(37, 92, 72, 0.14), transparent 30%), #f6f5ef; }
+
+/* ---------- shared bits ---------- */
+.sc-sun { width: 14cqmin; height: 14cqmin; border-radius: 50%; background: radial-gradient(circle, #fff6c9 0 55%, rgba(255, 230, 150, 0.4) 56%, transparent 72%); }
+.sc-cloud { width: 34cqw; height: 9cqw; border-radius: 50%; background: radial-gradient(ellipse at 30% 60%, rgba(255, 255, 255, 0.9) 0 38%, transparent 40%), radial-gradient(ellipse at 60% 40%, rgba(255, 255, 255, 0.85) 0 34%, transparent 36%), radial-gradient(ellipse at 80% 65%, rgba(255, 255, 255, 0.8) 0 30%, transparent 32%); animation: drift 90s linear infinite; }
+.sc-cloud.c1 { top: 8%; left: -10%; }
+.sc-cloud.c2 { top: 22%; left: 45%; transform: scale(0.7); animation-duration: 120s; animation-delay: -50s; }
+.sc-cloud.c3 { top: 40%; left: 10%; transform: scale(1.2); animation-duration: 150s; animation-delay: -80s; }
+@keyframes drift { from { translate: -40cqw 0; } to { translate: 120cqw 0; } }
+.sc-skyline { left: 0; right: 0; bottom: 0; height: 8%; opacity: 0.6; background:
+  linear-gradient(currentColor, currentColor) 4% 100% / 6% 70% no-repeat, linear-gradient(currentColor, currentColor) 12% 100% / 5% 100% no-repeat,
+  linear-gradient(currentColor, currentColor) 19% 100% / 8% 55% no-repeat, linear-gradient(currentColor, currentColor) 30% 100% / 4% 85% no-repeat,
+  linear-gradient(currentColor, currentColor) 37% 100% / 9% 62% no-repeat, linear-gradient(currentColor, currentColor) 50% 100% / 5% 95% no-repeat,
+  linear-gradient(currentColor, currentColor) 58% 100% / 7% 50% no-repeat, linear-gradient(currentColor, currentColor) 68% 100% / 6% 78% no-repeat,
+  linear-gradient(currentColor, currentColor) 77% 100% / 8% 60% no-repeat, linear-gradient(currentColor, currentColor) 88% 100% / 5% 88% no-repeat,
+  linear-gradient(currentColor, currentColor) 95% 100% / 6% 58% no-repeat; }
+
+/* ---------- 牛马草原 ---------- */
+.sc-meadow { background: linear-gradient(180deg, #dff1fb 0%, #f3f8e8 55%, #e6f1d6 100%); }
+.sc-meadow .sc-sun { top: 8%; right: 12%; }
+.sc-hill { left: -10%; right: -10%; border-radius: 50% 50% 0 0 / 100% 100% 0 0; }
+.sc-hill.h1 { bottom: 14%; height: 34%; left: -30%; right: 30%; background: #cfe5b4; }
+.sc-hill.h2 { bottom: 10%; height: 30%; left: 35%; right: -25%; background: #bddca0; }
+.sc-hill.h3 { bottom: 0; height: 20%; background: #a9cf88; border-radius: 60% 40% 0 0 / 100% 100% 0 0; }
+.sc-grass { left: 0; right: 0; bottom: 0; height: 9%; background: repeating-linear-gradient(100deg, transparent 0 1.2cqw, rgba(90, 150, 70, 0.35) 1.2cqw 1.5cqw); transform-origin: bottom; animation: sway 7s ease-in-out infinite alternate; }
+@keyframes sway { from { transform: skewX(-4deg); } to { transform: skewX(4deg); } }
+.sc-walker { bottom: 20%; left: 0; font-size: 4.5cqmin; animation: walk 46s linear infinite; }
+.sc-walker span { transform: scaleX(-1); animation: e-run 0.6s ease-in-out infinite alternate; }
+@keyframes walk { 0% { translate: -10cqw 0; } 60%, 100% { translate: 110cqw 0; } }
+.sc-flowers { left: 0; right: 0; bottom: 3%; display: flex; justify-content: space-around; font-size: 2.6cqmin; opacity: 0.85; }
+
+/* ---------- 摸鱼海 ---------- */
+.sc-ocean { background: linear-gradient(180deg, #e9f7fd 0%, #d3eef8 45%, #a9dbee 100%); }
+.sc-ocean .sc-sun { top: 10%; left: 14%; }
+.sc-sea { left: 0; right: 0; bottom: 0; height: 46%; background: linear-gradient(180deg, #9fd6ea, #6fbcd9); }
+.sc-wave { left: 0; width: 200%; height: 14%; background: radial-gradient(circle at 50% 100%, transparent 0 62%, currentColor 63%) 0 0 / 8cqw 100% repeat-x; animation: wave 18s linear infinite; }
+.sc-wave.w1 { bottom: 40%; color: #b9e2f0; opacity: 0.9; }
+.sc-wave.w2 { bottom: 24%; color: #8bcbe2; animation-duration: 26s; animation-direction: reverse; }
+.sc-wave.w3 { bottom: -2%; color: #68b5d3; animation-duration: 34s; }
+@keyframes wave { to { transform: translateX(-50%); } }
+.sc-fish { left: 0; font-size: 3.4cqmin; animation: swim 38s linear infinite; }
+.sc-fish.f1 { bottom: 30%; }
+.sc-fish.f2 { bottom: 14%; animation-duration: 52s; animation-delay: -24s; animation-direction: reverse; }
+.sc-fish.f2 span { transform: scaleX(-1); }
+.sc-fish span { animation: e-bob 2.4s ease-in-out infinite; }
+@keyframes swim { 0% { translate: 105cqw 0; } 70%, 100% { translate: -10cqw 0; } }
+.sc-bubbles { left: 60%; bottom: 10%; width: 6cqw; height: 30%; }
+.sc-bubbles span { position: absolute; bottom: 0; width: 1.1cqmin; height: 1.1cqmin; border: 1.5px solid rgba(255, 255, 255, 0.8); border-radius: 50%; animation: bubble 9s ease-in infinite; opacity: 0; }
+.sc-bubbles span:nth-child(2) { left: 40%; animation-delay: -3s; }
+.sc-bubbles span:nth-child(3) { left: 80%; animation-delay: -6s; }
+@keyframes bubble { 0% { transform: translateY(0); opacity: 0; } 10% { opacity: 0.9; } 60%, 100% { transform: translateY(-28cqh); opacity: 0; } }
+
+/* ---------- 下班晚霞 ---------- */
+.sc-sunset { background: linear-gradient(180deg, #ffd8b8 0%, #ffc1a8 38%, #f3a7b5 68%, #c9a7e2 100%); color: rgba(120, 70, 110, 0.32); }
+.sc-sunset .sc-sun { left: 62%; top: 46%; width: 20cqmin; height: 20cqmin; background: radial-gradient(circle, #fff1c2 0 50%, rgba(255, 200, 150, 0.5) 52%, transparent 72%); animation: sink 60s ease-in-out infinite alternate; }
+@keyframes sink { from { transform: translateY(-6cqh); } to { transform: translateY(14cqh); } }
+.sc-sunset .sc-cloud { opacity: 0.55; }
+
+/* ---------- 加班夜空 ---------- */
+.sc-night { background: linear-gradient(180deg, #151d38 0%, #262650 60%, #3d2d5a 100%); color: rgba(12, 14, 34, 0.85); }
+.sc-stars { inset: 0 0 20% 0; background:
+  radial-gradient(1.5px 1.5px at 12% 18%, #fff 50%, transparent 51%), radial-gradient(1.5px 1.5px at 28% 42%, #fff 50%, transparent 51%),
+  radial-gradient(2px 2px at 46% 12%, #fffbe0 50%, transparent 51%), radial-gradient(1.5px 1.5px at 64% 36%, #fff 50%, transparent 51%),
+  radial-gradient(2px 2px at 82% 22%, #fff 50%, transparent 51%), radial-gradient(1.5px 1.5px at 92% 52%, #fff 50%, transparent 51%); animation: twinkle 4s ease-in-out infinite alternate; }
+.sc-stars.s2 { background:
+  radial-gradient(1.5px 1.5px at 6% 52%, #fff 50%, transparent 51%), radial-gradient(2px 2px at 22% 8%, #fff 50%, transparent 51%),
+  radial-gradient(1.5px 1.5px at 38% 60%, #fffbe0 50%, transparent 51%), radial-gradient(1.5px 1.5px at 56% 24%, #fff 50%, transparent 51%),
+  radial-gradient(1.5px 1.5px at 74% 58%, #fff 50%, transparent 51%), radial-gradient(2px 2px at 88% 6%, #fff 50%, transparent 51%); animation-delay: -2s; }
+@keyframes twinkle { from { opacity: 0.35; } to { opacity: 1; } }
+.sc-moon { top: 9%; right: 10%; width: 11cqmin; height: 11cqmin; border-radius: 50%; box-shadow: inset -2.4cqmin -1.2cqmin 0 0 #f7efc8; filter: drop-shadow(0 0 2cqmin rgba(247, 239, 200, 0.35)); }
+.sc-shoot { top: 14%; left: 20%; width: 12cqw; height: 2px; border-radius: 2px; background: linear-gradient(90deg, rgba(255, 255, 255, 0.9), transparent); transform: rotate(-18deg); opacity: 0; animation: shoot 16s ease-out infinite; }
+@keyframes shoot { 0%, 88% { opacity: 0; translate: 0 0; } 90% { opacity: 1; } 96%, 100% { opacity: 0; translate: 30cqw 10cqh; } }
+
+/* ---------- 周五狂喜 ---------- */
+.sc-friday { background: #fff5ea; }
+.sc-blob { width: 60cqmax; height: 60cqmax; border-radius: 50%; opacity: 0.55; animation: float 26s ease-in-out infinite alternate; }
+.sc-blob.b1 { left: -15%; top: -25%; background: radial-gradient(circle, #ffb3c7 0%, transparent 65%); }
+.sc-blob.b2 { right: -20%; top: -10%; background: radial-gradient(circle, #ffd36e 0%, transparent 65%); animation-duration: 32s; animation-delay: -10s; }
+.sc-blob.b3 { left: 20%; bottom: -35%; background: radial-gradient(circle, #8fd6ff 0%, transparent 65%); animation-duration: 38s; animation-delay: -20s; }
+.sc-blob.b4 { right: 5%; bottom: -30%; background: radial-gradient(circle, #b7f0a8 0%, transparent 65%); animation-duration: 30s; animation-delay: -5s; }
+@keyframes float { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(8cqw, 6cqh) scale(1.08); } 100% { transform: translate(-6cqw, 3cqh) scale(0.95); } }
+
+/* ---------- 周一阴天 ---------- */
+.sc-monday { background: linear-gradient(180deg, #d9dee6 0%, #e7eaee 60%, #eef0f2 100%); }
+.sc-monday .sc-cloud { background: radial-gradient(ellipse at 30% 60%, rgba(196, 203, 214, 0.9) 0 38%, transparent 40%), radial-gradient(ellipse at 60% 40%, rgba(206, 212, 222, 0.85) 0 34%, transparent 36%), radial-gradient(ellipse at 80% 65%, rgba(190, 198, 210, 0.8) 0 30%, transparent 32%); }
+
+/* ---------- 奶茶续命 ---------- */
+.sc-boba { background: linear-gradient(180deg, #f6ead9 0%, #ecd6bb 100%); }
+.sc-pearls { left: 0; right: 0; bottom: 0; height: 18%; background:
+  radial-gradient(circle at 6% 70%, #4a3428 0 1.4cqmin, transparent 1.5cqmin), radial-gradient(circle at 14% 40%, #5a3f30 0 1.2cqmin, transparent 1.3cqmin),
+  radial-gradient(circle at 23% 76%, #4a3428 0 1.5cqmin, transparent 1.6cqmin), radial-gradient(circle at 36% 52%, #5a3f30 0 1.3cqmin, transparent 1.4cqmin),
+  radial-gradient(circle at 48% 80%, #4a3428 0 1.4cqmin, transparent 1.5cqmin), radial-gradient(circle at 61% 46%, #5a3f30 0 1.2cqmin, transparent 1.3cqmin),
+  radial-gradient(circle at 72% 74%, #4a3428 0 1.5cqmin, transparent 1.6cqmin), radial-gradient(circle at 84% 50%, #5a3f30 0 1.3cqmin, transparent 1.4cqmin),
+  radial-gradient(circle at 94% 78%, #4a3428 0 1.4cqmin, transparent 1.5cqmin); opacity: 0.22; }
+.bg-swatch .sc-pearls { opacity: 0.55; }
+
+/* ---------- 画饼工厂 ---------- */
+.sc-pie { background: radial-gradient(circle at 80% 0%, #fff2c4 0%, transparent 50%), linear-gradient(180deg, #fff6dc 0%, #fbe8bd 100%); }
+.sc-pies { inset: 0; }
+.sc-pies span { position: absolute; font-size: 5cqmin; opacity: 0.18; transform: rotate(-12deg); }
+.sc-pies span:nth-child(even) { transform: rotate(14deg) scale(0.8); }
+
+/* ---------- 带薪发呆 ---------- */
+.sc-candy { background: radial-gradient(circle at 0% 100%, #ffe0ef 0%, transparent 60%), linear-gradient(135deg, #fff3f8 0%, #ffe6f1 50%, #e7f0ff 100%); }
+.sc-candy .sc-cloud { opacity: 0.7; animation-duration: 140s; }
+
+/* ---------- 周报白纸 ---------- */
+.sc-paper { background: linear-gradient(90deg, transparent 0 7%, rgba(220, 90, 90, 0.22) 7% calc(7% + 1.5px), transparent calc(7% + 1.5px)), repeating-linear-gradient(180deg, transparent 0 31px, rgba(90, 130, 190, 0.13) 31px 32px), #f8f6ef; }
+.bg-swatch .sc-paper { background: linear-gradient(90deg, transparent 0 9%, rgba(220, 90, 90, 0.3) 9% calc(9% + 1px), transparent calc(9% + 1px)), repeating-linear-gradient(180deg, transparent 0 9px, rgba(90, 130, 190, 0.18) 9px 10px), #f8f6ef; }
+
+/* ---------- Dark backgrounds: light header text ---------- */
+/* Only the text sitting directly on the background turns light; buttons keep their own surfaces. */
+.on-dark .brand, .on-dark .board-empty { --c-ink: #f4f6f3; --c-ink-2: #dfe5e0; --c-muted: rgba(244, 246, 243, 0.68); color: var(--c-ink); }
+.on-dark .header-add-wrap .copy-edit-trigger { color: rgba(255, 255, 255, 0.75); }
+.on-dark .brand .copy-edit-trigger { color: rgba(255, 255, 255, 0.7); }
+.on-image .brand { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45); }
