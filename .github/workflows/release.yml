@@ -55,7 +55,8 @@ jobs:
       - if: matrix.platform == 'darwin'
         run: npm run make:mac
       - if: matrix.platform == 'win32'
-        run: node node_modules/electron-winstaller/script/select-7z-arch.js
+        run: node script/select-7z-arch.js
+        working-directory: node_modules/electron-winstaller
       - if: matrix.platform == 'win32'
         run: npm run make:win
       - run: node scripts/collect-release-assets.mjs ${{ matrix.platform }} ${{ matrix.arch }} ${{ needs.version.outputs.version }}
