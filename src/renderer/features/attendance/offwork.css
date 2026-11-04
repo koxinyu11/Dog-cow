@@ -1,0 +1,30 @@
+.offwork-notice { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: -4px 0 20px; padding: 12px 16px; border: 1px solid var(--c-line); border-radius: var(--r-md); color: var(--c-ink); background: var(--c-surface-solid); box-shadow: var(--e-1); }
+.offwork-notice > svg { color: var(--c-brand); flex-shrink: 0; }
+.offwork-notice strong { font-weight: 600; }
+.offwork-timer { font-family: var(--f-num); font-variant-numeric: tabular-nums; color: var(--c-muted); margin-left: auto; }
+.offwork-notice.is-soon .offwork-timer { font-size: 22px; color: var(--c-brand); }
+.offwork-notice.is-animated { animation: offwork-arrive 500ms var(--ease-spring) both; }
+.offwork-dialog { width: min(420px, 94vw); }
+.offwork-dialog .dialog-heading h2 { font-size: 20px; }
+.offwork-printer { padding: 12px 0 0; }
+.offwork-printer > span { display: block; height: 9px; border-radius: 9px; background: var(--c-ink); opacity: .7; }
+.offwork-paper-window { overflow: hidden; padding: 0 8px 12px; }
+.offwork-paper { position: relative; padding: 24px 22px 26px; background: #fffaf0; color: #3f453a; font-family: var(--f-num); clip-path: polygon(0 0,100% 0,100% calc(100% - 8px),97% 100%,94% calc(100% - 8px),91% 100%,88% calc(100% - 8px),85% 100%,82% calc(100% - 8px),79% 100%,76% calc(100% - 8px),73% 100%,70% calc(100% - 8px),67% 100%,64% calc(100% - 8px),61% 100%,58% calc(100% - 8px),55% 100%,52% calc(100% - 8px),49% 100%,46% calc(100% - 8px),43% 100%,40% calc(100% - 8px),37% 100%,34% calc(100% - 8px),31% 100%,28% calc(100% - 8px),25% 100%,22% calc(100% - 8px),19% 100%,16% calc(100% - 8px),13% 100%,10% calc(100% - 8px),7% 100%,4% calc(100% - 8px),0 100%); }
+.offwork-paper-brand { display: flex; justify-content: center; align-items: center; gap: 9px; font-weight: 700; }
+.offwork-date { text-align: center; font-size: 12px; opacity: .65; }
+.offwork-total { display: grid; text-align: center; gap: 6px; padding: 16px 0; border-block: 1px dashed #b8bdad; }
+.offwork-total > span { font-size: 12px; }
+.offwork-total strong { font-size: clamp(28px, 6vw, 38px); overflow-wrap: anywhere; line-height: 1.2; }
+.offwork-paper dl { margin: 18px 0; font-size: 12px; }
+.offwork-paper dl > div { display: flex; justify-content: space-between; gap: 12px; margin: 8px 0; }
+.offwork-paper dd { margin: 0; text-align: right; }
+.offwork-stamp { width: fit-content; margin: 22px auto 16px; padding: 5px 14px; border: 2px solid #487a54; border-radius: 6px; color: #487a54; font-weight: 800; letter-spacing: .15em; transform: rotate(-7deg); }
+.offwork-footer { text-align: center; font-size: 12px; line-height: 1.8; opacity: .75; }
+.offwork-actions { display: flex; justify-content: center; padding: 4px 0 24px; }
+.offwork-dialog.is-animated .offwork-paper { animation: offwork-print 850ms cubic-bezier(.2,.7,.3,1) both; }
+.offwork-dialog.is-animated .offwork-stamp { animation: offwork-stamp 300ms 850ms both; }
+.offwork-dialog:not(.is-animated), .offwork-dialog:not(.is-animated)::backdrop { animation: none; }
+@keyframes offwork-arrive { from { opacity: 0; transform: translateY(-12px); } }
+@keyframes offwork-print { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+@keyframes offwork-stamp { from { opacity: 0; transform: rotate(-7deg) scale(1.5); } to { opacity: 1; transform: rotate(-7deg) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .offwork-notice, .offwork-dialog, .offwork-dialog::backdrop, .offwork-paper, .offwork-stamp { animation: none !important; } }

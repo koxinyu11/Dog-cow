@@ -17,6 +17,8 @@ import { Appearance, backgroundIsDark, backgroundStyle } from './board/Appearanc
 import { Scene } from './board/Scene';
 import { BoardContext, computeMetrics } from './board/metrics';
 import { fx } from './motion/fx';
+import { OffworkNotice, OffworkReceipt } from './features/attendance/Offwork';
+import type { IncomeState } from '../shared/contracts';
 import { CircleAlert, ClipboardList, Hourglass, LayoutGrid, Package, Palette, Plus, Settings, Wallet, Wand2 } from 'lucide-react';
 import { Button, Emoji, IconButton, MenuProvider, Segmented, Toast } from './ui';
 
@@ -55,6 +57,7 @@ export function App() {
   const [celebrating, setCelebrating] = useState('');
   const [confetti, setConfetti] = useState(0);
   const [clock, setClock] = useState<{ action: string; date?: string; token: string; at: number } | null>(null);
+  const [receipt, setReceipt] = useState<{ income: IncomeState; date: string; completedTasks: number } | null>(null);
   const reduced = useReducedMotion();
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const later = (key: string, ms: number, run: () => void) => {
@@ -192,6 +195,7 @@ export function App() {
               <IconButton label="设置" onClick={() => openSettings('look')}><Settings size={17} /></IconButton>
             </div>
           </header>
+          <OffworkNotice income={state.income} openClock={() => void openClock('finish')} />
           {(state.save.error || state.save.readError) && (
             <div className="banner is-error" role="alert">
               <span><CircleAlert size={16} /> {state.save.error || state.save.readError}</span>
@@ -269,7 +273,11 @@ export function App() {
           </Modal>
           <NewTask open={newTask} date={selected} onClose={() => setNew(false)} run={runTask} />
           <WeeklyDialog open={weekly} date={selected} onClose={() => setWeekly(false)} run={runTask} />
-          {clock && <ClockEditor draft={clock} income={state.income} onClose={() => setClock(null)} notify={notify} />}
+          {clock && <ClockEditor draft={clock} income={state.income} onClose={() => setClock(null)} notify={notify} onFinished={(income, date, completedTasks) => setReceipt({ income, date, completedTasks })} />}
+          {receipt && <OffworkReceipt income={receipt.income} date={receipt.date} completedTasks={receipt.completedTasks} onClose={() => {
+            setReceipt(null);
+            requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('.clock-main')?.focus());
+          }} />}
           {confetti > 0 && !reduced && <Confetti key={confetti} />}
           <Toast message={toast.text} tone={toast.tone} />
         </main>

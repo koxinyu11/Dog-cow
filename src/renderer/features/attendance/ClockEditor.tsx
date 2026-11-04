@@ -3,8 +3,9 @@ import { FormSelect } from '../../components/FormSelect';
 import { DatePicker } from '../../components/DatePicker';
 import { useEffect, useState } from 'react';
 import { type IncomeState } from '../../../shared/contracts';
+import { shouldCelebrateOffwork } from '../../../shared/offwork';
 import { clockCommandError } from '../../../shared/clock-command';
-import { localDate } from '../../../domain/tasks/model';
+import { localDate, matchesDate } from '../../../domain/tasks/model';
 import { time } from '../../format';
 import { command } from '../../state';
 import { Modal, Field } from '../../components/Modal';
@@ -17,11 +18,13 @@ export function ClockEditor({
   income,
   onClose,
   notify,
+  onFinished,
 }: {
   draft: { action: string; date?: string; token: string; at: number };
   income: IncomeState;
   onClose: () => void;
   notify: (message: string) => void;
+  onFinished: (income: IncomeState, date: string, completedTasks: number) => void;
 }) {
   const [date, setDate] = useState(draft.date || localDate(new Date(draft.at)));
   const original = income.attendance.days.find((day) => day.date === date);
@@ -81,10 +84,13 @@ export function ClockEditor({
               'income',
             );
             const anchor = document.querySelector('.clock-main');
-            if (result.applied) {
+            if (result.applied && result.persisted) {
               notify(result.message);
               onClose();
-              fx(draft.action === 'start' ? 'clock-in' : draft.action === 'finish' ? 'clock-out' : 'save', anchor);
+              if (shouldCelebrateOffwork(draft.action, method, date, income, result)) {
+                const completedTasks = result.snapshot!.tasks.tasks.filter((task) => task.done && matchesDate(task, date)).length;
+                onFinished(result.snapshot!.income, date, completedTasks);
+              } else fx(draft.action === 'start' ? 'clock-in' : 'save', anchor);
             } else {
               setError(result.message);
               fx('error', form);

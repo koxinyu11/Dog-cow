@@ -33,6 +33,7 @@ export const PRESETS = {
   'task-progress': {},
   'all-done': { particles: [{ emoji: ['🎉', '🐄', '⭐'], count: 16, pattern: 'fall', spread: 520 }], caption: '今天全部完成' },
   'clock-in': { particles: [{ emoji: ['☀️', '🐂'], count: 5, pattern: 'rise' }], host: 'fx-stomp', caption: '开工' },
+  'offwork-finale': { particles: [{ emoji: ['🎊', '🎉', '✨', '🌸'], count: 26, pattern: 'fall', spread: 620, duration: 1200 }] },
   'clock-out': { particles: [{ emoji: ['🌙', '🎉', '✨'], count: 8, pattern: 'burst', spread: 140 }], host: 'fx-jelly', caption: '下班快乐' },
   pause: { particles: [{ emoji: ['🍱'], count: 2, pattern: 'rise' }], host: 'fx-squish', caption: '干饭时间' },
   resume: { host: 'fx-jelly', caption: '回来啦' },
