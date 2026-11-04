@@ -1,21 +1,35 @@
-# 桌面构建与发布边界
+# 桌面自动发布与免费更新
 
-## 本地候选
+## 正式发布
 
-运行 `npm run make:mac`：Forge package → codesign ad-hoc → 严格签名验证 → 从已签包生成 ZIP → hdiutil DMG → 完整性与只读挂载/应用签名/Applications 链接验证。
+`.github/workflows/release.yml` 对 main 的 push 自动运行，也可手动触发 main。整个发布流程串行分配版本，避免同一个版本并发发布；待执行任务可能合并为最新一次 push。
 
-arm64 与 x64 单独产出。当前设备仅能证明已实际启动的架构；Windows 构建配置不等于安装验收。DMG 文件发布只发生在所有校验通过后，失败保留源 App，不用旧产物冒充新构建成功。
+版本从 package.json 基础版本与已有正式版本标签中选择：基础版本更高时使用基础版本，否则递增已存在版本的补丁号。CI 仅为候选包写入版本，不提交版本回写，避免循环触发。失败产生的草稿标签也占用版本号；下一次选择新版本，不覆盖旧包。
 
-## 自动更新
+先测试并构建 Mac arm64、Mac x64 和 Windows x64，任何目标失败均停止公开发布。三个构建完成后，发布任务创建草稿、上传 5 个安装包/归档及 SHA256SUMS.txt，确认所有附件上传完成且 GitHub 提供 SHA-256，再转为正式版并标记 latest。失败的草稿保持不可作为最新正式版分发，不用部分包替代完整发布。
 
-- 当前默认未配置签名 feed，使用用户主动下载。
-- 旧 `docs/appcast.xml` 和 `UPDATER_SETUP.md` 属于原生 WKWebView/Sparkle 版本，保持独立。
-- 新 Electron feed 必须是明确的 HTTPS 来源、按平台/架构隔离；Mac 需满足 Squirrel.Mac 的签名要求，Windows 需验证 Squirrel 安装事件及升级链路。
-- 发布时应替换 ad-hoc 为正式身份、公证并完成签名包到签名包升级测试。不能仅设置一个环境开关就声称已完成发布验收。
-- 未保存数据需先处理再重启安装。公开发布、签名身份/凭据配置、更新源切换均需另行授权。
+Mac 候选仍使用 ad-hoc 签名及现有 DMG 校验，不代表 Developer ID 签名或 Apple 公证。Windows 产物为安装器；运行与安装验收需在 Windows 执行。
 
-## CI
+`.github/workflows/build.yml` 保留 PR 检查及手动构建；main 的自动构建由发布流水线承担，避免重复打包。
 
-`.github/workflows/build.yml` 对 main/PR 执行 Mac 类型、测试、构建，上传 artifact；Windows 构建只在手动输入选择时运行。`.github/workflows/release.yml` 只手动准备产物，不发布 GitHub Release，不创建标签，不推送 appcast。
+## 免费更新路径
 
-维护者必须明确检查版本、架构、签名和实际运行证据，再单独决定公开发布。不要运行旧式自动 tag/push 流程替代这个检查。
+正式安装的应用启动 10 秒后检查 GitHub `/repos/koxinyu11/Dog-cow/releases/latest`，随后每 4 小时检查一次。设置 → 迁移备份 → 版本与更新可立即检查、查看下载进度、重试或打开安装包。
+
+只接受更高的三段正式版本，拒绝草稿、预发布和回退版本。按当前系统、架构选择标准命名附件：
+
+- `DogCow-arm64-VERSION.dmg`
+- `DogCow-x64-VERSION.dmg`
+- `DogCow-win32-x64-VERSION-setup.exe`
+
+下载到应用用户数据目录的 updates 子目录。限定 HTTPS 和 GitHub 下载域，限制 metadata/安装包大小与连接时间，下载时计算 SHA-256 并检查确切大小；未通过校验的 .part 文件删除。缓存校验通过后可复用，打开安装包前再次检查散列。失败保留当前应用与业务数据，不替换正在运行的程序；用户可重试。下载不阻塞保存业务命令，同一时间只运行一个检查/下载任务。
+
+下载完成后用户点击“打开安装包”，先提交有效草稿，再打开 DMG 或 Windows 安装器。用户手动完成安装，不自动退出、覆盖应用或强制重启。未保存或无效草稿会阻止界面的打开安装包操作。开发实例不进行自动检查/下载。
+
+目前没有 Developer ID 签名，**未启用自动原地替换或自动重启安装**。旧 `docs/appcast.xml`、`UPDATER_SETUP.md` 和 SPARKLE_ED_KEY 属于旧 WKWebView 壳，不用于新版 Electron。GitHub SHA-256 校验防止下载损坏，并不代替 Apple 签名或独立更新签名。
+
+v3.0.0 没有这套更新链路，需手动安装一次包含本功能的新版本，后续可自动发现并下载新安装包。仓库 package.json 的基础版本与 CI 自动递增的发行版本可能不同，以已安装包的版本和 GitHub Release 为准。
+
+## 验证边界
+
+本地检查覆盖版本选择、版本分配、平台与架构匹配、无效/过期版本拒绝、并发去重、下载散列与大小、跳转域、下载失败重试、缓存复用及篡改检测。UI 体验由用户验收。工作流文件通过静态核对不等于远端真实运行；必须 push 后观察三个构建及最终公开 Release，才能确认自动发布链路成功。Mac/Windows 跨版本手动安装仍需用户验收。

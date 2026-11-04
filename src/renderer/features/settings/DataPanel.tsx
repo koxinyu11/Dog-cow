@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { command } from '../../state';
+import { command, flushDrafts, useAppState } from '../../state';
+import { Button } from '../../ui';
 
 export function DataPanel({ notify }: { notify: (message: string) => void }) {
+  const update = useAppState()?.updates;
+  const busy = update?.status === 'checking' || update?.status === 'downloading';
   const [preview, setPreview] = useState<{
     token: string;
     message: string;
@@ -42,13 +45,13 @@ export function DataPanel({ notify }: { notify: (message: string) => void }) {
         </div>
       )}
       <h3>版本与更新</h3>
-      <button onClick={() => void command('checkUpdates').then((r) => notify(r.message))}>
-        检查更新
-      </button>
-      <button onClick={() => void command('openSource')}>打开官方下载页</button>
-      <p className="muted">
-        当前构建未配置签名更新通道时使用手动下载安装。Windows 本轮按用户要求未验收。
-      </p>
+      <p role="status">{update?.version ? `v${update.version} · ` : ''}{update?.message || '自动检查并下载最新正式版，安装需手动完成。'}</p>
+      {update?.status === 'downloading' && <progress aria-label="更新下载进度" max={100} value={update.progress}>{update.progress}%</progress>}
+      <div className="actions">
+        <Button disabled={busy} onClick={() => void command('checkUpdates').then((r) => notify(r.message))}>{busy ? '正在处理…' : update?.status === 'error' ? '重试更新' : '检查更新'}</Button>
+        {update?.status === 'ready' && <Button variant="primary" onClick={() => void flushDrafts().then((ok) => ok ? command('openUpdate').then((r) => notify(r.message)) : notify('请先完成并保存当前输入。'))}>打开安装包</Button>}
+        <Button variant="ghost" onClick={() => void command('openSource')}>官方下载页</Button>
+      </div>
     </section>
   );
 }

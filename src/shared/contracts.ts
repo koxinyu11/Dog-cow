@@ -124,7 +124,14 @@ export interface IncomeState {
   migrationNotice: string;
 }
 export type Domain = 'tasks' | 'income' | 'home';
+export interface UpdateState {
+  status: 'idle' | 'checking' | 'downloading' | 'ready' | 'current' | 'error';
+  version: string;
+  progress: number;
+  message: string;
+}
 export interface Snapshot {
+  updates?: UpdateState;
   compact: boolean;
   sequence: number;
   revisions: Record<Domain, number>;
@@ -165,6 +172,7 @@ export const methods = [
   'exportBackup',
   'compact',
   'checkUpdates',
+  'openUpdate',
   'openSource',
   'quit',
 ] as const;

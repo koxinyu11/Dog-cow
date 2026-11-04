@@ -19,6 +19,7 @@ const allowed = new Set([
   'exportBackup',
   'compact',
   'checkUpdates',
+  'openUpdate',
   'openSource',
   'quit',
 ]);

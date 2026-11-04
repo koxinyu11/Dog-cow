@@ -1,3 +1,4 @@
+import { ReleaseUpdater } from './release-updates.js';
 import { boundedCalendarFetch } from './calendar-network.js';
 import { loadHolidayYear } from '../../app/income/src/calendar.js';
 import { clockCommandError } from '../shared/clock-command.js';
@@ -14,7 +15,6 @@ import {
   protocol,
   screen,
   shell,
-  autoUpdater,
 } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -114,6 +114,7 @@ const prepared = new Map<string, { at: number; revision: number; action: string 
 let controller: IncomeController;
 let unsubscribe: (() => void) | null = null;
 let income: IncomeState;
+let releaseUpdater: ReleaseUpdater | null = null;
 const taskKey = 'work-todolist-generic-v1';
 const layoutKey = 'dogcow.home.v1';
 const official = 'https://github.com/koxinyu11/Dog-cow/releases';
@@ -135,6 +136,7 @@ function snapshot(): Snapshot {
     income: structuredClone(income),
     save: { dirty: repo.dirty, error: repo.error, readError: repo.readError },
     version: app.getVersion(),
+    updates: releaseUpdater ? { ...releaseUpdater.state } : undefined,
   };
 }
 function broadcast() {
@@ -264,6 +266,13 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     return toastResult('已打开系统浏览器。');
   }
   if (method === 'checkUpdates') return checkUpdates();
+  if (method === 'openUpdate') {
+    if (!releaseUpdater || releaseUpdater.state.status !== 'ready') return toastResult('请先下载最新安装包。');
+    const file = await releaseUpdater.installer();
+    const error = await shell.openPath(file);
+    if (error) throw Error('无法打开安装包，请重试或从官方下载页获取。');
+    return toastResult('安装包已打开，请手动完成安装。');
+  }
   if (method === 'exportBackup') {
     const pack = await createTransfer(
       {
@@ -651,22 +660,11 @@ async function doQuit() {
   app.quit();
 }
 async function checkUpdates(): Promise<Result> {
-  if (!app.isPackaged || !process.env.DOGCOW_UPDATE_FEED)
-    return toastResult('当前构建未配置自动安装更新，可打开官方下载页。');
-  const url = new URL(process.env.DOGCOW_UPDATE_FEED);
-  if (
-    url.protocol !== 'https:' ||
-    url.hostname !== 'koxinyu11.github.io' ||
-    !url.pathname.startsWith('/Dog-cow/electron/')
-  )
-    throw Error('更新来源未通过校验。');
-  // Signed release-to-release updates are enabled only by the release build.
-  if (process.env.DOGCOW_SIGNED_RELEASE !== '1')
-    return toastResult('当前构建未验证自动更新签名，请使用官方下载页。');
-  autoUpdater.setFeedURL({ url: url.href });
-  autoUpdater.checkForUpdates();
-  return toastResult('正在检查更新。');
+  if (!app.isPackaged || !releaseUpdater) return toastResult('开发模式不下载更新，请在已安装的应用中检查。');
+  void releaseUpdater.check();
+  return toastResult('正在检查最新正式版，下载状态可在设置中查看。');
 }
+
 async function start() {
   await app.whenReady();
   let runtimeIcon: Electron.NativeImage | undefined;
@@ -875,4 +873,13 @@ async function start() {
   });
   if (devUrl) await win.loadURL(devUrl);
   else await win.loadURL('dogcow://app/index.html');
+  if (app.isPackaged) {
+    releaseUpdater = new ReleaseUpdater({ current: app.getVersion(), platform: process.platform, arch: process.arch,
+      directory: path.join(app.getPath('userData'), 'updates'), fetch: (url, options) => net.fetch(url instanceof URL ? url.href : url, options), changed: broadcast });
+    const startup = setTimeout(() => void releaseUpdater?.check(), 10000);
+    const interval = setInterval(() => void releaseUpdater?.check(), 4 * 60 * 60 * 1000);
+    startup.unref(); interval.unref();
+    app.once('will-quit', () => { clearTimeout(startup); clearInterval(interval); });
+    broadcast();
+  }
 }

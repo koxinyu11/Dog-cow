@@ -1,13 +1,44 @@
-name: Prepare desktop release artifacts
-# Publication and legacy Sparkle feed changes require a separate explicit release.
-# A v3 tag must never run the old Sparkle signing/publishing pipeline.
+name: Publish desktop release
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: desktop-release-main
+  cancel-in-progress: false
 jobs:
-  artifacts:
-    runs-on: macos-15
+  version:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - id: version
+        run: node scripts/release-version.mjs
+  build:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            platform: darwin
+            arch: arm64
+          - os: macos-15-intel
+            platform: darwin
+            arch: x64
+          - os: windows-latest
+            platform: win32
+            arch: x64
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-node@v6
@@ -16,9 +47,45 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node node_modules/electron/install.js
+      - name: Stamp candidate version
+        run: npm version ${{ needs.version.outputs.version }} --no-git-tag-version --ignore-scripts
       - run: npm test
-      - run: npm run make:mac
+      - if: matrix.platform == 'darwin'
+        run: python3 tests/auto_sync_test.py
+      - if: matrix.platform == 'darwin'
+        run: npm run make:mac
+      - if: matrix.platform == 'win32'
+        run: node node_modules/electron-winstaller/script/select-7z-arch.js
+      - if: matrix.platform == 'win32'
+        run: npm run make:win
+      - run: node scripts/collect-release-assets.mjs ${{ matrix.platform }} ${{ matrix.arch }} ${{ needs.version.outputs.version }}
       - uses: actions/upload-artifact@v4
         with:
-          name: dogcow-release-candidate
-          path: out/make/
+          name: release-${{ matrix.platform }}-${{ matrix.arch }}
+          path: release-assets/
+          if-no-files-found: error
+  publish:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+      - name: Publish only complete verified artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find release-assets -type f | wc -l)" -eq 5
+          (cd release-assets && sha256sum * > SHA256SUMS.txt)
+          gh release create "v$VERSION" --target "$GITHUB_SHA" --title "狗牛 v$VERSION" --generate-notes --draft
+          gh release upload "v$VERSION" release-assets/*
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$VERSION" --jq '[.assets[] | select(.state == "uploaded" and (.digest | startswith("sha256:")))] | length == 6' | grep -qx true
+          gh release edit "v$VERSION" --draft=false --latest
