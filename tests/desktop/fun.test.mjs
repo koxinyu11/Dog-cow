@@ -42,6 +42,20 @@ test('lunch without weekly exclusion accepts repeats without duplicating history
   assert.deepEqual(fun.lunch.used,['面']);
   assert.throws(()=>act(fun,{action:'lunch',value:'未知菜'}));
 });
+test('custom lunch stores servings and manual calories remain optional and adjustable', () => {
+  let fun = act(defaultFun(), { action: 'custom-lunch', value: '半份牛肉面', servings: 0.5 });
+  assert.equal(fun.lunch.chosen, '半份牛肉面');
+  assert.equal(fun.lunch.servings, 0.5);
+  assert.equal(fun.lunch.calories, undefined);
+  fun = act(fun, { action: 'lunch-details', servings: 0.5, calories: 380 });
+  assert.equal(fun.lunch.calories, 380);
+  fun = act(fun, { action: 'lunch-details', servings: 1.5, calories: null });
+  assert.equal(fun.lunch.servings, 1.5);
+  assert.equal(fun.lunch.calories, undefined);
+  assert.throws(() => act(fun, { action: 'custom-lunch', value: '', servings: 1 }));
+  assert.throws(() => act(fun, { action: 'lunch-details', servings: 0, calories: 1 }));
+  assert.equal(validFun({ ...defaultFun(), lunch: { week: '', used: [], date: '', chosen: '' } }), true);
+});
 test('task rewards are permanent and idempotent across undo, delete and restart', () => {
   let fun = rewardTask(defaultFun(),'task-a');
   fun = rewardTask(JSON.parse(JSON.stringify(fun)),'task-a');

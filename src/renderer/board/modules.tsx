@@ -1,6 +1,6 @@
 import { FunModule } from '../features/fun/FunModules';
 import { defaultFun, estimateMealCalories } from '../../shared/fun';
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Fields, Snapshot, Task } from '../../shared/contracts';
 import type { ModuleId, SizeKey } from '../../shared/board';
 import { getAttendanceDay } from '../../../app/income/src/attendance.js';
@@ -537,6 +537,16 @@ function StolenModule({ state, size, openSettings }: ModuleCtx) {
 function CaloriesModule({ state, size, today }: ModuleCtx) {
   const lunch = (state.board.fun ?? defaultFun()).lunch;
   const chosen = lunch.date === today ? lunch.chosen : '';
+  const servings = lunch.date === today ? lunch.servings ?? 1 : 1;
+  const automatic = chosen ? Math.round(estimateMealCalories(chosen) * servings) : 0;
+  const calories = lunch.calories ?? automatic;
+  const [draft, setDraft] = useState(String(calories));
+  useEffect(() => setDraft(String(calories)), [calories, chosen]);
+  const saveCalories = async (value: number | null) => {
+    const result = await command('fun', { action: 'lunch-details', servings, calories: value }, 'home');
+    if (!result.applied || !result.persisted) return;
+    setDraft(String(value ?? automatic));
+  };
   if (!chosen)
     return (
       <div className="m-empty calories-empty">
@@ -545,7 +555,6 @@ function CaloriesModule({ state, size, today }: ModuleCtx) {
         <span className="m-label">选完后，这里会自动计算</span>
       </div>
     );
-  const calories = estimateMealCalories(chosen);
   const ratio = Math.min(1, calories / 1200);
   return (
     <div className={`calories-m size-${size}`} style={{ '--calories': ratio } as CSSProperties}>
@@ -554,9 +563,27 @@ function CaloriesModule({ state, size, today }: ModuleCtx) {
         <Flame size={size === 'l' ? 34 : 25} />
       </div>
       <div className="calories-copy">
-        <span className="m-label">今日已选 · {chosen}</span>
-        <strong>{calories}<small> 千卡</small></strong>
-        <span className="m-label">常见单人份估算值，实际会因分量和做法变化</span>
+        <span className="m-label">今日已选 · {chosen} · {servings} 份</span>
+        <label className="calories-input">
+          <input
+            aria-label="调整今日热量"
+            type="number"
+            min="0"
+            max="10000"
+            step="10"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onBlur={() => { const value = Number(draft); if (Number.isInteger(value) && value >= 0 && value <= 10000) void saveCalories(value); else setDraft(String(calories)); }}
+            onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }}
+          />
+          <small>千卡</small>
+        </label>
+        <div className="calories-actions">
+          <Button size="sm" variant="ghost" onClick={() => void saveCalories(Math.max(0, calories - 50))}>−50</Button>
+          <Button size="sm" variant="ghost" onClick={() => void saveCalories(Math.min(10000, calories + 50))}>+50</Button>
+          {lunch.calories !== undefined && <Button size="sm" variant="ghost" onClick={() => void saveCalories(null)}>恢复自动</Button>}
+        </div>
+        <span className="m-label">自动估算 {automatic} 千卡，可按实际分量修改</span>
       </div>
     </div>
   );

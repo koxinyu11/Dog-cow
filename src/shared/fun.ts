@@ -9,7 +9,16 @@ export interface FunState {
   wallpapers?: string[];
   meals: string[];
   noRepeat: boolean;
-  lunch: { week: string; used: string[]; date: string; chosen: string };
+  lunch: {
+    week: string;
+    used: string[];
+    date: string;
+    chosen: string;
+    /** Number of common single-person servings. Missing in older saves means one serving. */
+    servings?: number;
+    /** User-adjusted total kcal. Missing means use the automatic estimate. */
+    calories?: number;
+  };
   hopes: { id: string; name: string; date: string }[];
   pinned: string;
   rewarded: string[];
@@ -36,6 +45,8 @@ export function validFun(v: unknown): v is FunState {
     && strings(v.meals, 50) && typeof v.noRepeat === 'boolean'
     && record(v.lunch) && (v.lunch.week === '' || validDate(v.lunch.week)) && strings(v.lunch.used, 50)
     && (v.lunch.date === '' || validDate(v.lunch.date)) && typeof v.lunch.chosen === 'string' && v.lunch.chosen.length <= 100
+    && (v.lunch.servings === undefined || (typeof v.lunch.servings === 'number' && Number.isFinite(v.lunch.servings) && v.lunch.servings >= 0.1 && v.lunch.servings <= 20))
+    && (v.lunch.calories === undefined || (typeof v.lunch.calories === 'number' && Number.isInteger(v.lunch.calories) && v.lunch.calories >= 0 && v.lunch.calories <= 10000))
     && Array.isArray(v.hopes) && v.hopes.length <= 30 && v.hopes.every(h => record(h) && text(h.id, 100) && text(h.name) && validDate(h.date))
     && new Set(v.hopes.map(h => h.id)).size === v.hopes.length && typeof v.pinned === 'string' && (v.pinned === '' || v.hopes.some(h => h.id === v.pinned))
     && strings(v.rewarded, 100000) && Array.isArray(v.products) && v.products.length <= 30
@@ -101,7 +112,33 @@ export function updateFun(previous: FunState, p: Fields, now: Date): FunState {
       next.meals = [...new Set(p.value.split('\n').map(x => x.trim()).filter(Boolean))]; next.noRepeat = p.noRepeat; break;
     case 'lunch':
       if (typeof p.value !== 'string' || !lunchOptions(next, today).includes(p.value)) throw Error('这道菜已选过或不在清单里，请重新抽。');
-      next.lunch = { week: weekKey(today), date: today, chosen: p.value, used: [...new Set([...(next.lunch.week === weekKey(today) ? next.lunch.used : []), p.value])] }; break;
+      next.lunch = { week: weekKey(today), date: today, chosen: p.value, servings: 1, used: [...new Set([...(next.lunch.week === weekKey(today) ? next.lunch.used : []), p.value])] }; break;
+    case 'custom-lunch': {
+      const chosen = String(p.value || '').trim();
+      const servings = Number(p.servings);
+      if (!text(chosen, 100) || !Number.isFinite(servings) || servings < 0.1 || servings > 20) throw Error('请填写吃了什么和有效份量。');
+      next.lunch = {
+        week: weekKey(today),
+        date: today,
+        chosen,
+        servings,
+        used: [...new Set([...(next.lunch.week === weekKey(today) ? next.lunch.used : []), chosen])],
+      };
+      break;
+    }
+    case 'lunch-details': {
+      if (next.lunch.date !== today || !next.lunch.chosen) throw Error('请先记录今天吃了什么。');
+      const servings = Number(p.servings);
+      if (!Number.isFinite(servings) || servings < 0.1 || servings > 20) throw Error('份量应在 0.1 到 20 份之间。');
+      next.lunch = { ...next.lunch, servings };
+      if (p.calories === null) delete next.lunch.calories;
+      else {
+        const calories = Number(p.calories);
+        if (!Number.isInteger(calories) || calories < 0 || calories > 10000) throw Error('热量应为 0 到 10000 的整数。');
+        next.lunch.calories = calories;
+      }
+      break;
+    }
     case 'reset-lunch': next.lunch = { week: weekKey(today), used: [], date: '', chosen: '' }; break;
     case 'hope': next.hopes.push({ id: String(p.id), name: String(p.name || '').trim(), date: String(p.date) }); if (!next.pinned) next.pinned = String(p.id); break;
     case 'pin': next.pinned = String(p.id); break;
