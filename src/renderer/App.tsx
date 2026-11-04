@@ -121,6 +121,9 @@ export function App() {
     .map((item) => item.task);
   const copy = (key: string, value: string) =>
     void command('copy', { key, value }, 'tasks').then(handle);
+  const title = (key: string, fallback = '') => (
+    <Copy value={state.tasks.settings[key] || ''} name={key} fallback={fallback} commit={copy} />
+  );
   const home = async (next: Layout) => {
     await command('layout', { layout: next }, 'home').then(handle);
   };
@@ -145,7 +148,7 @@ export function App() {
     if (id === 'next-task')
       return (
         <>
-          <h2>下一项任务</h2>
+          <h2>{title('nextTaskTitle')}</h2>
           <p className="big-number">{next?.title || '今天暂无待办'}</p>
           {next && (
             <p>
@@ -158,7 +161,7 @@ export function App() {
       return (
         <>
           <div className="toolbar">
-            <h2>{dateLabel(selected)}</h2>
+            <h2>{title('tasksTitle', dateLabel(selected))}</h2>
             <div className="actions">
               <button disabled={!!state.taskError} onClick={() => setNew(true)}>
                 新增任务
@@ -196,13 +199,13 @@ export function App() {
         </>
       );
     if (id === 'calendar')
-      return <Calendar tasks={state.tasks.tasks} selected={selected} select={select} />;
+      return <Calendar title={title('calendarTitle', '月历')} tasks={state.tasks.tasks} selected={selected} select={select} />;
     if (id === 'week-summary')
-      return <WeeklySummary tasks={state.tasks.tasks} selected={selected} />;
+      return <WeeklySummary title={title('weekSummaryTitle')} tasks={state.tasks.tasks} selected={selected} />;
     if (id === 'clock')
       return (
         <>
-          <h2>打卡操作</h2>
+          <h2>{title('clockTitle')}</h2>
           <ClockButtons income={state.income} open={openClock} notify={notify} />
           <button
             onClick={() => {
@@ -216,6 +219,7 @@ export function App() {
       );
     return (
       <IncomeWidgets
+        title={title(id === 'income' ? 'incomeTitle' : id === 'work-time' ? 'workTimeTitle' : 'stolenTitle')}
         kind={id}
         income={state.income}
         openSettings={() => {
@@ -242,23 +246,20 @@ export function App() {
             </h1>
             <p>
               <Copy
-                value={
-                  state.tasks.settings.dateLine ||
-                  `${today} · ${weekNames[new Date(state.income.now).getDay()]}`
-                }
+                value={state.tasks.settings.dateLine}
+                fallback={`${today} · ${weekNames[new Date(state.income.now).getDay()]}`}
                 name="dateLine"
                 commit={copy}
               />
             </p>
           </div>
           <div className="actions">
-            <button disabled={!!state.taskError} onClick={() => setNew(true)}>
-              <Copy
-                value={state.tasks.settings.addButtonLabel}
-                name="addButtonLabel"
-                commit={copy}
-              />
-            </button>
+            <div className="actions">
+              <button disabled={!!state.taskError} onClick={() => setNew(true)}>
+                {state.tasks.settings.addButtonLabel || '新增任务'}
+              </button>
+              <span className="button-copy-editor">{title('addButtonLabel')}</span>
+            </div>
             <button
               onClick={() => {
                 setTab('home');
@@ -267,7 +268,6 @@ export function App() {
             >
               设置
             </button>
-            <button onClick={() => void command('compact')}>收成横条 / 展开</button>
           </div>
         </header>
         {(state.save.error || state.save.readError) && (
@@ -302,6 +302,7 @@ export function App() {
           <nav className="actions">
             {[
               ['home', '首页模块'],
+              ['copy', '标题与文案'],
               ['income', '工资与排班'],
               ['records', '请假与打卡'],
               ['data', '迁移与备份'],
@@ -365,6 +366,12 @@ export function App() {
             >
               恢复默认
             </button>
+          </div>
+          <div hidden={tab !== 'copy'} className="copy-settings">
+            <p>点击铅笔修改，回车或离开输入框保存，Esc 取消。日期与月历标题留空时自动显示日期。</p>
+            {Object.entries({ headerKicker: '顶部第一行', appTitle: '应用标题', dateLine: '顶部日期行', addButtonLabel: '新增任务按钮', progressTitle: '完成度标题', nextTaskTitle: '下一项任务标题', tasksTitle: '任务列表标题（默认显示日期）', calendarTitle: '月历标题', weekSummaryTitle: '本周概览标题', incomeTitle: '收入标题', workTimeTitle: '工时标题', clockTitle: '打卡标题', stolenTitle: '偷出金额标题' }).map(([key, label]) => (
+              <div className="layout-row" key={key}><span>{label}</span><Copy value={state.tasks.settings[key] || ''} name={key} label={label} fallback="自动" commit={copy} /></div>
+            ))}
           </div>
           <div hidden={tab !== 'income'}>
             <IncomeSettingsPanel income={state.income} notify={notify} />

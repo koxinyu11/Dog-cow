@@ -1,8 +1,9 @@
+import type { ReactNode } from 'react';
 import { type Task } from '../../../shared/contracts';
 import { weekDates, matchesDate } from '../../../domain/tasks/model';
 import { dateLabel } from '../../format';
 
-export function WeeklySummary({ tasks, selected }: { tasks: Task[]; selected: string }) {
+export function WeeklySummary({ title, tasks, selected }: { title: ReactNode; tasks: Task[]; selected: string }) {
   const dates = weekDates(selected);
   const items = tasks.filter((task) => dates.some((date) => matchesDate(task, date)));
   const labels = new Map<string, number>();
@@ -11,7 +12,7 @@ export function WeeklySummary({ tasks, selected }: { tasks: Task[]; selected: st
   );
   return (
     <>
-      <h2>本周概览</h2>
+      <h2>{title}</h2>
       <p>
         {dateLabel(dates[0])} – {dateLabel(dates[6])}
       </p>

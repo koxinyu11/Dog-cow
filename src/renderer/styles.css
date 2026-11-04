@@ -266,3 +266,8 @@ pre {white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;}
 [hidden] {display:none !important;}
 .compact-bar {display:flex;align-items:center;justify-content:space-between;padding:0 10px;height:28px;font-size:12px;line-height:1;}
 .compact-bar button{font-size:12px;padding:2px 12px;}
+
+.copy-edit {display:inline-flex;align-items:center;gap:8px;max-width:100%;}
+.copy-edit-trigger {font:16px sans-serif;padding:3px 7px;cursor:pointer;flex-shrink:0;}
+.button-copy-editor .copy-edit > span {display:none;}
+.copy-settings .layout-row {justify-content:space-between;flex-wrap:wrap;}

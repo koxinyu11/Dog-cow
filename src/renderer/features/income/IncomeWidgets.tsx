@@ -1,11 +1,14 @@
+import type { ReactNode } from 'react';
 import { type IncomeState } from '../../../shared/contracts';
 import { money, duration, labels } from '../../format';
 
 export function IncomeWidgets({
+  title,
   kind,
   income,
   openSettings,
 }: {
+  title: ReactNode;
   kind: string;
   income: IncomeState;
   openSettings: () => void;
@@ -14,9 +17,7 @@ export function IncomeWidgets({
   const enabled = income.settings?.stealMode;
   return (
     <>
-      <h2>
-        {kind === 'income' ? '实时收入' : kind === 'work-time' ? '工时与下班倒计时' : '偷出金额'}
-      </h2>
+      <h2>{title}</h2>
       {kind === 'income' ? (
         <>
           <p>今日已赚</p>

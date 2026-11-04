@@ -14,6 +14,14 @@ export const copyDefaults = {
   dateLine: '',
   progressTitle: '今日完成度',
   addButtonLabel: '新增任务',
+  nextTaskTitle: '下一项任务',
+  tasksTitle: '',
+  calendarTitle: '',
+  weekSummaryTitle: '本周概览',
+  incomeTitle: '实时收入',
+  workTimeTitle: '工时与下班倒计时',
+  clockTitle: '打卡操作',
+  stolenTitle: '偷出金额',
 };
 export const emptyTasks = (): TaskState => ({
   tasks: [],

@@ -1,12 +1,15 @@
+import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { type Task } from '../../../shared/contracts';
 import { addDays, localDate, matchesDate } from '../../../domain/tasks/model';
 
 export function Calendar({
+  title,
   tasks,
   selected,
   select,
 }: {
+  title: ReactNode;
   tasks: Task[];
   selected: string;
   select: (date: string) => void;
@@ -26,7 +29,7 @@ export function Calendar({
         <button onClick={() => move(-1)} aria-label="上个月">
           ‹
         </button>
-        <h2>
+        <h2>{title}<br />
           {first.getFullYear()}年 {first.getMonth() + 1}月
         </h2>
         <button onClick={() => move(1)} aria-label="下个月">

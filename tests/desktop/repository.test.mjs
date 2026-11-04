@@ -28,3 +28,20 @@ test('task migration retains ids and extension values, moving date leaves deadli
 test('task validation rejects duplicate identities and impossible dates',()=>{
  const raw={id:'same',date:'2026-02-30',title:'synthetic'};assert.throws(()=>normalizeTask(raw,()=> 'tag'));raw.date='2026-11-04';assert.throws(()=>parseTasks(JSON.stringify({tasks:[raw,raw]}),()=> 'tag'));assert.deepEqual(weekDates('2026-11-04'),['2026-11-02','2026-11-03','2026-11-04','2026-11-05','2026-11-06','2026-11-07','2026-11-08']);
 });
+
+test('personalized titles survive save and restart, old settings gain module defaults', async t => {
+ const repo = await setup(t);
+ const old = parseTasks(JSON.stringify({tasks: [], settings: {appTitle: '我的桌面'}}), () => 'id');
+ assert.equal(old.settings.appTitle, '我的桌面');
+ assert.equal(old.settings.incomeTitle, '实时收入');
+ assert.equal(old.settings.calendarTitle, '');
+ const settings = Object.fromEntries(Object.keys(old.settings).map(key => [key, `自定义-${key}`]));
+ settings.dateLine = '';
+ settings.tasksTitle = '';
+ settings.calendarTitle = '';
+ repo.storage.setItem(taskKey, JSON.stringify({...old, settings}));
+ assert.equal(await repo.flush(), true);
+ const reload = new Repository(repo.directory);
+ await reload.load();
+ assert.deepEqual(parseTasks(reload.storage.getItem(taskKey), () => 'id').settings, settings);
+});
