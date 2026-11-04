@@ -34,3 +34,9 @@ test('celebration requires first current-day recorded finish with persisted resu
     ['finish', 'recorded', date, before, { ...result, persisted: false }],
   ]) assert.equal(shouldCelebrateOffwork(action, method, day, prior, outcome), false);
 });
+test('header notice follows the frozen elastic end instead of global end',()=>{
+ const s=income('18:05:00');s.snapshot.scheduledEndAt=at('19:00:00');
+ assert.equal(offworkNotice(s),null);
+ s.now=at('18:55:00');assert.equal(offworkNotice(s).seconds,300);
+ s.now=at('19:05:00');assert.equal(offworkNotice(s).kind,'overtime');
+});

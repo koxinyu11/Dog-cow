@@ -271,7 +271,9 @@ function ClockModule({ state, size, openClock, openSettings, notify }: ModuleCtx
               <span><Moon size={14} /> {time(day.clockOut?.at).slice(0, 5) || '--:--'}</span>
             </span>
           )}
+          {day?.flex && <span className="m-label">{day.flex.mode==='shift'?'晚到晚走':'只免迟到'} · 下班 {time(day.flex.endAt)}</span>}
           <div className="clock-actions">
+            {clockMode && income.settings?.flexEnabled && !day?.clockIn && <Button size="sm" disabled={unavailable} icon={<Clock size={14} />} onClick={()=>openClock('flex-start')}>弹性打卡</Button>}
             {canPause && main.tone !== 'pause' && (
               <Button size="sm" icon={<UtensilsCrossed size={14} />} onClick={(e) => pauseResume('pause', e.currentTarget)}>午休</Button>
             )}

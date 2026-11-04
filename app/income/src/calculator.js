@@ -17,6 +17,8 @@ export const DEFAULT_SETTINGS = {
   lunchEndTime: '13:00',
   stealMode: false,
   clockMode: false,
+  flexEnabled: false,
+  flexMode: 'shift',
   salaryMode: 'net',
   payroll: DEFAULT_PAYROLL_CONFIG,
   bonus: DEFAULT_BONUS_CONFIG,
@@ -44,6 +46,8 @@ export function validateSettings(raw) {
   const lunchEndTime = fallback('lunchEndTime');
   const stealMode = fallback('stealMode');
   const clockMode = fallback('clockMode');
+  const flexEnabled = fallback('flexEnabled');
+  const flexMode = fallback('flexMode');
   const salaryMode = fallback('salaryMode');
   const payBasis = fallback('payBasis');
   const dailySalary = parseNumber(fallback('dailySalary'));
@@ -76,6 +80,8 @@ export function validateSettings(raw) {
   if (!validTime(lunchStartTime)) errors.lunchStartTime = '请选择有效的标准午休开始时间。';
   if (!validTime(lunchEndTime)) errors.lunchEndTime = '请选择有效的标准午休结束时间。';
   if (typeof stealMode !== 'boolean') errors.stealMode = '请选择是否开启偷时间模式。';
+  if (typeof flexEnabled !== 'boolean') errors.flexEnabled = '请选择是否开启弹性打卡。';
+  if (!['shift','exempt'].includes(flexMode)) errors.flexMode = '请选择有效的弹性模式。';
   if (typeof clockMode !== 'boolean') errors.clockMode = '请选择是否开启上下班模式。';
   if (clockMode === true && stealMode !== true) errors.clockMode = '请先开启偷时间模式，再开启上下班模式。';
   if (salaryMode !== 'net' && salaryMode !== 'gross') errors.salaryMode = '请选择税后月薪或税前月薪。';
@@ -111,6 +117,8 @@ export function validateSettings(raw) {
       lunchEndTime,
       stealMode,
       clockMode,
+      flexEnabled,
+      flexMode,
       salaryMode,
       payroll: payrollCheck.config,
       bonus: bonusCheck.config,
@@ -162,27 +170,34 @@ function boundedRatio(seconds, plannedSeconds) {
 
 function summarizeDay(day, settings, now, leaves, attendance) {
   const current = now.getTime();
-  const start = timestamp(day.date, settings.startTime);
-  const end = timestamp(day.date, settings.endTime);
+  const rawDay = attendance?.days.find((entry) => entry.date === day.date);
+  const flex = rawDay?.flex;
+  const baseStart = timestamp(day.date, flex?.baseStartTime ?? settings.startTime);
+  const baseEnd = timestamp(day.date, flex?.baseEndTime ?? settings.endTime);
+  const start = flex?.startAt ?? baseStart;
+  const end = flex?.endAt ?? baseEnd;
+  const lunchSettings = flex ?? settings;
   const midnight = timestamp(day.date, '00:00');
   const nextDay = new Date(midnight);
   nextDay.setDate(nextDay.getDate() + 1);
   const dayEnd = nextDay.getTime();
   let standard = day.isWorkday ? [{ start, end }] : [];
-  if (settings.lunchCountsAsWork === false) {
-    standard = subtractIntervals(standard, [{
-      start: timestamp(day.date, settings.lunchStartTime),
-      end: timestamp(day.date, settings.lunchEndTime),
-    }]);
+  let payStandard = day.isWorkday ? [{start:baseStart,end:baseEnd}] : [];
+  if (lunchSettings.lunchCountsAsWork === false) {
+    const lunchWindow = [{start:timestamp(day.date,lunchSettings.lunchStartTime),end:timestamp(day.date,lunchSettings.lunchEndTime)}];
+    standard = subtractIntervals(standard,lunchWindow);
+    payStandard = subtractIntervals(payStandard,lunchWindow);
   }
 
   const allLeaves = getLeaveIntervalsForDay(leaves, day.date, midnight, dayEnd);
   const standardLeaves = intersectIntervals(allLeaves, standard);
-  const paidLeaves = standardLeaves.filter((interval) => interval.paid);
-  const unpaidLeaves = standardLeaves.filter((interval) => !interval.paid);
+  // Leave deductions and daily salary retain the frozen original schedule.
+  const payLeaves = intersectIntervals(allLeaves,payStandard);
+  const paidLeaves = payLeaves.filter((interval) => interval.paid);
+  const unpaidLeaves = payLeaves.filter((interval) => !interval.paid);
   const expectedWork = subtractIntervals(standard, standardLeaves);
 
-  const dailySeconds = intervalSeconds(standard);
+  const dailySeconds = intervalSeconds(payStandard);
   const scheduledElapsed = intervalSeconds(standard, current);
   const paidLeaveTotal = intervalSeconds(paidLeaves);
   const unpaidLeaveTotal = intervalSeconds(unpaidLeaves);
@@ -190,7 +205,6 @@ function summarizeDay(day, settings, now, leaves, attendance) {
   const unpaidLeaveElapsed = intervalSeconds(unpaidLeaves, current);
   const fullDayLeave = dailySeconds > 0 && paidLeaveTotal + unpaidLeaveTotal >= dailySeconds;
   const attendanceDay = attendance ? getAttendanceDay(attendance, day.date, now) : null;
-  const rawDay = attendance?.days.find((entry) => entry.date === day.date);
   const modeDay = attendance?.modeDays?.find((entry) => entry.date === day.date);
   const hasFacts = Boolean(rawDay?.clockIn || rawDay?.clockOut || rawDay?.breaks?.length);
   const hasClockIn = attendanceDay?.startedAt !== null && attendanceDay?.startedAt !== undefined;
@@ -203,7 +217,7 @@ function summarizeDay(day, settings, now, leaves, attendance) {
   // Freeze the earning timeline at a confirmed departure. Future facts cannot settle today.
   const earningUntil = settled ? attendanceDay.finishedAt : current;
   const expectedSoFar = intersectIntervals(expectedWork, [{ start: midnight, end: Math.min(earningUntil, dayEnd) }]);
-  const rawLate = !canSteal || !clockEnabled ? []
+  const rawLate = !canSteal || !clockEnabled || flex ? []
     : hasClockIn
       ? intersectIntervals(expectedSoFar, [{ start, end: attendanceDay.startedAt }])
       : modeDay?.clockMode === true ? expectedSoFar : [];
@@ -328,6 +342,9 @@ export function calculateSnapshot(settings, now = new Date(), context, leaves = 
 
   return {
     status,
+    scheduledStartAt: today.start,
+    scheduledEndAt: today.end,
+    flexMode: today.attendanceDay && attendance?.days.find(d=>d.date===todayKey)?.flex?.mode || null,
     attendanceState,
     monthLabel: String(plan.year).padStart(4, '0') + '-' + String(plan.month).padStart(2, '0'),
     monthlyWorkdays: plan.workdayCount,

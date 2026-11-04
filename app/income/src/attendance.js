@@ -1,3 +1,4 @@
+import { buildFlexDay, flexSettings, validFlexDay } from './flex.js';
 const ACTIONS = new Set(['start', 'pause', 'resume', 'finish']);
 
 function localDateKey(date) {
@@ -67,6 +68,10 @@ export function validateAttendance(raw) {
       errors.days = '上下班事实无效；下班前必须有不晚于下班的实际开始时间。';
       break;
     }
+    if (day.flex !== undefined && (!clockIn || !validFlexDay(day.flex,day.date,clockIn.at))) {
+      errors.days = '当天弹性排班记录无效，原记录未改动。';
+      break;
+    }
     const breaks = [];
     const ids = new Set();
     let previousEnd = -Infinity;
@@ -91,7 +96,7 @@ export function validateAttendance(raw) {
       break;
     }
     dates.add(day.date);
-    days.push({ date: day.date, clockIn, clockOut, breaks });
+    days.push({ date: day.date, clockIn, clockOut, breaks, ...(day.flex ? {flex:{...day.flex}} : {}) });
   }
 
   const modeDays = [];
@@ -202,6 +207,15 @@ export function setAttendanceTimes(attendance, values, now = new Date()) {
   const changeFact = (previous, at, factSource) => at === null ? null : previous?.at === at ? previous : {
     at, recordedAt: previous?.recordedAt ?? prepared.at, updatedAt: prepared.at, source: factSource,
   };
+  if (values.flex !== undefined) {
+    if (day.clockIn || !validFlexDay(values.flex,date,startAt)) return failure('invalid-flex','今天已打卡或弹性排班无效，请核对实际时间。');
+    day.flex = {...values.flex};
+  } else if (day.flex && startAt !== null) {
+    const rebuilt = buildFlexDay(flexSettings(day.flex),date,startAt);
+    if (!rebuilt.flex) return failure(rebuilt.code,rebuilt.message);
+    day.flex = rebuilt.flex;
+  }
+  if (startAt === null) delete day.flex;
   day.clockIn = changeFact(day.clockIn, startAt, startSource);
   day.clockOut = changeFact(day.clockOut, endAt, endSource);
   if (!day.clockIn && !day.clockOut && day.breaks.length === 0) {

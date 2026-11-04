@@ -18,3 +18,8 @@ test('mode dependency is enforced on main input as well as the UI',()=>{
  assert.equal(clockCommandError({action:'pause'},{stealMode:true,clockMode:false}),'');
  assert.ok(clockCommandError({action:'pause'},null));
 });
+test('elastic start requires both clock mode and elastic feature and a valid actual start',()=>{
+ assert.ok(clockCommandError({action:'flex-start',startTime:'10:00:00'},enabled));
+ assert.ok(clockCommandError({action:'flex-start',startTime:''},{...enabled,flexEnabled:true}));
+ assert.equal(clockCommandError({action:'flex-start',startTime:'10:00:00'},{...enabled,flexEnabled:true}),'');
+});

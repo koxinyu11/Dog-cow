@@ -59,6 +59,7 @@ export function RecordsPanel({
           <p key={day.date}>
             {day.date} · 上班 {source(day.clockIn)} · 下班 {source(day.clockOut)} · 午休{' '}
             {day.breaks.length} 段{' '}
+            {day.flex && <span> · {day.flex.mode==='shift'?'晚到晚走':'只免迟到'} · 当天下班 {time(day.flex.endAt)} </span>}
             {income.settings?.stealMode && income.settings.clockMode && (
               <button onClick={() => open('edit', day.date)}>补录 / 修改</button>
             )}

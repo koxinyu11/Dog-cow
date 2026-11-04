@@ -1,3 +1,4 @@
+import { buildFlexDay } from '../../app/income/src/flex.js';
 import { moodData, MOOD_REWARDS } from '../shared/mood.js';
 import { defaultFun, rewardTask, updateFun } from '../shared/fun.js';
 import { ReleaseUpdater } from './release-updates.js';
@@ -553,7 +554,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
   } else if (method === 'prepareClock') {
     const token = randomUUID();
     const action = String(p.action);
-    if (!['start', 'finish', 'edit'].includes(action)) throw Error('打卡操作无效。');
+    if (!['start', 'flex-start', 'finish', 'edit'].includes(action)) throw Error('打卡操作无效。');
     const at = Date.now();
     prepared.set(token, { at, revision: revisions.income, action });
     return { ...toastResult(''), code: token, errors: { at: String(at) } };
@@ -598,19 +599,27 @@ async function invoke(method: string, p: Fields): Promise<Result> {
       if (p.method === 'recorded') {
         if (p.date !== localDate(new Date(draft.at)) || draft.action === 'edit')
           throw Error('现在打卡日期不匹配。');
-        if (draft.action === 'start') startAt = draft.at;
+        if (['start','flex-start'].includes(draft.action)) startAt = draft.at;
         if (draft.action === 'finish') endAt = draft.at;
       }
-      if (draft.action === 'start') endAt = original?.clockOut?.at ?? null;
+      if (['start','flex-start'].includes(draft.action)) endAt = original?.clockOut?.at ?? null;
+      let flex;
+      if (draft.action === 'flex-start') {
+        if (original?.clockIn || p.date!==localDate(now) || !income.snapshot || income.snapshot.status==='rest-day' || income.snapshot.fullDayLeave) throw Error('弹性打卡仅适用于今天尚未上班的工作日。');
+        const preview = buildFlexDay(income.settings,p.date,startAt);
+        if (!preview.flex) throw Error(preview.message);
+        flex = preview.flex;
+      }
       change = setAttendanceTimes(
         income.attendance,
         {
           date: p.date,
           startAt,
           endAt,
+          ...(flex ? {flex} : {}),
           source: p.method,
           startSource:
-            p.method === 'recorded' && draft.action === 'start' ? 'recorded' : 'backfill',
+            p.method === 'recorded' && ['start','flex-start'].includes(draft.action) ? 'recorded' : 'backfill',
           endSource: p.method === 'recorded' && draft.action === 'finish' ? 'recorded' : 'backfill',
         },
         now,

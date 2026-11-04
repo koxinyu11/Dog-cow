@@ -42,6 +42,7 @@ export function ClockButtons({
             <button disabled={!day?.clockIn && unavailable} onClick={() => open('start')}>
               {day?.clockIn ? '修改上班时间' : '上班打卡'}
             </button>
+            {income.settings?.flexEnabled && !day?.clockIn && <button disabled={unavailable} onClick={()=>open('flex-start')}>弹性打卡</button>}
             <button disabled={!income.settings} onClick={() => open('finish')}>
               {day?.clockOut ? '修改下班时间' : '下班打卡'}
             </button>

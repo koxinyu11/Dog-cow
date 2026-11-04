@@ -216,3 +216,7 @@ dialog form > button[type='submit']:not(.ui-btn), .settings-pane button[type='su
 
 .bg-swatch-name { min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .bg-swatch-label > svg { flex:none; }
+
+.clock-flex-preview { display:grid; grid-template-columns:1fr auto; align-items:center; gap:4px 12px; padding:12px 14px; margin-bottom:16px; border:1px solid var(--c-brand); border-radius:var(--r-md); background:var(--c-brand-2); }
+.clock-flex-preview strong { font-family:var(--f-num); font-size:20px; }
+.clock-flex-preview small { grid-column:2; color:var(--c-muted); font-size:11px; }

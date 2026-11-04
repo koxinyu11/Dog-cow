@@ -80,10 +80,15 @@ export function IncomeSettingsPanel({ income, notify }: {
           <Switch checked={d.stealMode} label="偷时间" onChange={(on) => auto.change({ ...d, stealMode: on, clockMode: on ? d.clockMode : false })} />
           <Switch checked={d.clockMode} disabled={!d.stealMode} label="上下班打卡"
             hint={!d.stealMode ? '先开启偷时间' : undefined} onChange={(on) => set('clockMode', on)} />
+          <Switch checked={d.flexEnabled} disabled={!d.clockMode} label="弹性打卡"
+            hint={!d.clockMode ? '先开启上下班打卡' : undefined} onChange={on=>set('flexEnabled',on)} />
+          {d.flexEnabled && <Segmented<IncomeSettings['flexMode']> label="弹性打卡模式" value={d.flexMode}
+            options={[[ 'shift','晚到晚走' ],[ 'exempt','只免迟到' ]]} onChange={mode=>set('flexMode',mode)} />}
         </section>
         <details className="settings-help">
           <summary><Clock3 size={14} /> 计薪规则与日历状态</summary>
           <p>{d.payBasis === 'daily' ? '日薪乘以排班天数计算本月预计收入。' : '月薪固定，按排班分配到每天。提前上班不增加日薪；点击下班补齐当天应得收入，差额计入下班早。'}</p>
+          <p>弹性打卡只作用于选择它的当天：晚到晚走等量顺延下班，只免迟到保留原下班时间；两种模式均不计算到岗前的迟到收益。午休不顺延，日薪不增加，跨日顺延暂不支持。</p>
           <p>有效输入自动保存，修改后按当前口径重算整月；输入未完成时保留上次有效设置。</p>
           {Object.entries(income.calendar.results).map(([year, result]) => <p key={year}>
             {year} · {result.status === 'ready' ? '可用' : '不可用'} · {String(result.source || '无来源')}{result.refreshFailed ? ' · 刷新失败' : ''}

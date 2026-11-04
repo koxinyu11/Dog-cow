@@ -10,7 +10,7 @@ export function offworkNotice(income: IncomeState) {
   if (!settings || !s || income.calculationError || s.fullDayLeave || s.status === 'rest-day') return null;
   const day = income.attendance.days.find((item) => item.date === dateKey(now));
   if (day?.clockOut || s.attendanceState === 'finished' || s.pendingClockIn) return null;
-  const end = new Date(`${dateKey(now)}T${settings.endTime}`).getTime();
+  const end = typeof s.scheduledEndAt === 'number' ? s.scheduledEndAt : new Date(`${dateKey(now)}T${settings.endTime}`).getTime();
   if (!Number.isFinite(end)) return null;
   const seconds = Math.ceil((end - now) / 1000);
   if (seconds > 600) return null;

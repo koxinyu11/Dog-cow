@@ -1,3 +1,4 @@
+import { buildFlexDay } from '../../../../app/income/src/flex.js';
 import { TimePicker } from '../../components/TimePicker';
 import { FormSelect } from '../../components/FormSelect';
 import { DatePicker } from '../../components/DatePicker';
@@ -26,10 +27,12 @@ export function ClockEditor({
   notify: (message: string) => void;
   onFinished: (income: IncomeState, date: string, completedTasks: number) => void;
 }) {
+  const isStart = ['start','flex-start'].includes(draft.action);
+  const isFlex = draft.action==='flex-start';
   const [date, setDate] = useState(draft.date || localDate(new Date(draft.at)));
   const original = income.attendance.days.find((day) => day.date === date);
   const [method, setMethod] = useState(
-    draft.action === 'edit' || (draft.action === 'start' ? original?.clockIn : original?.clockOut)
+    draft.action === 'edit' || (isStart ? original?.clockIn : original?.clockOut)
       ? 'backfill'
       : 'recorded',
   );
@@ -42,13 +45,15 @@ export function ClockEditor({
     setEnd(time(original?.clockOut?.at));
   }, [date]);
   const captured = time(draft.at);
-  const startValue = method === 'recorded' && draft.action === 'start' ? captured : start;
+  const startValue = method === 'recorded' && isStart ? captured : start;
   const endValue = method === 'recorded' && draft.action === 'finish' ? captured : end;
+  const preview = isFlex && income.settings ? buildFlexDay(income.settings,date,new Date(`${date}T${startValue}`).getTime()) : null;
+  const flex = preview?.flex ?? original?.flex;
   return (
     <Modal
       open
       title={
-        draft.action === 'start'
+        isFlex ? '弹性打卡' : draft.action === 'start'
           ? '上班打卡'
           : draft.action === 'finish'
             ? '下班打卡'
@@ -65,8 +70,8 @@ export function ClockEditor({
             { action: draft.action, method, startTime: startValue, endTime: endValue },
             income.settings,
           );
-          if (validation) {
-            setError(validation);
+          if (validation || (isFlex && !preview?.flex)) {
+            setError(validation || preview?.message || '请输入有效的实际上班时间。');
             fx('error', form);
             return;
           }
@@ -90,7 +95,7 @@ export function ClockEditor({
               if (shouldCelebrateOffwork(draft.action, method, date, income, result)) {
                 const completedTasks = result.snapshot!.tasks.tasks.filter((task) => task.done && matchesDate(task, date)).length;
                 onFinished(result.snapshot!.income, date, completedTasks);
-              } else fx(draft.action === 'start' ? 'clock-in' : 'save', anchor);
+              } else fx(isStart ? 'clock-in' : 'save', anchor);
             } else {
               setError(result.message);
               fx('error', form);
@@ -100,7 +105,8 @@ export function ClockEditor({
           }
         }}
       >
-        <p>是不是忘记点了？确认后才保存，取消不产生打卡。</p>
+        {flex && <div className="clock-flex-preview"><span>{flex.mode==='shift'?'晚到晚走':'只免迟到'}</span><strong>{time(isFlex ? new Date(`${date}T${startValue}`).getTime() : original?.clockIn?.at)} → {time(flex.endAt)}</strong><small>实际到岗 → 当天下班</small></div>}
+        {preview && !preview.flex && <p className="error" role="alert">{preview.message}</p>}
         <div className="fields">
           <Field label="打卡日期">
             <DatePicker
@@ -123,11 +129,11 @@ export function ClockEditor({
             <TimePicker
               seconds
               value={startValue}
-              disabled={method === 'recorded' && (draft.action === 'start' || !!original?.clockIn)}
+              disabled={method === 'recorded' && (isStart || !!original?.clockIn)}
               onChange={(nextValue) => setStart(nextValue)}
             />
           </Field>
-          {(draft.action !== 'start' || original?.clockOut) && (
+          {(!isStart || original?.clockOut) && (
             <Field label="实际下班时间">
               <TimePicker
                 seconds
@@ -148,7 +154,7 @@ export function ClockEditor({
         </p>
         <div className="dialog-actions">
           <Button variant="ghost" onClick={onClose}>取消</Button>
-          <Button variant="primary" type="submit" disabled={busy} icon={draft.action === 'start' ? <LogIn size={15} /> : draft.action === 'finish' ? <LogOut size={15} /> : <Save size={15} />}>
+          <Button variant="primary" type="submit" disabled={busy} icon={isStart ? <LogIn size={15} /> : draft.action === 'finish' ? <LogOut size={15} /> : <Save size={15} />}>
             确认并保存
           </Button>
         </div>

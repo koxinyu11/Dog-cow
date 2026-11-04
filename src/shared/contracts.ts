@@ -39,12 +39,18 @@ export interface Fact {
   updatedAt: number;
   source: string;
 }
+export interface FlexDay {
+  mode: 'shift' | 'exempt';
+  baseStartTime: string; baseEndTime: string; startAt: number; endAt: number;
+  lunchCountsAsWork: boolean; lunchStartTime: string; lunchEndTime: string;
+}
 export interface Attendance {
   trackingFrom: string;
   days: Array<{
     date: string;
     clockIn: Fact | null;
     clockOut: Fact | null;
+    flex?: FlexDay;
     breaks: Array<{ id: string; start: Fact; end: Fact | null }>;
   }>;
   modeDays: Array<{ date: string; stealMode: boolean; clockMode: boolean }>;
@@ -109,6 +115,8 @@ export interface IncomeSettings {
   lunchEndTime: string;
   stealMode: boolean;
   clockMode: boolean;
+  flexEnabled: boolean;
+  flexMode: 'shift' | 'exempt';
   salaryMode: string;
   payroll: Payroll;
 }
