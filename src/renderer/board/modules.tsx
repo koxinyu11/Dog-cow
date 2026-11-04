@@ -1,4 +1,5 @@
 import { FunModule } from '../features/fun/FunModules';
+import { defaultFun, estimateMealCalories } from '../../shared/fun';
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import type { Fields, Snapshot, Task } from '../../shared/contracts';
 import type { ModuleId, SizeKey } from '../../shared/board';
@@ -532,9 +533,39 @@ function StolenModule({ state, size, openSettings }: ModuleCtx) {
   );
 }
 
+/* ---------------- 热量爆表 ---------------- */
+function CaloriesModule({ state, size, today }: ModuleCtx) {
+  const lunch = (state.board.fun ?? defaultFun()).lunch;
+  const chosen = lunch.date === today ? lunch.chosen : '';
+  if (!chosen)
+    return (
+      <div className="m-empty calories-empty">
+        <Flame size={34} strokeWidth={1.8} className="m-empty-icon" />
+        <p>先在「今天吃什么」里选定一餐</p>
+        <span className="m-label">选完后，这里会自动计算</span>
+      </div>
+    );
+  const calories = estimateMealCalories(chosen);
+  const ratio = Math.min(1, calories / 1200);
+  return (
+    <div className={`calories-m size-${size}`} style={{ '--calories': ratio } as CSSProperties}>
+      <div className="calories-gauge" aria-label={`${chosen}估算热量 ${calories} 千卡`}>
+        <span className="calories-fill" />
+        <Flame size={size === 'l' ? 34 : 25} />
+      </div>
+      <div className="calories-copy">
+        <span className="m-label">今日已选 · {chosen}</span>
+        <strong>{calories}<small> 千卡</small></strong>
+        <span className="m-label">常见单人份估算值，实际会因分量和做法变化</span>
+      </div>
+    </div>
+  );
+}
+
 export const MODULES: Record<ModuleId, ModuleDef> = {
   mood: { id: 'mood', name: '今日精神状态', icon: Coffee, accent: '#dd858a', titleKey: 'moodTitle', blurb: '今天是哪一种牛', defaultSize: 'm', render: c => <FunModule kind="mood" {...c} /> },
   lunch: { id: 'lunch', name: '今天吃什么', icon: UtensilsCrossed, accent: '#e28b47', titleKey: 'lunchTitle', blurb: '午餐选择困难救星', defaultSize: 'm', render: c => <FunModule kind="lunch" {...c} /> },
+  calories: { id: 'calories', name: '热量爆表', icon: Flame, accent: '#ef6c3e', titleKey: 'caloriesTitle', blurb: '选完午餐自动估算热量', defaultSize: 'm', render: c => <CaloriesModule {...c} /> },
   hopes: { id: 'hopes', name: '盼头清单', icon: TreePalm, accent: '#46a898', titleKey: 'hopesTitle', blurb: '给生活留个盼头', defaultSize: 'm', render: c => <FunModule kind="hopes" {...c} /> },
   pasture: { id: 'pasture', name: '工位小牧场', icon: Sprout, accent: '#72a651', titleKey: 'pastureTitle', blurb: '一件事，一丛草', defaultSize: 'm', render: c => <FunModule kind="pasture" {...c} /> },
   converter: { id: 'converter', name: '工资换算器', icon: Wallet, accent: '#bd84b9', titleKey: 'converterTitle', blurb: '今天赚了几份快乐', defaultSize: 'm', render: c => <FunModule kind="converter" {...c} /> },

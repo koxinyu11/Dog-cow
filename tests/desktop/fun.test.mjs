@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultFun, daysUntil, lunchOptions, rewardTask, updateFun, validFun, weekendDays, weekKey } from '../../dist-electron/src/shared/fun.js';
+import { defaultFun, daysUntil, estimateMealCalories, lunchOptions, rewardTask, updateFun, validFun, weekendDays, weekKey } from '../../dist-electron/src/shared/fun.js';
 import { defaultBoard, validBoard, MODULE_IDS, retireReceiptModule } from '../../dist-electron/src/shared/board.js';
 import { copyDefaults } from '../../dist-electron/src/domain/tasks/model.js';
 import { createTransfer, parseTransfer } from '../../src/migration/transfer.js';
@@ -12,10 +12,16 @@ test('mood is dated, settings survive board JSON round-trip and new cards are op
   const board = JSON.parse(JSON.stringify({ ...defaultBoard(), fun }));
   assert.equal(validBoard(board, Object.keys(copyDefaults)), true);
   assert.equal(validBoard(defaultBoard(), Object.keys(copyDefaults)), true);
-  for (const id of ['mood','lunch','hopes','pasture','converter']) {
+  for (const id of ['mood','lunch','calories','hopes','pasture','converter']) {
     assert.ok(MODULE_IDS.includes(id)); assert.equal(board.items.some(i => i.id === id), false);
   }
   assert.throws(() => act(fun, { action:'mood', value:3 }));
+});
+test('calorie estimates follow confirmed lunch names with a stable fallback', () => {
+  assert.equal(estimateMealCalories('麻辣烫'), 900);
+  assert.equal(estimateMealCalories('牛肉面'), 620);
+  assert.equal(estimateMealCalories('鸡胸肉轻食沙拉'), 350);
+  assert.equal(estimateMealCalories('妈妈做的饭'), 600);
 });
 test('drawing does not consume lunch; confirmation does, rerolls and repeats cannot consume twice', () => {
   let fun = act(defaultFun(), { action: 'meals', value: '面\n面\n饭', noRepeat: true });

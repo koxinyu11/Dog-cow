@@ -384,6 +384,23 @@
 .cal-week.size-wide { flex-direction: row; gap: 18px; }
 .cal-week.size-wide .cal-footer { flex: 0 1 150px; flex-direction: column; justify-content: center; }
 
+/* Lunch-linked calorie estimate. */
+.calories-m { height: 100%; display: flex; align-items: center; justify-content: center; gap: 18px; }
+.calories-gauge { position: relative; flex: none; display: grid; place-items: center; width: 82px; height: 82px; border-radius: 50%; color: var(--accent); background: conic-gradient(var(--accent) calc(var(--calories) * 1turn), color-mix(in srgb, var(--accent) 12%, transparent) 0); }
+.calories-gauge::after { content: ''; position: absolute; inset: 9px; border-radius: inherit; background: var(--c-surface-solid); }
+.calories-gauge > * { position: relative; z-index: 1; }
+.calories-copy { min-width: 0; display: grid; gap: 4px; }
+.calories-copy strong { color: var(--accent); font: 800 clamp(28px, 12cqw, 46px)/1 var(--f-num); }
+.calories-copy strong small { font: 700 12px var(--f-sans); }
+.calories-copy .m-label:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calories-m.size-s { gap: 10px; }
+.calories-m.size-s .calories-gauge { width: 54px; height: 54px; }
+.calories-m.size-s .calories-gauge::after { inset: 6px; }
+.calories-m.size-s .calories-copy strong { font-size: 25px; }
+.calories-m.size-s .calories-copy .m-label:last-child { display: none; }
+.calories-m.size-l .calories-gauge { width: 132px; height: 132px; }
+.calories-m.size-l .calories-gauge::after { inset: 13px; }
+
 /* Actual card width matters too: shelves and narrow windows can squeeze a medium card. */
 @container (max-width: 290px) {
   .income-m.size-m { grid-template-columns: minmax(0, 1fr); gap: 4px; }

@@ -24,16 +24,19 @@ body:has(dialog[open], .ui-menu, .shelf.is-open) .app-drag, body:has(dialog[open
 .brand .kicker { margin: 0; color: var(--c-muted); font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; }
 .brand h1 { margin: 2px 0; font: 600 clamp(28px, 4vw, 40px)/1.05 var(--f-display); }
 .settings-pane h3 { display: flex; align-items: center; gap: 6px; }
-.banner > span, .compact-bar span { display: inline-flex; align-items: center; gap: 5px; }
+.banner > span { display: inline-flex; align-items: center; gap: 5px; }
 .brand .date-line { margin: 0; color: var(--c-ink-2); font-size: 13px; }
 .header-actions { display: flex; align-items: center; gap: 8px; }
 .header-add-wrap { display: inline-flex; align-items: center; }
 .button-copy-editor .copy-edit > span:first-child { display: none; }
 .banner { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; padding: 10px 14px; border-radius: var(--r-md); background: var(--c-accent-2); color: var(--c-warning-ink); }
 .banner.is-error { background: var(--c-danger-2); color: var(--c-danger); animation: shake 420ms; }
-.compact-bar { position: fixed; inset: 0; display: flex; align-items: center; gap: 10px; padding: 0 12px; background: var(--c-surface-solid); font-weight: 700; -webkit-app-region: drag; }
-.compact-bar span:nth-child(2) { flex: 1; font-family: var(--f-num); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.compact-bar button { -webkit-app-region: no-drag; }
+.window-compact-toggle { position: fixed; top: 5px; right: 8px; z-index: 45; color: var(--c-muted); -webkit-app-region: no-drag; }
+.window-compact-toggle:hover { color: var(--c-brand); background: var(--c-brand-2); }
+.compact-bar { position: fixed; inset: 0; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; padding: 0 8px; background: var(--c-surface-solid); -webkit-app-region: drag; }
+.compact-bar strong { grid-column: 2; overflow: hidden; color: var(--c-ink-2); font-size: 13px; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.compact-bar .ui-icon-btn { grid-column: 3; justify-self: end; color: var(--c-muted); -webkit-app-region: no-drag; }
+.compact-bar .ui-icon-btn:hover { color: var(--c-brand); background: var(--c-brand-2); }
 
 /* ---------- Editable copy ---------- */
 .copy-edit { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; }
@@ -184,7 +187,7 @@ dialog form > button[type='submit']:not(.ui-btn), .settings-pane button[type='su
   .app-shell { padding: 16px; }
   .app-shell.shelf-open { padding-right: 16px; }
 }
-.is-mac .compact-bar { padding-left: 80px; }
+.is-mac .compact-bar { grid-template-columns: 80px 1fr 44px; }
 
 :where(button, summary, [role='button'], input[type='range']):focus-visible { outline: 3px solid var(--c-brand); outline-offset: 3px; }
 .bg-swatch-label { background: var(--c-surface-solid); color: var(--c-ink); }

@@ -46,6 +46,9 @@
 .board-item.is-placeholder { opacity: 0.35; border: 2px dashed var(--c-brand); box-shadow: none; }
 .board-item.is-placeholder > * { visibility: hidden; }
 .mod-head { display: flex; align-items: center; gap: 7px; padding: 12px 12px 0 10px; min-height: 40px; }
+.mod-edit-button { flex: none; display: grid; padding: 0; border: 0; border-radius: 9px; background: transparent; cursor: pointer; transition: transform var(--t-fast) var(--ease-spring), box-shadow var(--t-fast); }
+.mod-edit-button:hover { transform: translateY(-1px) scale(1.06); box-shadow: 0 0 0 3px color-mix(in srgb, var(--module-accent) 16%, transparent); }
+.mod-edit-button:focus-visible { outline: 2px solid var(--module-accent); outline-offset: 2px; }
 .mod-grip { display: grid; margin-right: -4px; cursor: grab; padding: 2px 0; color: var(--c-muted); opacity: 0; border-radius: 6px; font-size: 14px; transition: opacity var(--t-fast); touch-action: none; user-select: none; }
 .board-item:hover .mod-grip, .mod-grip:focus-visible { opacity: 0.8; }
 .mod-grip:hover { background: var(--c-brand-2); opacity: 1; }
@@ -89,6 +92,9 @@
 .mod-resize:hover { opacity: 1; transform: scale(1.2); }
 body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select: none; }
 body.is-resizing, body.is-resizing * { cursor: nwse-resize !important; user-select: none; }
+
+.module-content-editor { min-height: 360px; box-shadow: none; }
+.module-content-editor .mod-body { padding: 20px; }
 
 /* ---------- Drag ghost ---------- */
 .drag-ghost {

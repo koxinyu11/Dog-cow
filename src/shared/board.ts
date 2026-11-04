@@ -27,7 +27,7 @@ export const MODULE_IDS = [
   'tasks',
   'calendar',
   'stolen',
-  'mood', 'lunch', 'hopes', 'pasture', 'converter',
+  'mood', 'lunch', 'calories', 'hopes', 'pasture', 'converter',
 ] as const;
 export type ModuleId = (typeof MODULE_IDS)[number];
 
@@ -216,10 +216,10 @@ export const GOOD_SIZES: Record<ModuleId, SizeKey[]> = {
   progress: ['m', 's', 'tall'],
   calendar: ['l', 'm', 'wide'],
   stolen: ['m', 's', 'tall'],
-  mood: ['m', 'l'], lunch: ['m', 'l'], hopes: ['m', 'l'], pasture: ['m', 'l'], converter: ['m', 'l'],
+  mood: ['m', 'l'], lunch: ['m', 'l'], calories: ['m', 's', 'l'], hopes: ['m', 'l'], pasture: ['m', 'l'], converter: ['m', 'l'],
 };
 /** Lower comes first: actions and live money on top, reference views below. */
-const IMPORTANCE: ModuleId[] = ['clock', 'income', 'work-time', 'week-summary', 'next-task', 'progress', 'tasks', 'calendar', 'stolen', 'mood', 'lunch', 'hopes', 'pasture', 'converter'];
+const IMPORTANCE: ModuleId[] = ['clock', 'income', 'work-time', 'week-summary', 'next-task', 'progress', 'tasks', 'calendar', 'stolen', 'mood', 'lunch', 'calories', 'hopes', 'pasture', 'converter'];
 
 export function layoutScore(items: BoardItem[], columns: number) {
   const placed = pack(items, columns);

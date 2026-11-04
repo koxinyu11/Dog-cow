@@ -19,7 +19,7 @@ import { BoardContext, computeMetrics } from './board/metrics';
 import { fx } from './motion/fx';
 import { OffworkNotice, OffworkReceipt } from './features/attendance/Offwork';
 import type { IncomeState } from '../shared/contracts';
-import { CircleAlert, ClipboardList, Hourglass, LayoutGrid, Package, Palette, Plus, Settings, Wallet, Wand2 } from 'lucide-react';
+import { CircleAlert, ClipboardList, LayoutGrid, Package, Palette, PanelTopClose, PanelTopOpen, Plus, Settings, Wallet, Wand2 } from 'lucide-react';
 import { Button, Emoji, IconButton, MenuProvider, Segmented, Toast } from './ui';
 
 const COPY_LABELS: Record<string, string> = {
@@ -37,6 +37,7 @@ const COPY_LABELS: Record<string, string> = {
   clockTitle: '打卡',
   stolenTitle: '偷出金额',
   moodTitle: '今日精神状态', receiptTitle: '下班小票', lunchTitle: '今天吃什么',
+  caloriesTitle: '热量爆表',
   hopesTitle: '盼头清单', pastureTitle: '工位小牧场', converterTitle: '工资换算器',
 };
 type Tab = 'look' | 'income' | 'records' | 'data';
@@ -152,10 +153,20 @@ export function App() {
           {board.background.kind === 'preset' && <Scene preset={board.background.value} />}
         </div>
         <div className="app-drag" aria-hidden="true" />
+        <IconButton
+          hidden={state.compact}
+          className="window-compact-toggle"
+          label="收成长条"
+          variant="ghost"
+          onClick={() => void command('compact')}
+        >
+          <PanelTopClose size={17} />
+        </IconButton>
         <div hidden={!state.compact} className="compact-bar">
-          <Emoji>🐄</Emoji>
-          <span><Wallet size={13} /> {metrics['income-today']} · <Hourglass size={13} /> {metrics.countdown}</span>
-          <Button size="sm" onClick={() => void command('compact')}>展开</Button>
+          <strong>{state.tasks.settings.appTitle || '狗牛'}</strong>
+          <IconButton label="展开窗口" variant="ghost" onClick={() => void command('compact')}>
+            <PanelTopOpen size={17} />
+          </IconButton>
         </div>
         <main
           hidden={state.compact}

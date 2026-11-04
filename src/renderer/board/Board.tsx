@@ -14,6 +14,7 @@ import {
 import { fx, motionAllowed } from '../motion/fx';
 import { ArrowDown, ArrowLeft, ArrowRight, Check, GripVertical, Palette, Undo2, RotateCcw, Wand2, Hand, Plus, RectangleHorizontal, RectangleVertical, Square, SquareDashed, X } from 'lucide-react';
 import { Badge, Button, Emoji, IconButton, useContextMenu, type MenuItem } from '../ui';
+import { Modal } from '../components/Modal';
 import { MODULES, type ModuleCtx } from './modules';
 
 const CELL_H = 172;
@@ -70,6 +71,7 @@ export function Board({
   const undoTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const colorInput = useRef<HTMLInputElement>(null);
   const colorTarget = useRef<ModuleId | null>(null);
+  const [moduleEditor, setModuleEditor] = useState<ModuleId | null>(null);
   const [preview, setPreview] = useState<BoardItem[] | null>(null);
   const [ghost, setGhost] = useState<{ x: number; y: number; id: ModuleId; size: SizeKey; removing: boolean } | null>(null);
   const [below, setBelow] = useState<{ count: number; first: ModuleId | null }>({ count: 0, first: null });
@@ -367,7 +369,16 @@ export function Board({
                 >
                   <GripVertical size={14} />
                 </span>
-                <Badge icon={def.icon} color={def.accent} size="sm" />
+                <button
+                  type="button"
+                  className="mod-edit-button"
+                  aria-label={`修改${def.name}内容`}
+                  title="点击修改模块内容"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={() => setModuleEditor(p.id)}
+                >
+                  <Badge icon={def.icon} color={def.accent} size="sm" />
+                </button>
                 <h2 className="mod-title" onPointerDown={(e) => e.target === e.currentTarget && beginDrag(e, p.id, 'board', p.size)}>
                   {title(def.titleKey, def.name)}
                 </h2>
@@ -479,6 +490,21 @@ export function Board({
           <Hand size={30} /> 松手移出主屏
         </div>
       </aside>
+
+      <Modal
+        open={moduleEditor !== null}
+        title={moduleEditor ? `修改${MODULES[moduleEditor].name}` : '修改模块内容'}
+        onClose={() => setModuleEditor(null)}
+      >
+        {moduleEditor && (
+          <div
+            className={`module-content-editor board-item mod-${moduleEditor} size-l`}
+            style={{ '--module-accent': MODULES[moduleEditor].accent } as CSSProperties}
+          >
+            <div className="mod-body">{MODULES[moduleEditor].render({ ...ctx, size: 'l' })}</div>
+          </div>
+        )}
+      </Modal>
 
       {ghost && (
         <div

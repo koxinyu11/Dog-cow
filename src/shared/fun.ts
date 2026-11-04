@@ -46,6 +46,24 @@ export function lunchOptions(fun: FunState, date: string) {
   const used = fun.lunch.week === weekKey(date) ? fun.lunch.used : [];
   return fun.meals.filter(meal => !fun.noRepeat || !used.includes(meal));
 }
+
+/** Common single-serving estimate used by the linked lunch/calorie cards. */
+export function estimateMealCalories(meal: string) {
+  const rules: Array<[RegExp, number]> = [
+    [/火锅|麻辣烫|冒菜/, 900],
+    [/炸鸡|炸串|油炸|薯条/, 850],
+    [/汉堡|披萨/, 800],
+    [/烧烤|烤肉/, 750],
+    [/盖浇饭|炒饭|煲仔饭|黄焖鸡|咖喱饭/, 700],
+    [/牛肉面|拉面|拌面|炒面|米线|螺蛳粉/, 620],
+    [/饺子|馄饨|包子/, 550],
+    [/奶茶|甜品|蛋糕/, 500],
+    [/三明治|面包|饭团/, 450],
+    [/粥|汤/, 320],
+    [/轻食|沙拉|蔬菜/, 350],
+  ];
+  return rules.find(([pattern]) => pattern.test(meal))?.[1] ?? 600;
+}
 export function updateFun(previous: FunState, p: Fields, now: Date): FunState {
   const next = structuredClone(previous);
   const today = localDate(now);
