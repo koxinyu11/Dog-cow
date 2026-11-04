@@ -39,7 +39,7 @@ jobs:
       - run: npm ci
       - run: node node_modules/electron/install.js
       - name: Stamp candidate version
-        run: npm version ${{ needs.version.outputs.version }} --no-git-tag-version --ignore-scripts
+        run: npm version ${{ needs.version.outputs.version }} --no-git-tag-version --ignore-scripts --allow-same-version
       - run: npm test
       - run: python3 tests/auto_sync_test.py
       - name: Verify Apple Silicon runner
