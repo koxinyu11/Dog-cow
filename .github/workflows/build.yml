@@ -3,6 +3,10 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      mac_intel:
+        type: boolean
+        default: false
+        description: Also build the Mac Intel package
       windows:
         type: boolean
         default: false
@@ -11,7 +15,10 @@ permissions:
   contents: read
 jobs:
   mac:
-    runs-on: macos-15
+    strategy:
+      matrix:
+        os: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.mac_intel && '["macos-15", "macos-15-intel"]' || '["macos-15"]') }}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-node@v6
