@@ -4,6 +4,8 @@ import { clockCommandError } from '../shared/clock-command.js';
 import {
   app,
   BrowserWindow,
+  nativeTheme,
+  nativeImage,
   dialog,
   ipcMain,
   Menu,
@@ -227,6 +229,13 @@ function validPayload(payload: unknown): payload is Fields {
   return record(payload) && JSON.stringify(payload).length <= 20 * 1024 * 1024;
 }
 async function invoke(method: string, p: Fields): Promise<Result> {
+  if (method === 'appearance') {
+    if (!['light', 'dark', 'auto'].includes(String(p.mode)) || !['light', 'dark'].includes(String(p.resolved)))
+      return toastResult('显示模式无效。');
+    nativeTheme.themeSource = p.mode === 'auto' ? 'system' : p.mode as 'light' | 'dark';
+    win?.setBackgroundColor(p.resolved === 'dark' ? '#141c19' : '#f6f5ef');
+    return toastResult('');
+  }
   if (method === 'bootstrap') return { ...toastResult(''), snapshot: snapshot() };
   if (method === 'compact') {
     toggleCompact();
@@ -660,6 +669,15 @@ async function checkUpdates(): Promise<Result> {
 }
 async function start() {
   await app.whenReady();
+  let runtimeIcon: Electron.NativeImage | undefined;
+  try {
+    const image = nativeImage.createFromPath(path.join(app.getAppPath(), 'assets', '狗牛.png'));
+    if (image.isEmpty()) throw Error('狗牛运行时图标无法读取。');
+    runtimeIcon = image;
+    if (process.platform === 'darwin') app.dock?.setIcon(image);
+  } catch (error) {
+    console.warn('[app:icon]', error instanceof Error ? error.message : '运行时图标加载失败。');
+  }
   repo = new Repository(path.join(profile, 'data'));
   await repo.load();
   if (repo.migration?.phase === 'pending' && !repo.readError) {
@@ -731,9 +749,11 @@ async function start() {
     minWidth: 900,
     minHeight: 620,
     title: '狗牛',
+    ...(runtimeIcon ? { icon: runtimeIcon } : {}),
     show: false,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#141c19' : '#f6f5ef',
     ...(process.platform === 'darwin'
-      ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 16, y: 14 }, backgroundColor: '#f6f5ef' }
+      ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 16, y: 14 } }
       : {}),
     webPreferences: {
       preload: path.join(app.getAppPath(), 'dist-electron/src/preload/index.cjs'),

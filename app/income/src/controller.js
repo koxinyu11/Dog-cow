@@ -93,12 +93,13 @@ export function createIncomeController({
       state.snapshot = calculateSnapshot(state.settings, at, state.calendarContext, state.leaves, state.attendance);
       state.payrollResult = state.snapshot.payrollResult;
     } catch (error) {
-      state.payrollResult = calculatePayroll(state.settings, at);
+      state.payrollResult = state.settings.payBasis === 'daily' ? null : calculatePayroll(state.settings, at);
       const code = error.code ?? 'unknown';
       const message = code === 'calendar-unavailable'
         ? (state.calendar.busy ? '正在加载调休日历，自动计价暂缓。' : '调休日历不可用，自动计价已暂停。可刷新重试，或明确选择仅按周排班。')
         : code === 'no-workdays' ? '本月没有计划工作时段，请调整排班。'
-          : code === 'payroll-invalid' ? '税后估算未通过校验，请核对薪税设置；未使用税前金额计价。'
+          : code === 'daily-income-overflow' ? '日薪乘以本月排班天数超出可计算范围，请减小日薪金额。'
+            : code === 'payroll-invalid' ? '税后估算未通过校验，请核对薪税设置；未使用税前金额计价。'
             : '暂时无法计算，请检查排班设置后重试。';
       state.calculationError = { code, message };
     }

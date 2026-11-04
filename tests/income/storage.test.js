@@ -266,3 +266,21 @@ test('localStorage getter 被拒绝时读取与保存均降级', () => {
     else delete globalThis.localStorage;
   }
 });
+
+
+test('daily and monthly inputs and monthly tax preference survive saving and switching modes', () => {
+  const storage = memoryStorage();
+  const config = validateSettings({ ...settings, payBasis: 'daily', dailySalary: 200, salaryMode: 'gross' }).settings;
+  assert.equal(saveSettings(config, leaves, attendance, storage).ok, true);
+  const daily = loadSettings(storage);
+  assert.equal(daily.status, 'loaded');
+  assert.equal(daily.settings.payBasis, 'daily');
+  assert.equal(daily.settings.dailySalary, 200);
+  assert.equal(daily.settings.monthlySalary, settings.monthlySalary);
+  assert.equal(daily.settings.salaryMode, 'gross');
+  assert.equal(saveSettings({ ...daily.settings, payBasis: 'monthly' }, leaves, attendance, storage).ok, true);
+  const monthly = loadSettings(storage);
+  assert.equal(monthly.settings.dailySalary, 200);
+  assert.equal(monthly.settings.payBasis, 'monthly');
+  assert.equal(monthly.settings.salaryMode, 'gross');
+});

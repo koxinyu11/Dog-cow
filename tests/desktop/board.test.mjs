@@ -53,3 +53,16 @@ test('every background theme key is valid, unknown keys are rejected', () => {
   for (const value of ['classic', 'meadow', 'sunset', 'night', 'candy', 'ocean', 'paper']) assert.ok(Object.hasOwn(BACKGROUND_PRESETS, value), `kept legacy key ${value}`);
   assert.equal(validBoard({ ...defaultBoard(), background: { kind: 'preset', value: 'mars' } }, keys), false);
 });
+
+
+test('default home includes every module once and removed cards remain a valid saved choice', () => {
+  const board = defaultBoard();
+  assert.deepEqual([...board.items.map((item) => item.id)].sort(), [...MODULE_IDS].sort());
+  for (const columns of [12, 6]) {
+    assert.equal(overlaps(pack(board.items, columns)), false);
+  }
+  const customized = { ...board, items: board.items.filter((item) => item.id !== 'calendar') };
+  assert.equal(validBoard(customized, keys), true);
+  assert.equal(customized.items.some((item) => item.id === 'calendar'), false);
+  assert.equal(defaultBoard().items.length, MODULE_IDS.length);
+});

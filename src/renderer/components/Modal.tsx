@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { cloneElement, isValidElement, useEffect, useId, useRef, type ReactNode } from 'react';
 
 export function Modal({
   open,
@@ -38,11 +38,17 @@ export function Modal({
     </dialog>
   );
 }
-export function Field({ label, children }: { label: string; children: ReactNode }) {
+export function Field({ label, children, hint, error }: { label: string; children: ReactNode; hint?: string; error?: string }) {
+  const generatedId = useId();
+  const child = isValidElement<{ id?: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean }>(children) ? children : null;
+  const id = child?.props.id || generatedId;
+  const description = [child?.props['aria-describedby'], hint ? `${id}-hint` : '', error ? `${id}-error` : ''].filter(Boolean).join(' ');
   return (
-    <label className="field">
-      <span>{label}</span>
-      {children}
-    </label>
+    <div className={`field ${error ? 'has-error' : ''}`}>
+      <label className="field-label" htmlFor={id}>{label}</label>
+      {child ? cloneElement(child, { id, 'aria-describedby': description || undefined, 'aria-invalid': error ? true : child.props['aria-invalid'] }) : children}
+      {hint && <span id={`${id}-hint`} className="field-hint">{hint}</span>}
+      {error && <span id={`${id}-error`} className="field-error" role="alert">{error}</span>}
+    </div>
   );
 }

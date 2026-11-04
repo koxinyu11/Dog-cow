@@ -32,7 +32,7 @@
 .ui-btn-lg { min-height: 46px; padding: 0 20px; font-size: 16px; border-radius: var(--r-md); }
 .ui-btn-primary { --btn-bg: var(--c-brand); --btn-fg: var(--c-brand-ink); --btn-bd: transparent; }
 .ui-btn-primary:hover:not(:disabled) { --btn-bg: color-mix(in srgb, var(--c-brand) 88%, black); }
-.ui-btn-accent { --btn-bg: var(--c-accent); --btn-fg: #fff; --btn-bd: transparent; }
+.ui-btn-accent { --btn-bg: var(--c-accent); --btn-fg: var(--c-accent-ink); --btn-bd: transparent; }
 .ui-btn-soft { --btn-bg: var(--c-surface-solid); }
 .ui-btn-ghost { --btn-bg: transparent; --btn-bd: transparent; box-shadow: none; }
 .ui-btn-ghost:hover:not(:disabled) { --btn-bg: var(--c-brand-2); box-shadow: none; }
@@ -99,7 +99,7 @@
 .ui-check.is-round .ui-check-box { width: 26px; height: 26px; border-radius: 50%; }
 .ui-check:hover .ui-check-box { border-color: var(--c-brand); }
 .ui-check input:focus-visible + .ui-check-box { outline: 3px solid color-mix(in srgb, var(--c-brand) 40%, transparent); outline-offset: 2px; }
-.ui-check-box svg { width: 70%; height: 70%; fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 16; stroke-dashoffset: 16; transition: stroke-dashoffset var(--t-mid) var(--ease-out) 60ms; }
+.ui-check-box svg { width: 70%; height: 70%; fill: none; stroke: var(--c-brand-ink); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 16; stroke-dashoffset: 16; transition: stroke-dashoffset var(--t-mid) var(--ease-out) 60ms; }
 .ui-check input:checked + .ui-check-box { background: var(--c-brand); border-color: var(--c-brand); animation: check-pop 360ms var(--ease-spring); }
 .ui-check input:checked + .ui-check-box svg { stroke-dashoffset: 0; }
 @keyframes check-pop { 0% { transform: scale(0.7); } 60% { transform: scale(1.18); } 100% { transform: none; } }
@@ -115,6 +115,7 @@
   background: color-mix(in srgb, var(--c-ink) 6%, transparent);
 }
 .ui-segmented-thumb {
+  pointer-events: none;
   position: absolute;
   top: 4px;
   bottom: 4px;
@@ -125,7 +126,7 @@
   box-shadow: var(--e-1);
   transition: left var(--t-mid) var(--ease-spring);
 }
-.ui-segmented button { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 34px; border: 0; background: transparent; color: var(--c-ink-2); font: 600 13px var(--f-sans); cursor: pointer; white-space: nowrap; }
+.ui-segmented button { margin: 0; padding: 0 10px; min-width: 0; box-shadow: none; transform: none; position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 34px; border: 0; background: transparent; color: var(--c-ink-2); font: 600 13px var(--f-sans); cursor: pointer; white-space: nowrap; }
 .ui-segmented button[aria-selected='true'] { color: var(--c-ink); }
 
 /* ---------- Chip ---------- */
@@ -218,3 +219,5 @@
 .ui-badge { --accent: var(--c-brand); flex: none; display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
 .ui-badge-sm { width: 26px; height: 26px; border-radius: 8px; }
 .ui-badge-lg { width: 44px; height: 44px; border-radius: 14px; }
+
+[data-theme='dark'] .board-item:not(.is-light) .ui-badge { color: var(--c-ink-2); }

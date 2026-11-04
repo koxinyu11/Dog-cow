@@ -1,3 +1,6 @@
+import { TimePicker } from '../../components/TimePicker';
+import { FormSelect } from '../../components/FormSelect';
+import { DatePicker } from '../../components/DatePicker';
 import { type Fields, type Tag, type Task } from '../../../shared/contracts';
 import { localDate } from '../../../domain/tasks/model';
 import { dateLabel } from '../../format';
@@ -46,16 +49,16 @@ export function TaskCard({
           label="任务标题"
           onCommit={(value) => patch(task.id, { title: value.trim() || '未命名任务' })}
         />
-        <select
+        <FormSelect
           aria-label="优先级"
           className={`priority-select p-${task.priority}`}
           value={task.priority}
-          onChange={(e) => void patch(task.id, { priority: e.target.value })}
+          onChange={(nextValue) => void patch(task.id, { priority: nextValue })}
         >
           {['高', '中', '低'].map((p) => (
             <option key={p}>{p}</option>
           ))}
-        </select>
+        </FormSelect>
       </div>
       <AutoText
         value={task.note}
@@ -90,12 +93,12 @@ export function TaskCard({
             </button>
           </span>
         ))}
-        <select
+        <FormSelect
           className="tag-reuse"
           aria-label="复用或新增标签"
           value=""
-          onChange={(e) => {
-            const selected = e.target.value;
+          onChange={(nextValue) => {
+            const selected = nextValue;
             if (!selected) return;
             const reusable = library.find((tag) => tag.label === selected);
             if (
@@ -123,23 +126,23 @@ export function TaskCard({
           {library.map((tag) => (
             <option key={tag.label}>{tag.label}</option>
           ))}
-        </select>
+        </FormSelect>
       </div>
       <div className="row task-meta">
         {task.hasTime ? (
           <>
-            <input
+            <TimePicker
               aria-label="任务开始时间"
-              type="time"
+
               value={task.startTime}
-              onChange={(e) => void patch(task.id, { startTime: e.target.value })}
+              onChange={(nextValue) => void patch(task.id, { startTime: nextValue })}
             />
             <span>至</span>
-            <input
+            <TimePicker
               aria-label="任务结束时间"
-              type="time"
+
               value={task.endTime}
-              onChange={(e) => void patch(task.id, { endTime: e.target.value })}
+              onChange={(nextValue) => void patch(task.id, { endTime: nextValue })}
             />
             <IconButton
               size="sm"
@@ -174,11 +177,10 @@ export function TaskCard({
         )}
         {task.dueDate ? (
           <>
-            <input
-              type="date"
+            <DatePicker clearable
               aria-label="截止日期"
               value={task.dueDate}
-              onChange={(e) => void patch(task.id, { dueDate: e.target.value })}
+              onChange={(nextValue) => void patch(task.id, { dueDate: nextValue })}
             />
             <span className={`due-chip ${due === '已逾期' ? 'is-late' : due === '今天截止' ? 'is-today' : ''}`}>{due}</span>
             <IconButton size="sm" variant="ghost" label="移除截止日" onClick={() => void patch(task.id, { dueDate: '' })}><X size={13} /></IconButton>

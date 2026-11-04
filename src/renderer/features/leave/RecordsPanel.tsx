@@ -1,3 +1,6 @@
+import { TimePicker } from '../../components/TimePicker';
+import { FormSelect } from '../../components/FormSelect';
+import { DatePicker } from '../../components/DatePicker';
 import { useState } from 'react';
 import { type IncomeState, type Fact, type Leave } from '../../../shared/contracts';
 import { validateLeaveRecord as legacyValidateLeaveRecord } from '../../../../app/income/src/leave.js';
@@ -83,39 +86,37 @@ export function RecordsPanel({
       >
         <fieldset disabled={!income.settings}>
           <div className="fields">
-            <Field label="请假日期">
-              <input type="date" value={d.date} onChange={(e) => set('date', e.target.value)} />
+            <Field label="请假日期" error={auto.errors.date}>
+              <DatePicker  value={d.date} onChange={(nextValue) => set('date', nextValue)} />
             </Field>
             <Field label="是否扣薪">
-              <select
+              <FormSelect
                 value={String(d.paid)}
-                onChange={(e) => set('paid', e.target.value === 'true')}
+                onChange={(nextValue) => set('paid', nextValue === 'true')}
               >
                 <option value="true">带薪请假，不扣钱</option>
                 <option value="false">无薪请假，按时长扣钱</option>
-              </select>
+              </FormSelect>
             </Field>
-            <Field label="开始时间">
-              <input
-                type="time"
+            <Field label="开始时间" error={auto.errors.startTime}>
+              <TimePicker
                 disabled={d.fullDay}
                 value={d.startTime || '09:00'}
-                onChange={(e) => set('startTime', e.target.value)}
+                onChange={(nextValue) => set('startTime', nextValue)}
               />
             </Field>
-            <Field label="结束时间">
-              <input
-                type="time"
+            <Field label="结束时间" error={auto.errors.endTime}>
+              <TimePicker
                 disabled={d.fullDay}
                 value={d.endTime || '18:00'}
-                onChange={(e) => set('endTime', e.target.value)}
+                onChange={(nextValue) => set('endTime', nextValue)}
               />
             </Field>
           </div>
           <Switch
             checked={d.fullDay}
-           
-           
+
+
             label="整天请假"
             onChange={(on) =>
               auto.change({

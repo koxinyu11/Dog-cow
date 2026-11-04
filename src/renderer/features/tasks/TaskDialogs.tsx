@@ -1,3 +1,6 @@
+import { TimePicker } from '../../components/TimePicker';
+import { FormSelect } from '../../components/FormSelect';
+import { DatePicker } from '../../components/DatePicker';
 import { useEffect, useState } from 'react';
 import { type Fields, type Result } from '../../../shared/contracts';
 import { weekDates } from '../../../domain/tasks/model';
@@ -65,29 +68,28 @@ export function NewTask({
         </Field>
         <div className="fields">
           <Field label="安排日期">
-            <select value={draft.date} onChange={(e) => change('date', e.target.value)}>
+            <FormSelect value={draft.date} onChange={(nextValue) => change('date', nextValue)}>
               {weekDates(date).map((d) => (
                 <option key={d} value={d}>
                   {dateLabel(d)}
                 </option>
               ))}
-            </select>
+            </FormSelect>
           </Field>
           <Field label="优先级">
-            <select value={draft.priority} onChange={(e) => change('priority', e.target.value)}>
+            <FormSelect value={draft.priority} onChange={(nextValue) => change('priority', nextValue)}>
               {['高', '中', '低'].map((p) => (
                 <option key={p}>{p}</option>
               ))}
-            </select>
+            </FormSelect>
           </Field>
           <Field label="标签">
             <input value={draft.category} onChange={(e) => change('category', e.target.value)} />
           </Field>
           <Field label="截止日期（可选）">
-            <input
-              type="date"
+            <DatePicker clearable
               value={draft.dueDate}
-              onChange={(e) => change('dueDate', e.target.value)}
+              onChange={(nextValue) => change('dueDate', nextValue)}
             />
           </Field>
         </div>
@@ -98,17 +100,15 @@ export function NewTask({
         {draft.hasTime && (
           <div className="fields">
             <Field label="开始">
-              <input
-                type="time"
+              <TimePicker
                 value={draft.startTime}
-                onChange={(e) => change('startTime', e.target.value)}
+                onChange={(nextValue) => change('startTime', nextValue)}
               />
             </Field>
             <Field label="结束">
-              <input
-                type="time"
+              <TimePicker
                 value={draft.endTime}
-                onChange={(e) => change('endTime', e.target.value)}
+                onChange={(nextValue) => change('endTime', nextValue)}
               />
             </Field>
           </div>
@@ -177,26 +177,26 @@ export function WeeklyDialog({
         <Switch checked={weekends} label="安排至整周" hint="关闭时仅周一到周五" onChange={setWeekends} />
         <div className="fields">
           <Field label="开始时间">
-            <input type="time" value={startTime} onChange={(e) => setStart(e.target.value)} />
+            <TimePicker  value={startTime} onChange={(nextValue) => setStart(nextValue)} />
           </Field>
           <Field label="时长">
-            <select value={duration} onChange={(e) => setDuration(e.target.value)}>
+            <FormSelect value={duration} onChange={(nextValue) => setDuration(nextValue)}>
               {[30, 60, 90, 120].map((v) => (
                 <option key={v} value={v}>
                   {v} 分钟
                 </option>
               ))}
-            </select>
+            </FormSelect>
           </Field>
           <Field label="标签">
             <input value={tag} onChange={(e) => setTag(e.target.value)} />
           </Field>
           <Field label="优先级">
-            <select value={priority} onChange={(e) => setPriority(e.target.value)}>
+            <FormSelect value={priority} onChange={(nextValue) => setPriority(nextValue)}>
               {['高', '中', '低'].map((v) => (
                 <option key={v}>{v}</option>
               ))}
-            </select>
+            </FormSelect>
           </Field>
         </div>
         <p>轮转分配到该周，下一轮开始时间增加“时长 + 30 分钟”。</p>

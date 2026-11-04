@@ -5,6 +5,7 @@ import { defaultBoard, type Board as BoardModel, type BoardItem, type MetricId }
 import { command, useAppState, flushDrafts } from './state';
 import { weekNames } from './format';
 import { Modal } from './components/Modal';
+import { LoadingScreen } from './components/LoadingScreen';
 import { useReducedMotion } from './hooks/useReducedMotion';
 import { Copy } from './features/personalization/Copy';
 import { NewTask, WeeklyDialog } from './features/tasks/TaskDialogs';
@@ -39,6 +40,7 @@ const taskNode = (id: string) => document.querySelector(`[data-task-id="${CSS.es
 
 export function App() {
   const state = useAppState();
+  const [bootDone, setBootDone] = useState(false);
   useEffect(() => {
     if (state) document.title = state.tasks.settings.appTitle;
   }, [state?.tasks.settings.appTitle]);
@@ -123,13 +125,8 @@ export function App() {
   };
   const metrics = useMemo(() => (state ? computeMetrics(state) : null), [state]);
 
-  if (!state || !metrics)
-    return (
-      <main className="app-shell boot">
-        <Emoji motion="run" size={48}>🐄</Emoji>
-        <p role="status">正在读取本机数据…</p>
-      </main>
-    );
+  if (!bootDone || !state || !metrics)
+    return <LoadingScreen ready={!!state && !!metrics} onComplete={setBootDone} />;
   const board = state.board ?? defaultBoard();
   const today = localDate(new Date(state.income.now));
   const copy = (key: string, value: string) => void command('copy', { key, value }, 'tasks').then(handle);

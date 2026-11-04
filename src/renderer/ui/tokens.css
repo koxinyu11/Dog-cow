@@ -1,5 +1,12 @@
 /* Design tokens: colour, radius, elevation, type, motion. Everything else reads from these. */
 :root {
+  --c-page: #f6f5ef;
+  --c-inverse: #fff;
+  --c-accent-ink: #35200c;
+  --c-danger-ink: #fff;
+  --c-warning-ink: #8a4b12;
+  --c-card-border: rgba(29, 36, 32, 0.1);
+  --c-backdrop: rgba(20, 30, 24, 0.32);
   --c-ink: #1d2420;
   --c-ink-2: #4f5a53;
   --c-muted: #7b857e;
@@ -42,23 +49,32 @@
 
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --c-ink: #eef2ee;
-    --c-ink-2: #c0c9c2;
-    --c-muted: #8f9a92;
-    --c-line: rgba(255, 255, 255, 0.1);
-    --c-surface: rgba(30, 36, 33, 0.78);
-    --c-surface-solid: #222925;
-    --c-surface-2: rgba(40, 47, 43, 0.9);
-    --c-brand: #5fbf91;
-    --c-brand-2: rgba(95, 191, 145, 0.16);
-    --c-brand-ink: #10241a;
-    --c-accent-2: rgba(240, 138, 62, 0.16);
-    --c-danger-2: rgba(210, 73, 58, 0.18);
-    --e-1: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --e-2: 0 6px 22px rgba(0, 0, 0, 0.35);
-    --e-3: 0 24px 60px rgba(0, 0, 0, 0.5);
-    color-scheme: dark;
-  }
+:root[data-theme='dark'] {
+  --c-ink: #edf4ef;
+  --c-ink-2: #c2d0c7;
+  --c-muted: #a0b2a6;
+  --c-line: rgba(217, 239, 225, 0.18);
+  --c-surface: rgba(31, 43, 36, 0.96);
+  --c-surface-solid: #202e26;
+  --c-surface-2: #293930;
+  --c-brand: #82d9ad;
+  --c-brand-2: #2b4939;
+  --c-brand-ink: #10291d;
+  --c-accent: #ffb979;
+  --c-accent-ink: #35200c;
+  --c-accent-2: #493522;
+  --c-warning-ink: #ffd09b;
+  --c-danger: #ff9d93;
+  --c-danger-2: #4b2b2b;
+  --c-danger-ink: #391915;
+  --c-grass-1: #334d32;
+  --c-grass-2: #7abb76;
+  --c-page: #141c19;
+  --c-inverse: #17251c;
+  --c-card-border: rgba(217, 239, 225, 0.18);
+  --c-backdrop: rgba(0, 8, 4, 0.64);
+  --e-1: 0 2px 8px rgba(0, 0, 0, 0.22);
+  --e-2: 0 8px 26px rgba(0, 0, 0, 0.34);
+  --e-3: 0 24px 60px rgba(0, 0, 0, 0.55);
+  color-scheme: dark;
 }

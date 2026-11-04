@@ -1,12 +1,12 @@
 /* Base layout and the feature panels (task card, dialogs, forms, calendar, settings). */
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
-body { color: var(--c-ink); font: 14px/1.5 var(--f-sans); -webkit-font-smoothing: antialiased; }
+body { background: var(--c-page); color: var(--c-ink); font: 14px/1.5 var(--f-sans); -webkit-font-smoothing: antialiased; }
 button, input, select, textarea { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
 .muted { color: var(--c-muted); font-size: 12.5px; }
 .error { color: var(--c-danger); font-weight: 600; min-height: 1em; }
-.notice { padding: 10px 12px; border-radius: var(--r-sm); color: #8a4b12; background: var(--c-accent-2); }
+.notice { padding: 10px 12px; border-radius: var(--r-sm); color: var(--c-warning-ink); background: var(--c-accent-2); }
 
 /* ---------- Shell ---------- */
 .app-shell { max-width: 1320px; margin: 0 auto; padding: 22px 28px 40px; transition: padding-right var(--t-slow) var(--ease-spring); }
@@ -29,7 +29,7 @@ body:has(dialog[open], .ui-menu, .shelf.is-open) .app-drag, body:has(dialog[open
 .header-actions { display: flex; align-items: center; gap: 8px; }
 .header-add-wrap { display: inline-flex; align-items: center; }
 .button-copy-editor .copy-edit > span:first-child { display: none; }
-.banner { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; padding: 10px 14px; border-radius: var(--r-md); background: var(--c-accent-2); color: #8a4b12; }
+.banner { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; padding: 10px 14px; border-radius: var(--r-md); background: var(--c-accent-2); color: var(--c-warning-ink); }
 .banner.is-error { background: var(--c-danger-2); color: var(--c-danger); animation: shake 420ms; }
 .compact-bar { position: fixed; inset: 0; display: flex; align-items: center; gap: 10px; padding: 0 12px; background: var(--c-surface-solid); font-weight: 700; -webkit-app-region: drag; }
 .compact-bar span:nth-child(2) { flex: 1; font-family: var(--f-num); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -47,7 +47,7 @@ body:has(dialog[open], .ui-menu, .shelf.is-open) .app-drag, body:has(dialog[open
 /* ---------- Dialog ---------- */
 dialog { width: min(720px, 94vw); max-height: 88vh; padding: 0; border: 0; border-radius: var(--r-lg); color: var(--c-ink); background: var(--c-surface-solid); box-shadow: var(--e-3); overflow: auto; }
 dialog[open] { animation: dialog-in 360ms var(--ease-spring); }
-dialog::backdrop { background: rgba(20, 30, 24, 0.32); backdrop-filter: blur(6px); animation: fade-in 240ms; }
+dialog::backdrop { background: var(--c-backdrop); backdrop-filter: blur(6px); animation: fade-in 240ms; }
 dialog > *:not(.dialog-heading) { margin-left: 24px; margin-right: 24px; }
 dialog > form, dialog > div:last-child { padding-bottom: 24px; }
 .dialog-heading { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: 18px 24px 12px; background: var(--c-surface-solid); }
@@ -80,7 +80,7 @@ fieldset .ui-check { margin: 4px 14px 4px 0; }
 legend { padding: 0 6px; font-weight: 750; }
 details { margin: 10px 0; padding: 10px 14px; border-radius: var(--r-md); background: color-mix(in srgb, var(--c-ink) 4%, transparent); }
 summary { cursor: pointer; font-weight: 700; }
-:where(dialog form > button, .settings-pane button:not(.ui-btn, .ui-switch, .bg-swatch, .copy-edit-trigger), .actions > button) {
+:where(dialog form > button, .settings-pane button:not(.ui-btn, .ui-switch, .bg-swatch, .copy-edit-trigger, .form-select-trigger, .picker-open, .ui-segmented button, .form-popover button), .actions > button) {
   min-height: 34px;
   margin: 4px 6px 4px 0;
   padding: 0 14px;
@@ -92,7 +92,7 @@ summary { cursor: pointer; font-weight: 700; }
   box-shadow: var(--e-1);
   transition: transform var(--t-fast) var(--ease-spring);
 }
-:where(dialog form > button, .settings-pane button:not(.ui-btn, .ui-switch, .bg-swatch, .copy-edit-trigger), .actions > button):hover { transform: translateY(-1px); }
+:where(dialog form > button, .settings-pane button:not(.ui-btn, .ui-switch, .bg-swatch, .copy-edit-trigger, .form-select-trigger, .picker-open, .ui-segmented button, .form-popover button), .actions > button):hover { transform: translateY(-1px); }
 dialog form > button[type='submit']:not(.ui-btn), .settings-pane button[type='submit']:not(.ui-btn) { color: var(--c-brand-ink); background: var(--c-brand); border-color: transparent; }
 .actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 
@@ -107,7 +107,7 @@ dialog form > button[type='submit']:not(.ui-btn), .settings-pane button[type='su
 .bg-swatch { position: relative; overflow: hidden; height: 92px; padding: 8px; isolation: isolate; display: flex; align-items: flex-end; padding: 8px; border: 2px solid transparent; border-radius: var(--r-md); background-size: cover; background-position: center; box-shadow: var(--e-1); cursor: pointer; transition: transform var(--t-fast) var(--ease-spring), border-color var(--t-fast); }
 .bg-swatch:hover { transform: translateY(-2px) rotate(-1deg); }
 .bg-swatch[aria-pressed='true'] { border-color: var(--c-brand); }
-.bg-swatch[aria-pressed='true']::after { content: '✓'; position: absolute; z-index: 2; top: 6px; right: 8px; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--c-brand); font-size: 12px; animation: check-pop 300ms var(--ease-spring); }
+.bg-swatch[aria-pressed='true']::after { content: '✓'; position: absolute; z-index: 2; top: 6px; right: 8px; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; color: var(--c-brand-ink); background: var(--c-brand); font-size: 12px; animation: check-pop 300ms var(--ease-spring); }
 .bg-swatch-label { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 8px; background: rgba(255, 255, 255, 0.85); color: #1d2420; font-size: 12px; font-weight: 700; }
 .bg-swatch input[type='color'] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border-radius: inherit; }
 .bg-upload { background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--c-ink) 5%, transparent) 0 10px, transparent 10px 20px); }
@@ -122,7 +122,7 @@ dialog form > button[type='submit']:not(.ui-btn), .settings-pane button[type='su
 .task-card textarea { min-height: 36px; font-size: 13px; background: color-mix(in srgb, var(--c-ink) 2%, var(--c-surface-solid)); }
 .priority-select { min-height: 26px !important; padding: 2px 8px !important; border: 0 !important; border-radius: 99px !important; font-size: 12px; font-weight: 700; }
 .priority-select.p-高 { color: var(--c-danger); background: var(--c-danger-2) !important; }
-.priority-select.p-中 { color: #a8571c; background: var(--c-accent-2) !important; }
+.priority-select.p-中 { color: var(--c-warning-ink); background: var(--c-accent-2) !important; }
 .priority-select.p-低 { color: var(--c-muted); background: color-mix(in srgb, var(--c-ink) 6%, transparent) !important; }
 .tag-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 8px; border-radius: 99px; background: color-mix(in srgb, var(--c-ink) 6%, transparent); }
 .tag-pill .title-input { width: 72px; min-height: 24px !important; padding: 0 2px !important; border: 0 !important; background: transparent !important; font-size: 12px; font-weight: 700; }
@@ -133,7 +133,7 @@ dialog form > button[type='submit']:not(.ui-btn), .settings-pane button[type='su
 .task-meta { font-size: 12.5px; color: var(--c-muted); }
 .task-meta input { min-height: 28px !important; padding: 2px 8px !important; font-size: 12.5px; }
 .due-chip { padding: 2px 8px; border-radius: 99px; background: var(--c-brand-2); color: var(--c-brand); font-weight: 700; }
-.due-chip.is-today { background: var(--c-accent-2); color: #a8571c; }
+.due-chip.is-today { background: var(--c-accent-2); color: var(--c-warning-ink); }
 .due-chip.is-late { background: var(--c-danger-2); color: var(--c-danger); }
 .task-actions { display: flex; justify-content: flex-end; gap: 4px; }
 .task-progress { display: grid; grid-template-columns: auto minmax(120px, 1fr) 76px; align-items: center; gap: 10px; color: var(--c-muted); font-size: 12px; }
@@ -171,8 +171,8 @@ dialog form > button[type='submit']:not(.ui-btn), .settings-pane button[type='su
 .calendar-grid > button > span { position: absolute; top: 1px; right: 3px; font-size: 7px; }
 .calendar-grid > button.outside { opacity: 0.35; }
 .calendar-grid > button.today { color: var(--c-accent); box-shadow: inset 0 0 0 2px var(--c-accent); }
-.calendar-grid > button.selected { color: #fff; background: var(--c-brand); }
-.calendar-grid > button.selected small { color: rgba(255, 255, 255, 0.8); }
+.calendar-grid > button.selected { color: var(--c-brand-ink); background: var(--c-brand); }
+.calendar-grid > button.selected small { color: inherit; }
 
 /* ---------- Confetti ---------- */
 .confetti-layer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 1900; }
@@ -185,3 +185,31 @@ dialog form > button[type='submit']:not(.ui-btn), .settings-pane button[type='su
   .app-shell.shelf-open { padding-right: 16px; }
 }
 .is-mac .compact-bar { padding-left: 80px; }
+
+:where(button, summary, [role='button'], input[type='range']):focus-visible { outline: 3px solid var(--c-brand); outline-offset: 3px; }
+.bg-swatch-label { background: var(--c-surface-solid); color: var(--c-ink); }
+.bg-swatch[aria-pressed='true']::after { color: var(--c-brand-ink); }
+
+/* Startup: approach, wait for real data, then finish the walk and eat. */
+.boot-loader { gap: 20px; }
+.boot-loader p { margin: 0; color: var(--c-ink-2); text-align: center; max-width: 340px; }
+.boot-pasture { position: relative; width: min(280px, 75vw); height: 88px; }
+.boot-path { position: absolute; left: 0; right: 0; bottom: 8px; height: 8px; border-radius: var(--r-pill); background: var(--c-brand-2); }
+.boot-cow { position: absolute; left: 0; bottom: 12px; z-index: 1; font-size: 48px; line-height: 1; transition: left 200ms linear; }
+.boot-cow-face { display: block; transform: scaleX(-1); }
+.boot-grass { position: absolute; right: 0; bottom: 10px; font-size: 36px; line-height: 1; transform-origin: bottom center; }
+.phase-walk .boot-cow { animation: boot-walk 550ms linear forwards; }
+.phase-walk .boot-cow-face, .phase-arrive .boot-cow-face { animation: boot-step 180ms ease-in-out infinite alternate; }
+.phase-wait .boot-cow { left: calc(100% - 104px); }
+.phase-arrive .boot-cow, .phase-eat .boot-cow { left: calc(100% - 62px); }
+.phase-eat .boot-cow-face { animation: boot-eat 150ms ease-in-out 2 alternate; }
+.phase-eat .boot-grass { animation: boot-grass 300ms ease-in forwards; }
+.boot-loader.has-error .boot-cow { animation: none; }
+.boot-loader.has-error .boot-cow-face, .boot-loader.has-error .boot-grass { animation: none; }
+.boot-loader.has-error p { color: var(--c-danger); }
+.boot-loader.is-still .boot-cow { left: calc(100% - 104px); animation: none; transition: none; }
+.boot-loader.is-still .boot-cow-face, .boot-loader.is-still .boot-grass { animation: none; }
+@keyframes boot-walk { to { left: calc(100% - 104px); } }
+@keyframes boot-step { to { transform: scaleX(-1) translateY(-3px) rotate(2deg); } }
+@keyframes boot-eat { to { transform: scaleX(-1) translateY(5px) rotate(-12deg); } }
+@keyframes boot-grass { to { transform: scale(0.15); opacity: 0; } }

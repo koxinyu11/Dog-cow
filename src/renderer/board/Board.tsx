@@ -356,7 +356,7 @@ export function Board({
               data-board-id={p.id}
               data-home-module={p.id}
               className={`board-item mod-${p.id} size-${p.size} ${dragging ? 'is-placeholder' : ''} ${card ? (isDark(card) ? 'is-custom is-dark' : 'is-custom is-light') : ''}`}
-              style={{ gridColumn: `${p.x + 1} / span ${p.w}`, gridRow: `${p.y + 1} / span ${p.h}`, '--accent': def.accent, ...(card ? { '--card-bg': card } : {}) } as CSSProperties}
+              style={{ gridColumn: `${p.x + 1} / span ${p.w}`, gridRow: `${p.y + 1} / span ${p.h}`, '--module-accent': def.accent, ...(card ? { '--card-bg': card } : {}) } as CSSProperties}
             >
               <header className="mod-head">
                 <span
@@ -467,7 +467,7 @@ export function Board({
                     </IconButton>
                   )}
                 </div>
-                <div className={`shelf-preview board-item mod-${id} size-m`} style={{ '--accent': def.accent } as CSSProperties} inert>
+                <div className={`shelf-preview board-item mod-${id} size-m`} style={{ '--module-accent': def.accent } as CSSProperties} inert>
                   {/* Live previews render only while the drawer is open. */}
                   {shelfOpen && <div className="mod-body">{def.render({ ...ctx, size: 'm' })}</div>}
                 </div>

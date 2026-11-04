@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { Bridge, Method, Snapshot } from '../shared/contracts.js';
 const allowed = new Set([
+  'appearance',
   'bootstrap',
   'task',
   'copy',

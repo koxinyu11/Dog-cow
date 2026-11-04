@@ -12,6 +12,7 @@ import {
   Target, TreePalm, Turtle, UtensilsCrossed, Wallet, Zap, ClipboardList, PencilLine, History, PiggyBank, Trophy, type LucideIcon,
 } from 'lucide-react';
 import { Button, Check, Chip, Emoji, LiveDot, Ring, Rolling, Stat } from '../ui';
+import { ModuleDetails } from '../components/ModuleDetails';
 import { TaskCard } from '../features/tasks/TaskCard';
 import { Calendar } from '../features/calendar/Calendar';
 import { TasksMedium, TasksSmall, TasksTall, TasksWide } from '../features/tasks/TaskViews';
@@ -69,23 +70,22 @@ function IncomeModule({ state, size, openSettings }: ModuleCtx) {
       <div className="m-empty">
         <PiggyBank size={36} strokeWidth={1.8} className="m-empty-icon" />
         <p>还没告诉我工资</p>
-        <Button variant="primary" size="sm" onClick={() => openSettings('income')}>设置月薪</Button>
+        <Button variant="primary" size="sm" onClick={() => openSettings('income')}>设置工资</Button>
       </div>
     );
   const jar = expected ? Math.min(1, month / expected) : 0;
   return (
     <div ref={host} className={`income-m size-${size}`}>
       <div className="income-main">
-        <span className="m-label">{state.income.snapshot?.status === 'working' && <LiveDot />}今日已赚</span>
-        <Rolling className="income-amount" text={`¥${money(today)}`} />
-        {size !== 's' && (
-          <span className="m-sub">
-            <Zap size={13} strokeWidth={2.4} /> 每秒 {num(s?.perSecond).toFixed(4)} 元
-          </span>
-        )}
+        <span className="m-label">{num(s?.earningPerSecond) > 0 && <LiveDot />}今日已赚</span>
+        <span className="income-value" style={{ '--amount-scale': `${105 / (`¥${money(today)}`.length)}cqw` } as CSSProperties}>
+          <Rolling className="income-amount" text={`¥${money(today)}`} />
+        </span>
+        <span className="m-sub income-rate">
+          <Zap size={12} strokeWidth={2.4} /> 秒薪 {num(s?.perSecond).toFixed(4)} 元
+        </span>
       </div>
-      {(isBig(size) || size === 'wide') && (
-        <div className="income-side">
+      <div className="income-side">
           <Stat icon={Landmark} label="本月已赚" value={`¥${money(month)}`} />
           <Stat icon={Target} label="本月预计" value={`¥${money(expected)}`} />
           {isBig(size) && (
@@ -96,7 +96,6 @@ function IncomeModule({ state, size, openSettings }: ModuleCtx) {
             </div>
           )}
         </div>
-      )}
       {state.income.calculationError && <p className="m-notice">{state.income.calculationError.message}</p>}
     </div>
   );
@@ -144,6 +143,10 @@ function WorkTimeModule({ state, size }: ModuleCtx) {
           <span className="m-label">{status === 'working' && <LiveDot color="var(--accent)" />}{caption} · 距离下班</span>
           <b className="work-big">{big}</b>
         </div>
+        <div className="work-summary">
+          <Stat label="已工作" value={duration(elapsed)} />
+          <Stat label="午休" value={duration(s?.actualBreakSeconds)} />
+        </div>
       </div>
     );
   if (size === 's')
@@ -152,6 +155,7 @@ function WorkTimeModule({ state, size }: ModuleCtx) {
         <span className="status-dot"><StatusIcon size={20} strokeWidth={2.2} /></span>
         <b className="work-big">{big}</b>
         <span className="m-label">{caption}</span>
+        <div className="work-summary"><Stat label="已工作" value={duration(elapsed)} /><Stat label="午休" value={duration(s?.actualBreakSeconds)} /></div>
       </div>
     );
   const ringSize = isBig(size) ? 168 : 104;
@@ -163,12 +167,10 @@ function WorkTimeModule({ state, size }: ModuleCtx) {
       <div className="work-copy">
         <span className="m-label">{status === 'working' && <LiveDot color="var(--accent)" />}{caption} · 距离下班</span>
         <b className="work-big">{big}</b>
-        {isBig(size) && (
-          <>
+        <div className="work-summary">
             <Stat icon={Briefcase} label="今日已工作" value={duration(elapsed)} />
             <Stat icon={UtensilsCrossed} label="实际午休" value={duration(s?.actualBreakSeconds)} />
-          </>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -187,22 +189,14 @@ function WeekModule({ state, size, selected, select, today }: ModuleCtx) {
   const avg = weekItems.length ? Math.round(weekItems.reduce((a, t) => a + t.progress, 0) / weekItems.length) : 0;
   const max = Math.max(1, ...days.map((d) => d.total));
   const Mood = !total ? Sprout : done === total ? Trophy : done / total > 0.5 ? Rabbit : Turtle;
-  if (size === 's')
-    return (
-      <div className="week-s">
-        <span className="status-dot"><Mood size={20} strokeWidth={2.2} /></span>
-        <b className="m-big">{done}<small>/{total}</small></b>
-        <span className="m-label">本周完成</span>
-      </div>
-    );
   const tags = new Map<string, { count: number; color: string }>();
   weekItems.forEach((t) => t.tags.forEach((g) => tags.set(g.label, { count: (tags.get(g.label)?.count || 0) + 1, color: g.color })));
   return (
     <div className={`week-m size-${size}`}>
       <div className="week-head">
-        <span className="m-label">{dateLabel(dates[0]).split(' ')[0]} – {dateLabel(dates[6]).split(' ')[0]}</span>
+        <span className="m-label week-range">{dateLabel(dates[0]).split(' ')[0]} – {dateLabel(dates[6]).split(' ')[0]}</span>
         <span className="week-score">
-          <Mood size={14} strokeWidth={2.4} /> {done}/{total} · 平均 {avg}%
+          <Mood size={14} strokeWidth={2.4} /> {done}/{total} · {total ? Math.round(done / total * 100) : 100}% 完成 · 平均进度 {avg}%
         </span>
       </div>
       <div className="week-bars">
@@ -268,8 +262,7 @@ function ClockModule({ state, size, openClock, openSettings, notify }: ModuleCtx
         <main.icon className="clock-main-icon" size={size === 'l' || size === 'tall' ? 38 : 30} strokeWidth={2.2} aria-hidden="true" />
         <span className="clock-main-label">{main.label}</span>
       </button>
-      {size !== 's' && (
-        <div className="clock-side">
+      <div className="clock-side">
           <span className="m-label">{status}</span>
           {day && (
             <span className="clock-times">
@@ -281,21 +274,19 @@ function ClockModule({ state, size, openClock, openSettings, notify }: ModuleCtx
             {canPause && main.tone !== 'pause' && (
               <Button size="sm" icon={<UtensilsCrossed size={14} />} onClick={(e) => pauseResume('pause', e.currentTarget)}>午休</Button>
             )}
-            {clockMode && day?.clockIn && att.state !== 'finished' && size !== 'm' && (
-              <Button size="sm" variant="ghost" icon={<PencilLine size={14} />} onClick={() => openClock('start')}>改上班</Button>
-            )}
-            {clockMode && (isBig(size) || size === 'wide') && (
-              <Button size="sm" variant="ghost" icon={<History size={14} />} onClick={() => openClock('edit')}>补录</Button>
-            )}
-            {(isBig(size) || size === 'wide') && (
-              <Button size="sm" variant="ghost" icon={<ClipboardList size={14} />} onClick={() => openSettings('records')}>记录</Button>
-            )}
+            <details className="clock-more">
+              <summary>更多</summary>
+              <div>
+                {clockMode && day?.clockIn && att.state !== 'finished' && <Button size="sm" variant="ghost" icon={<PencilLine size={14} />} onClick={() => openClock('start')}>改上班</Button>}
+                {clockMode && <Button size="sm" variant="ghost" icon={<History size={14} />} onClick={() => openClock('edit')}>补录</Button>}
+                <Button size="sm" variant="ghost" icon={<ClipboardList size={14} />} onClick={() => openSettings('records')}>记录</Button>
+              </div>
+            </details>
           </div>
           {Array.isArray(income.snapshot?.unfinishedDates) && income.snapshot.unfinishedDates.length > 0 && (
             <p className="m-notice">有 {income.snapshot.unfinishedDates.length} 天未结束，请核对下班时间。</p>
           )}
         </div>
-      )}
     </div>
   );
 }
@@ -306,7 +297,7 @@ function ProgressModule({ state, size, today }: ModuleCtx) {
   const done = list.filter((t) => t.done).length;
   const pct = list.length ? Math.round((done / list.length) * 100) : 100;
   const cow = pct === 100 ? '🐮' : '🐄';
-  if (size === 's' || size === 'tall')
+  if (size === 'tall')
     return (
       <div className={`progress-v size-${size}`} style={{ '--p': pct / 100 } as CSSProperties}>
         <div className="progress-v-field">
@@ -314,7 +305,7 @@ function ProgressModule({ state, size, today }: ModuleCtx) {
           <span className="progress-v-cow"><Emoji motion={pct === 100 ? 'idle-peek' : 'idle-chew'}>{cow}</Emoji></span>
         </div>
         <b className="m-big">{pct}%</b>
-        <span className="m-label">{done}/{list.length} 项</span>
+        <span className="m-label">{done}/{list.length} 项 · 剩余 {list.length - done}</span>
       </div>
     );
   if (size === 'l')
@@ -324,14 +315,14 @@ function ProgressModule({ state, size, today }: ModuleCtx) {
           <Emoji motion={pct === 100 ? 'idle-peek' : 'idle-chew'} size={40}>{cow}</Emoji>
           <b>{pct}%</b>
         </Ring>
-        <span className="m-label">今日完成 {done} / {list.length}{pct === 100 && list.length ? ' · 吃饱啦' : ''}</span>
+        <span className="m-label">今日完成 {done} / {list.length} · 剩余 {list.length - done}{pct === 100 && list.length ? ' · 吃饱啦' : ''}</span>
       </div>
     );
   return (
-    <div className="progress-h" style={{ '--p': pct / 100 } as CSSProperties}>
+    <div className={`progress-h size-${size}`} style={{ '--p': pct / 100 } as CSSProperties}>
       <div className="progress-h-head">
         <b className="m-big">{pct}%</b>
-        <span className="m-label">今日完成 {done} / {list.length}</span>
+        <span className="m-label">今日完成 {done} / {list.length} · 剩余 {list.length - done}</span>
       </div>
       <div className="pasture">
         <span className="pasture-eaten" />
@@ -343,7 +334,7 @@ function ProgressModule({ state, size, today }: ModuleCtx) {
 }
 
 /* ---------------- 下一项任务 ---------------- */
-function NextTaskModule({ state, size, today, act, openNew }: ModuleCtx) {
+function NextTaskModule({ state, size, today, act, patch, openNew }: ModuleCtx) {
   const open = state.tasks.tasks.filter((t) => matchesDate(t, today) && !t.done).sort(byPriority);
   const next = open[0];
   if (!next)
@@ -351,22 +342,20 @@ function NextTaskModule({ state, size, today, act, openNew }: ModuleCtx) {
       <div className="m-empty">
         <Emoji size={34} motion="idle-peek">🐶</Emoji>
         <p>今天暂无待办，摸鱼合法</p>
-        {size !== 's' && <Button size="sm" icon={<Plus size={14} />} onClick={openNew}>来一项</Button>}
+        <Button size="sm" icon={<Plus size={14} />} onClick={openNew}>来一项</Button>
       </div>
     );
   return (
     <div className={`next-m size-${size}`}>
       <div className="next-main">
-        <Check round checked={false} label="" onChange={() => void act('toggle', next.id, {}, document.querySelector(`[data-next="${next.id}"]`))} />
+        <Check round checked={false} label={<span className="sr-only">完成 {next.title}</span>} onChange={() => void act('toggle', next.id, {}, document.querySelector(`[data-next="${next.id}"]`))} />
         <div data-next={next.id}>
           <b className="next-title">{next.title}</b>
-          {size !== 's' && (
             <span className="next-meta">
               <Chip tone={tone(next.priority)}>{next.priority}优先</Chip>
               {next.hasTime && <Chip><Clock size={11} /> {next.startTime}–{next.endTime}</Chip>}
               {next.dueDate && <Chip tone="warn">截止 {next.dueDate.slice(5)}</Chip>}
             </span>
-          )}
         </div>
       </div>
       {(isBig(size) || size === 'wide') && open.length > 1 && (
@@ -376,7 +365,9 @@ function NextTaskModule({ state, size, today, act, openNew }: ModuleCtx) {
           ))}
         </ul>
       )}
-      {size !== 's' && <span className="m-label">还剩 {open.length} 项 · 点圆圈直接完成</span>}
+      <div className="next-footer"><span className="m-label">还剩 {open.length} 项</span>
+        <ModuleDetails title="下一项任务">{() => <TaskCard task={next} library={state.tasks.tagLibrary} celebrating={false} act={act} patch={patch} />}</ModuleDetails>
+      </div>
     </div>
   );
 }
@@ -385,7 +376,16 @@ function NextTaskModule({ state, size, today, act, openNew }: ModuleCtx) {
 function TasksModule(ctx: ModuleCtx) {
   const { state, size, selected, select, today, act, patch, openNew, openWeekly, celebrating } = ctx;
   if (state.taskError) return <p className="m-notice">{state.taskError}</p>;
-  const view = { tasks: state.tasks.tasks, selected, today, select, celebrating, act, openNew, openWeekly, locked: !!state.taskError };
+  const details = <ModuleDetails label="完整清单" title={`${dateLabel(selected)} · 任务清单`}>{() => (
+    <div className="module-detail-list">
+      <div className="tasks-add"><Button size="sm" onClick={openNew}>新增任务</Button><Button size="sm" onClick={openWeekly}>每周任务</Button></div>
+      {state.tasks.tasks.filter((task) => matchesDate(task, selected)).sort(byPriority).map((task) => (
+        <TaskCard key={task.id} task={task} library={state.tasks.tagLibrary} celebrating={celebrating === task.id} act={act} patch={patch} />
+      ))}
+      {!state.tasks.tasks.some((task) => matchesDate(task, selected)) && <p className="muted">这一天还没有任务。</p>}
+    </div>
+  )}</ModuleDetails>;
+  const view = { tasks: state.tasks.tasks, selected, today, select, celebrating, act, openNew, openWeekly, details, locked: !!state.taskError };
   if (size === 's') return <TasksSmall {...view} />;
   if (size === 'm') return <TasksMedium {...view} />;
   if (size === 'wide') return <TasksWide {...view} />;
@@ -435,20 +435,26 @@ function TasksModule(ctx: ModuleCtx) {
 
 /* ---------------- 月历 ---------------- */
 function CalendarModule({ state, size, selected, select, today }: ModuleCtx) {
+  const tasksOnDate = state.tasks.tasks.filter((task) => matchesDate(task, selected));
+  const done = tasksOnDate.filter((task) => task.done).length;
+  const monthDetails = <ModuleDetails label="完整月历" title="月历">{() => <Calendar tasks={state.tasks.tasks} selected={selected} select={select} />}</ModuleDetails>;
   if (size === 's') {
-    const d = new Date(`${today}T12:00:00`);
-    const count = state.tasks.tasks.filter((t) => matchesDate(t, today)).length;
+    const d = new Date(`${selected}T12:00:00`);
     return (
-      <button className="cal-tile" onClick={() => select(today)}>
+      <div className="cal-small">
+      <button className="cal-tile" onClick={() => select(today)} aria-label="回到今天">
         <span className="cal-tile-month">{d.getMonth() + 1}月</span>
         <b>{d.getDate()}</b>
-        <span className="m-label">{weekNames[d.getDay()]} · {count} 项</span>
+        <span className="m-label">{weekNames[d.getDay()]} · 待办 {tasksOnDate.length - done} / 已完成 {done}</span>
       </button>
+      {monthDetails}
+      </div>
     );
   }
   if (size === 'm' || size === 'wide') {
     const dates = weekDates(selected);
     return (
+      <div className={`cal-week size-${size}`}>
       <div className="cal-strip">
         {dates.map((date) => {
           const tasks = state.tasks.tasks.filter((t) => matchesDate(t, date));
@@ -458,6 +464,7 @@ function CalendarModule({ state, size, selected, select, today }: ModuleCtx) {
             <button key={date} aria-pressed={date === selected} className={date === today ? 'is-today' : ''} onClick={() => select(date)}>
               <small>{weekNames[d.getDay()].slice(1)}</small>
               <b>{d.getDate()}</b>
+              <small>{tasks.filter((task) => !task.done).length} 待办</small>
               <span className="cal-dots">
                 {marks.map((c) => <i key={c} style={{ background: c }} />)}
                 {!marks.length && tasks.length > 0 && <i />}
@@ -465,6 +472,8 @@ function CalendarModule({ state, size, selected, select, today }: ModuleCtx) {
             </button>
           );
         })}
+      </div>
+      <div className="cal-footer"><span className="m-label">已完成 {done} / {tasksOnDate.length}</span>{monthDetails}</div>
       </div>
     );
   }
@@ -480,7 +489,7 @@ function StolenModule({ state, size, openSettings }: ModuleCtx) {
       <div className="m-empty">
         <Drama size={34} strokeWidth={1.8} className="m-empty-icon" />
         <p>偷时间模式未开启</p>
-        {size !== 's' && <Button size="sm" onClick={() => openSettings('income')}>去开启</Button>}
+        <Button size="sm" onClick={() => openSettings('income')}>去开启</Button>
       </div>
     );
   const parts: Array<[string, string, LucideIcon]> = [
@@ -488,32 +497,34 @@ function StolenModule({ state, size, openSettings }: ModuleCtx) {
     ['lateAmount', '上班晚', Turtle],
     ['earlyAmount', '下班早', Rabbit],
   ];
-  const total = parts.reduce((a, [k]) => a + num(s?.[k]), 0) || 1;
+  const compact = size === 's' || size === 'm';
+  const amount = `¥${money(s?.stolenAmount)}`;
+  const total = parts.reduce((sum, [key]) => sum + num(s?.[key]), 0) || 1;
   return (
     <div className={`stolen-m size-${size}`}>
       <div className="stolen-main">
-        <span className="status-dot"><Drama size={20} strokeWidth={2.2} /></span>
-        <div>
+        <div className="stolen-today" style={{ '--stolen-scale': `${65 / amount.length}cqw` } as CSSProperties}>
           <span className="m-label">今日偷出</span>
-          <Rolling className="m-big" text={`¥${money(s?.stolenAmount)}`} />
+          <Rolling className="m-big" text={amount} />
+        </div>
+        <div className="stolen-month">
+          <span className="m-label">本月合计</span>
+          <strong>¥{money(s?.stolenMonthAmount)}</strong>
         </div>
       </div>
-      {size !== 's' && (
-        <div className="stolen-split">
-          {parts.map(([k, label, Icon]) => (
-            <span key={k} style={{ flexGrow: Math.max(0.15, num(s?.[k]) / total) }} title={`${label} ¥${money(s?.[k])}`}>
+      {isBig(size) && (
+        <div className="stolen-split" aria-hidden="true">
+          {parts.map(([key, label, Icon]) => (
+            <span key={key} style={{ flexGrow: Math.max(0.15, num(s?.[key]) / total) }} title={`${label} ¥${money(s?.[key])}`}>
               <Icon size={13} strokeWidth={2.4} />
             </span>
           ))}
         </div>
       )}
-      {(isBig(size) || size === 'wide') && (
-        <div className="stolen-stats">
-          {parts.map(([k, label, Icon]) => <Stat key={k} icon={Icon} label={label} value={`¥${money(s?.[k])}`} />)}
-          <Stat icon={CalendarDays} label="本月合计" value={`¥${money(s?.stolenMonthAmount)}`} />
-        </div>
-      )}
-      {size !== 's' && <span className="m-label">只拆分时间价值，不额外加到工资</span>}
+      <div className="stolen-stats">
+        {parts.map(([key, label, Icon]) => <Stat key={key} icon={compact ? undefined : Icon} label={label} value={`¥${money(s?.[key])}`} />)}
+      </div>
+      {!compact && <span className="m-label stolen-hint">只拆分时间价值，不额外加到工资</span>}
     </div>
   );
 }

@@ -24,7 +24,8 @@ export async function boot() {
     });
   }
   const result = await window.dogcow.invoke('bootstrap');
-  if (result.snapshot) receive(result.snapshot);
+  if (!result.snapshot) throw Error('本机服务未返回启动数据。');
+  receive(result.snapshot);
 }
 export function useAppState() {
   return useSyncExternalStore(

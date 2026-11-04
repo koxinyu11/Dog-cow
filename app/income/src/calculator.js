@@ -5,6 +5,8 @@ import { DEFAULT_PAYROLL_CONFIG, validatePayrollConfig, calculatePayroll } from 
 
 export const DEFAULT_SETTINGS = {
   monthlySalary: '',
+  dailySalary: '',
+  payBasis: 'monthly',
   startTime: '09:00',
   endTime: '18:00',
   workdays: [1, 2, 3, 4, 5],
@@ -41,11 +43,17 @@ export function validateSettings(raw) {
   const stealMode = fallback('stealMode');
   const clockMode = fallback('clockMode');
   const salaryMode = fallback('salaryMode');
+  const payBasis = fallback('payBasis');
+  const dailySalary = parseNumber(fallback('dailySalary'));
   const payrollCheck = validatePayrollConfig(fallback('payroll'));
   const validStart = validTime(input.startTime);
   const validEnd = validTime(input.endTime);
 
-  if (!Number.isFinite(monthlySalary) || monthlySalary < 0) {
+  if (payBasis !== 'monthly' && payBasis !== 'daily') errors.payBasis = '请选择包月或按天计薪。';
+  if (payBasis === 'daily' && (!Number.isFinite(dailySalary) || dailySalary < 0)) {
+    errors.dailySalary = '请输入有效的到手日薪，金额不能小于 0。';
+  }
+  if (payBasis === 'monthly' && (!Number.isFinite(monthlySalary) || monthlySalary < 0)) {
     errors.monthlySalary = '请输入有效的月薪，金额不能小于 0。';
   }
   if (!validStart) errors.startTime = '请选择有效的上班时间。';
@@ -87,7 +95,9 @@ export function validateSettings(raw) {
   return {
     valid: true,
     settings: {
-      monthlySalary,
+      monthlySalary: Number.isFinite(monthlySalary) && monthlySalary >= 0 ? monthlySalary : '',
+      dailySalary: Number.isFinite(dailySalary) && dailySalary >= 0 ? dailySalary : '',
+      payBasis,
       startTime: input.startTime,
       endTime: input.endTime,
       workdays: [...new Set(input.workdays)],
@@ -166,7 +176,7 @@ function summarizeDay(day, settings, now, leaves, attendance) {
   const paidLeaves = standardLeaves.filter((interval) => interval.paid);
   const unpaidLeaves = standardLeaves.filter((interval) => !interval.paid);
   const expectedWork = subtractIntervals(standard, standardLeaves);
-  const expectedSoFar = intersectIntervals(expectedWork, [{ start: midnight, end: Math.min(current, dayEnd) }]);
+
   const dailySeconds = intervalSeconds(standard);
   const scheduledElapsed = intervalSeconds(standard, current);
   const paidLeaveTotal = intervalSeconds(paidLeaves);
@@ -184,16 +194,17 @@ function summarizeDay(day, settings, now, leaves, attendance) {
   const clockEnabled = settings.stealMode === true && settings.clockMode === true;
   const clockEvidence = modeDay?.clockMode === true || hasClockIn || hasClockOut;
   const canSteal = settings.stealMode === true && day.isWorkday && !fullDayLeave;
-  const early = canSteal && clockEnabled && hasClockOut
-    ? intersectIntervals(expectedSoFar, [{ start: attendanceDay.finishedAt, end }]) : [];
+  const settled = clockEnabled && hasClockOut && attendanceDay.finishedAt <= current;
+  // Freeze the earning timeline at a confirmed departure. Future facts cannot settle today.
+  const earningUntil = settled ? attendanceDay.finishedAt : current;
+  const expectedSoFar = intersectIntervals(expectedWork, [{ start: midnight, end: Math.min(earningUntil, dayEnd) }]);
   const rawLate = !canSteal || !clockEnabled ? []
     : hasClockIn
       ? intersectIntervals(expectedSoFar, [{ start, end: attendanceDay.startedAt }])
       : modeDay?.clockMode === true ? expectedSoFar : [];
-  // A missing start plus an independently known finish must never double-count.
-  const late = subtractIntervals(rawLate, early);
+  const late = rawLate;
   const lunch = canSteal ? subtractIntervals(
-    intersectIntervals(breaks, expectedSoFar), [...late, ...early],
+    intersectIntervals(breaks, expectedSoFar), late,
   ) : [];
 
   let actualIntervals;
@@ -208,13 +219,25 @@ function summarizeDay(day, settings, now, leaves, attendance) {
   }
 
   const lateSeconds = intervalSeconds(late);
-  const earlySeconds = intervalSeconds(early);
+  const forecastSeconds = dailySeconds - unpaidLeaveTotal;
+  const extraWorkSeconds = intervalSeconds(subtractIntervals(actualIntervals, standard));
+  const earlyWorkSeconds = clockEnabled && clockEvidence && day.isWorkday && !fullDayLeave
+    ? extraWorkSeconds : 0;
+  // Advance fixed salary for extra work, never exceed the day's payable amount.
+  const beforeSettlement = Math.min(forecastSeconds, Math.max(0,
+    intervalSeconds(standard, earningUntil) - intervalSeconds(unpaidLeaves, earningUntil) + earlyWorkSeconds,
+  ));
+  const earlySeconds = canSteal && settled ? forecastSeconds - beforeSettlement : 0;
+  const earnedSeconds = settled && day.isWorkday && !fullDayLeave ? forecastSeconds : beforeSettlement;
   const lunchStolenSeconds = intervalSeconds(lunch);
   const standardExpectedSeconds = intervalSeconds(expectedSoFar);
   return {
     ...day, start, end, standard, standardLeaves, dailySeconds, scheduledElapsed,
     paidLeaveTotal, unpaidLeaveTotal, paidLeaveElapsed, unpaidLeaveElapsed,
-    fullDayLeave, attendanceDay, hasFacts,
+    fullDayLeave, attendanceDay, hasFacts, settled,
+    extraWorkActive: clockEnabled && day.isWorkday && !fullDayLeave
+      && !standard.some((interval) => current >= interval.start && current < interval.end)
+      && actualIntervals.some((interval) => current >= interval.start && current <= interval.end),
     actual: intervalSeconds(actualIntervals),
     actualBreakSeconds: attendanceDay?.breakSeconds ?? 0,
     standardExpectedSeconds,
@@ -224,9 +247,7 @@ function summarizeDay(day, settings, now, leaves, attendance) {
     stolenSeconds: lateSeconds + earlySeconds + lunchStolenSeconds,
     pendingClockIn: canSteal && clockEnabled && modeDay?.clockMode === true
       && !hasClockIn && standardExpectedSeconds > 0,
-    earnedSeconds: scheduledElapsed - unpaidLeaveElapsed,
-    forecastSeconds: dailySeconds - unpaidLeaveTotal,
-    extraWorkSeconds: intervalSeconds(subtractIntervals(actualIntervals, standard)),
+    earnedSeconds, forecastSeconds, extraWorkSeconds,
   };
 }
 
@@ -242,11 +263,23 @@ export function calculateSnapshot(settings, now = new Date(), context, leaves = 
     error.code = 'no-workdays';
     throw error;
   }
+  const daily = settings.payBasis === 'daily';
+  // Daily input is take-home pay. Preserve the monthly tax preference but never apply it here.
   const payrollResult = calculatePayroll({
-    monthlySalary: settings.monthlySalary,
-    salaryMode: settings.salaryMode,
+    monthlySalary: daily ? settings.dailySalary : settings.monthlySalary,
+    salaryMode: daily ? 'net' : settings.salaryMode,
     payroll: settings.payroll,
   }, now);
+  if (daily && payrollResult.valid) {
+    const monthlyEstimate = payrollResult.netSalary * plan.workdayCount;
+    if (!Number.isFinite(monthlyEstimate)) {
+      const error = new Error('日薪与本月排班天数的乘积超出可计算范围，请减小金额。');
+      error.code = 'daily-income-overflow';
+      throw error;
+    }
+    payrollResult.netSalary = monthlyEstimate;
+    payrollResult.assumption = '按到手日薪乘以本月排班天数估算，不代表每日发薪；不套用月薪薪税估算。';
+  }
   if (!payrollResult.valid || !Number.isFinite(payrollResult.netSalary) || payrollResult.netSalary < 0) {
     const error = new Error('税后收入计算未完成，请检查工资换算配置。');
     error.code = 'payroll-invalid';
@@ -262,6 +295,8 @@ export function calculateSnapshot(settings, now = new Date(), context, leaves = 
   const activeBreak = today.attendanceDay?.breakIntervals.some((interval) => current >= interval.start && current < interval.end)
     || (today.attendanceDay?.state === 'paused');
   const attendanceState = today.attendanceDay?.state ?? 'estimated';
+  const started = settings.stealMode && settings.clockMode
+    && today.attendanceDay?.startedAt != null && today.attendanceDay.startedAt <= current;
   const unfinishedDates = attendance ? attendance.days.filter((day) => (
     day.date < todayKey && getAttendanceDay(attendance, day.date, now).needsReview
   )).map((day) => day.date) : [];
@@ -272,15 +307,13 @@ export function calculateSnapshot(settings, now = new Date(), context, leaves = 
   } else if (today.fullDayLeave) {
     status = today.unpaidLeaveTotal === 0 ? 'paid-leave'
       : today.paidLeaveTotal === 0 ? 'unpaid-leave' : 'leave-day';
-  } else if (current < today.start) {
+  } else if (today.settled) {
+    status = 'after-work';
+  } else if (current < today.start && !started) {
     status = 'before-work';
   } else if (today.pendingClockIn) {
     status = 'pending-clock';
-  } else if (current >= today.end || (
-    settings.stealMode && settings.clockMode
-    && today.attendanceDay?.finishedAt !== null && today.attendanceDay?.finishedAt !== undefined
-    && today.attendanceDay.finishedAt <= current
-  )) {
+  } else if (current >= today.end) {
     status = 'after-work';
   } else if (activeLeave) {
     status = activeLeave.paid ? 'paid-leave' : 'unpaid-leave';
@@ -293,10 +326,13 @@ export function calculateSnapshot(settings, now = new Date(), context, leaves = 
     attendanceState,
     monthLabel: String(plan.year).padStart(4, '0') + '-' + String(plan.month).padStart(2, '0'),
     monthlyWorkdays: plan.workdayCount,
+    payBasis: daily ? 'daily' : 'monthly',
     plannedMonthSeconds,
     perSecond,
-    earningPerSecond: activeStandard && activeLeave?.paid !== false ? perSecond : 0,
+    earningPerSecond: !today.settled && today.isWorkday && today.earnedSeconds < today.forecastSeconds
+      && ((activeStandard && activeLeave?.paid !== false) || today.extraWorkActive) ? perSecond : 0,
     dailyIncome: incomeFor(today.dailySeconds),
+    payableToday: incomeFor(today.forecastSeconds),
     earnedToday: incomeFor(today.earnedSeconds),
     earnedMonth: incomeFor(sum('earnedSeconds')),
     expectedMonthIncome: incomeFor(sum('forecastSeconds')),
@@ -304,10 +340,11 @@ export function calculateSnapshot(settings, now = new Date(), context, leaves = 
     elapsedSeconds: today.actual,
     paidLeaveSecondsToday: today.paidLeaveElapsed,
     unpaidLeaveSecondsToday: today.unpaidLeaveElapsed,
-    remainingSeconds: !today.isWorkday || today.fullDayLeave
+    remainingSeconds: !today.isWorkday || today.fullDayLeave || today.settled
       ? 0 : Math.ceil(Math.max(0, (today.end - current) / 1000)),
     dailySeconds: today.dailySeconds,
-    progress: today.dailySeconds > 0 ? boundedRatio(today.scheduledElapsed, today.dailySeconds) : 0,
+    progress: today.settled && !today.fullDayLeave && today.isWorkday ? 1
+      : today.dailySeconds > 0 ? boundedRatio(today.scheduledElapsed, today.dailySeconds) : 0,
     fullDayLeave: today.fullDayLeave,
     todayName: today.name,
     todayKind: today.kind,

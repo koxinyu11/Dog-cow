@@ -1,5 +1,5 @@
 // Task list layouts per board size. 大 keeps the full TaskCard editor; these four are lighter views.
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { Fields, Task } from '../../../shared/contracts';
 import { addDays, matchesDate, weekDates } from '../../../domain/tasks/model';
 import { dateLabel, weekNames } from '../../format';
@@ -14,6 +14,7 @@ export interface TaskViewProps {
   select: (date: string) => void;
   celebrating: string;
   locked: boolean;
+  details: ReactNode;
   act: (action: string, id: string, extra?: Fields, anchor?: Element | null) => Promise<void>;
   openNew: () => void;
   openWeekly: () => void;
@@ -54,8 +55,8 @@ function Empty({ openNew, locked }: { openNew: () => void; locked: boolean }) {
 }
 
 /* 小：今天还剩几项 + 下一项 */
-export function TasksSmall({ tasks, today, act, openNew, locked }: TaskViewProps) {
-  const list = forDay(tasks, today);
+export function TasksSmall({ tasks, selected, act, openNew, details, locked }: TaskViewProps) {
+  const list = forDay(tasks, selected);
   const open = list.filter((t) => !t.done);
   const pct = list.length ? Math.round(((list.length - open.length) / list.length) * 100) : 100;
   const next = open[0];
@@ -72,7 +73,7 @@ export function TasksSmall({ tasks, today, act, openNew, locked }: TaskViewProps
       {next ? (
         <div className="tv-small-next" data-task-id={next.id}>
           <Toggle task={next} act={act} />
-          <span>{next.title}</span>
+          <span title={next.title}>{next.title}</span>
         </div>
       ) : (
         <p className="m-label">{list.length ? '今天的草吃完啦' : '今天还没有任务'}</p>
@@ -82,13 +83,14 @@ export function TasksSmall({ tasks, today, act, openNew, locked }: TaskViewProps
           <span />
         </span>
         <small>{pct}%</small>
+        {details}
       </div>
     </div>
   );
 }
 
 /* 中：今天的清单 */
-export function TasksMedium({ tasks, selected, today, select, act, celebrating, openNew, locked }: TaskViewProps) {
+export function TasksMedium({ tasks, selected, today, select, act, celebrating, openNew, details, locked }: TaskViewProps) {
   const list = forDay(tasks, selected);
   return (
     <div className="tv-medium">
@@ -105,6 +107,7 @@ export function TasksMedium({ tasks, selected, today, select, act, celebrating, 
         <IconButton size="sm" variant="primary" label="新增任务" disabled={locked} onClick={openNew}>
           <Plus size={14} />
         </IconButton>
+        {details}
       </div>
       <div className="tv-scroll">
         {!list.length ? (
@@ -129,7 +132,7 @@ export function TasksMedium({ tasks, selected, today, select, act, celebrating, 
 }
 
 /* 长：左边选日期，右边横向小卡 */
-export function TasksWide({ tasks, selected, today, select, act, celebrating, openNew, openWeekly, locked }: TaskViewProps) {
+export function TasksWide({ tasks, selected, today, select, act, celebrating, openNew, openWeekly, details, locked }: TaskViewProps) {
   const list = forDay(tasks, selected);
   return (
     <div className="tv-wide">
@@ -152,6 +155,7 @@ export function TasksWide({ tasks, selected, today, select, act, celebrating, op
           <Button size="sm" variant="ghost" icon={<CalendarRange size={14} />} disabled={locked} onClick={openWeekly}>
             每周任务
           </Button>
+          {details}
         </div>
       </div>
       <div className="tv-lane">
@@ -187,7 +191,7 @@ export function TasksWide({ tasks, selected, today, select, act, celebrating, op
 }
 
 /* 竖：一天的时间线 */
-export function TasksTall({ tasks, selected, today, select, act, celebrating, openNew, locked }: TaskViewProps) {
+export function TasksTall({ tasks, selected, today, select, act, celebrating, openNew, details, locked }: TaskViewProps) {
   const list = forDay(tasks, selected).sort((a, b) =>
     a.hasTime === b.hasTime ? (a.hasTime ? a.startTime.localeCompare(b.startTime) : 0) : a.hasTime ? -1 : 1,
   );
@@ -210,6 +214,7 @@ export function TasksTall({ tasks, selected, today, select, act, celebrating, op
           <Plus size={14} />
         </IconButton>
       </div>
+      <div className="tv-detail-row">{details}</div>
       <div className="tv-scroll tv-timeline">
         {!list.length ? (
           <Empty openNew={openNew} locked={locked} />

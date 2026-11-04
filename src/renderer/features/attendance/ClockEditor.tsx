@@ -1,3 +1,6 @@
+import { TimePicker } from '../../components/TimePicker';
+import { FormSelect } from '../../components/FormSelect';
+import { DatePicker } from '../../components/DatePicker';
 import { useEffect, useState } from 'react';
 import { type IncomeState } from '../../../shared/contracts';
 import { clockCommandError } from '../../../shared/clock-command';
@@ -94,40 +97,37 @@ export function ClockEditor({
         <p>是不是忘记点了？确认后才保存，取消不产生打卡。</p>
         <div className="fields">
           <Field label="打卡日期">
-            <input
-              type="date"
+            <DatePicker
               min={income.attendance.trackingFrom}
               max={localDate(new Date(income.now))}
               disabled={method === 'recorded' || draft.action !== 'edit' || !!draft.date}
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(nextValue) => setDate(nextValue)}
             />
           </Field>
           <Field label="打卡方式">
-            <select value={method} onChange={(e) => setMethod(e.target.value)}>
+            <FormSelect value={method} onChange={(nextValue) => setMethod(nextValue)}>
               <option disabled={draft.action === 'edit'} value="recorded">
                 现在打卡
               </option>
               <option value="backfill">忘记点击，补实际时间</option>
-            </select>
+            </FormSelect>
           </Field>
           <Field label="实际上班时间">
-            <input
-              type="time"
-              step="1"
+            <TimePicker
+              seconds
               value={startValue}
               disabled={method === 'recorded' && (draft.action === 'start' || !!original?.clockIn)}
-              onChange={(e) => setStart(e.target.value)}
+              onChange={(nextValue) => setStart(nextValue)}
             />
           </Field>
           {(draft.action !== 'start' || original?.clockOut) && (
             <Field label="实际下班时间">
-              <input
-                type="time"
-                step="1"
+              <TimePicker
+                seconds
                 value={endValue}
                 disabled={method === 'recorded'}
-                onChange={(e) => setEnd(e.target.value)}
+                onChange={(nextValue) => setEnd(nextValue)}
               />
             </Field>
           )}

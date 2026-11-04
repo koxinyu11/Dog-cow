@@ -4,7 +4,8 @@ import { isDark } from './Board';
 import { Scene } from './Scene';
 import { fx, setFxEnabled } from '../motion/fx';
 import { Brush, ImagePlus, LayoutGrid, Palette, RotateCcw, Sparkles } from 'lucide-react';
-import { Button, Switch } from '../ui';
+import { setThemeMode, useTheme, type ThemeMode } from '../theme';
+import { Button, Segmented, Switch } from '../ui';
 
 export const FX_PREF_KEY = 'dogcow.ui.fx';
 
@@ -48,6 +49,7 @@ export function Appearance({
   resetBoard: () => void;
   notify: (message: string) => void;
 }) {
+  const { mode, resolved } = useTheme();
   const [motion, setMotion] = useState(() => localStorage.getItem(FX_PREF_KEY) !== 'off');
   const file = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -57,6 +59,18 @@ export function Appearance({
   };
   return (
     <div className="appearance">
+      <section>
+        <h3><Palette size={16} /> 显示模式</h3>
+        <Segmented<ThemeMode>
+          label="显示模式"
+          value={mode}
+          options={[[ 'light', '浅色' ], [ 'dark', '暗黑' ], [ 'auto', '自动' ]]}
+          onChange={(next) => {
+            if (!setThemeMode(next)) notify('显示模式未保存，本次仍然生效；下次启动可能跟随系统。');
+          }}
+        />
+        <p className="muted" role="status">{mode === 'auto' ? '跟随系统外观 · ' : ''}当前为{resolved === 'dark' ? '暗黑' : '浅色'}模式</p>
+      </section>
       <section>
         <h3><Palette size={16} /> 背景</h3>
         <div className="bg-grid">
@@ -137,7 +151,7 @@ export function Appearance({
       <section>
         <h3><LayoutGrid size={16} /> 主屏</h3>
         <p className="muted">一行可放 4 张小卡、3 张中卡或 2 张大卡；窗口很窄时减半。</p>
-        <p className="muted">恢复为：实时收入、下班倒计时、打卡一行，下方本周任务概览。背景与标题数据绑定保留。</p>
+        <p className="muted">默认展示全部九张卡片：收入、倒计时、打卡、本周概览、完成度、下一项任务、偷出金额、任务列表和月历。可移除不需要的卡片；恢复时保留背景、卡片颜色与标题数据绑定。</p>
         <Button variant="ghost" icon={<RotateCcw size={15} />} onClick={resetBoard}>恢复默认模块</Button>
       </section>
     </div>

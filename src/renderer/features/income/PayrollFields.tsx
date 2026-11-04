@@ -1,3 +1,4 @@
+import { FormSelect } from '../../components/FormSelect';
 import { type Payroll, type Deduction, type IncomeState } from '../../../shared/contracts';
 import { HANGZHOU_PAYROLL_POLICY } from '../../../../app/income/data/payroll/hangzhou.js';
 import { record } from '../../../domain/tasks/model';
@@ -22,14 +23,14 @@ function DeductionFields({
       <legend>{label}</legend>
       <div className="fields">
         <Field label="扣款方式">
-          <select
+          <FormSelect
             value={value.method}
-            onChange={(e) => onChange({ ...value, method: e.target.value })}
+            onChange={(nextValue) => onChange({ ...value, method: nextValue })}
           >
             <option value="percent">按百分比</option>
             <option value="fixed">固定金额</option>
             {allowNone && <option value="none">不缴</option>}
-          </select>
+          </FormSelect>
         </Field>
         {value.method === 'percent' && (
           <NumberField
@@ -66,15 +67,15 @@ export function PayrollFields({
       <p className="muted">个人扣款与单位成本分开。自定义现金扣款不代表全额免税。</p>
       <div className="fields">
         <Field label="地点">
-          <select value={value.city} onChange={(e) => set('city', e.target.value)}>
+          <FormSelect value={value.city} onChange={(nextValue) => set('city', nextValue)}>
             <option value="hangzhou">杭州（市区）</option>
-          </select>
+          </FormSelect>
         </Field>
         <Field label="个税计算方式">
-          <select value={value.taxMode} onChange={(e) => set('taxMode', e.target.value)}>
+          <FormSelect value={value.taxMode} onChange={(nextValue) => set('taxMode', nextValue)}>
             <option value="estimate">同薪累计预扣估算</option>
             <option value="cumulative">输入前期累计</option>
-          </select>
+          </FormSelect>
         </Field>
         <NumberField
           label="计税月份（1–12）"
@@ -106,13 +107,13 @@ export function PayrollFields({
         {(['social', 'fund'] as const).map((kind) => (
           <section key={kind}>
             <Field label={`${kind === 'social' ? '社保' : '公积金'}基数方式`}>
-              <select
+              <FormSelect
                 value={value[`${kind}BaseMode`]}
-                onChange={(e) => set(`${kind}BaseMode`, e.target.value)}
+                onChange={(nextValue) => set(`${kind}BaseMode`, nextValue)}
               >
                 <option value="salary">按工资在政策范围内估算</option>
                 <option value="custom">自定义基数</option>
-              </select>
+              </FormSelect>
             </Field>
             {value[`${kind}BaseMode`] === 'custom' && (
               <NumberField

@@ -29,12 +29,13 @@
 
 /* ---------- Module frame ---------- */
 .board-item {
+  --accent: var(--module-accent);
   position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  border: 1px solid color-mix(in srgb, #fff 55%, transparent);
+  border: 1px solid var(--c-card-border);
   border-radius: var(--r-lg);
   background: color-mix(in srgb, var(--c-surface-solid) 90%, transparent);
   box-shadow: var(--e-2);
@@ -196,3 +197,26 @@ body.is-dragging .shelf:not(.is-open) { transform: translateX(calc(100% - 64px))
 .undo-pill { position: fixed; left: 50%; bottom: 22px; z-index: 60; display: inline-flex; align-items: center; gap: 8px; padding: 6px 6px 6px 16px; border-radius: var(--r-pill); color: #fff; background: #1d2420; box-shadow: var(--e-3); font-weight: 700; font-size: 13.5px; transform: translateX(-50%); animation: more-in 380ms var(--ease-spring); }
 .undo-pill .ui-btn { --btn-fg: #fff; }
 .undo-pill .ui-btn:hover { --btn-bg: rgba(255, 255, 255, 0.14); }
+
+/* Complete local palettes keep custom cards independent of the global mode. */
+.board-item.is-light {
+  color-scheme: light;
+  --c-brand: #2c6a50; --c-brand-ink: #fff; --c-brand-2: #e3f0e8;
+  --c-accent: #b45a16; --c-accent-2: #fff0e2; --c-accent-ink: #fff;
+  --c-warning-ink: #8a4b12; --c-danger: #b63428; --c-danger-2: #fde8e5; --c-danger-ink: #fff;
+  --c-inverse: #fff; --c-surface-2: color-mix(in srgb, white 45%, var(--card-bg));
+}
+.board-item.is-dark {
+  color-scheme: dark;
+  --c-brand: #a1eac1; --c-brand-ink: #10291d; --c-brand-2: rgba(161, 234, 193, 0.16);
+  --c-accent: #ffcf9c; --c-accent-2: rgba(255, 207, 156, 0.16); --c-accent-ink: #35200c;
+  --c-warning-ink: #ffe0ba; --c-danger: #ffb4ab; --c-danger-2: rgba(255, 180, 171, 0.16); --c-danger-ink: #391915;
+  --c-inverse: #17251c; --c-surface-2: color-mix(in srgb, white 16%, var(--card-bg));
+}
+/* Selected states must win over neutral custom-card backgrounds. */
+.board-item .cal-strip button[aria-pressed='true'] { background: var(--c-brand); color: var(--c-brand-ink); }
+.board-item .tv-days button[aria-pressed='true'], .board-item .week-tabs button[aria-pressed='true'] { background: var(--c-ink); color: var(--c-inverse); }
+.board-item .tv-days button[aria-pressed='true'] small, .board-item .week-tabs button[aria-pressed='true'] small,
+.board-item .cal-strip button[aria-pressed='true'] small, .board-item .cal-strip button[aria-pressed='true'] b { color: inherit; }
+
+[data-theme='dark'] .board-item:not(.is-light) { --accent: color-mix(in srgb, var(--module-accent) 55%, #edf4ef); }

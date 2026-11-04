@@ -122,3 +122,32 @@
 .on-dark .header-add-wrap .copy-edit-trigger { color: rgba(255, 255, 255, 0.75); }
 .on-dark .brand .copy-edit-trigger { color: rgba(255, 255, 255, 0.7); }
 .on-image .brand { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45); }
+
+/* Night palettes share scene geometry and animation with the day scenes. */
+[data-theme='dark'] .sc-classic { background: radial-gradient(circle at 10% 0%, #43352a66, transparent 40%), radial-gradient(circle at 90% 12%, #345c4566, transparent 38%), #141c19; }
+[data-theme='dark'] .sc-meadow { background: linear-gradient(#172c35, #203629 65%, #263e2c); }
+[data-theme='dark'] .sc-meadow .sc-hill.h1 { background: #2e4934; }
+[data-theme='dark'] .sc-meadow .sc-hill.h2 { background: #243e2d; }
+[data-theme='dark'] .sc-meadow .sc-hill.h3 { background: #1b3024; }
+[data-theme='dark'] .sc-ocean { background: linear-gradient(#142936, #1d3c4b); }
+[data-theme='dark'] .sc-sea { background: linear-gradient(#244c60, #173244); }
+[data-theme='dark'] .sc-wave.w1 { color: #34596b; }
+[data-theme='dark'] .sc-wave.w2 { color: #29495b; }
+[data-theme='dark'] .sc-wave.w3 { color: #203c50; }
+[data-theme='dark'] .sc-sunset { background: linear-gradient(#302339, #553346 55%, #352d47); }
+[data-theme='dark'] .sc-friday { background: #211f2b; }
+[data-theme='dark'] .sc-friday .sc-blob { opacity: 0.18; }
+[data-theme='dark'] .sc-monday { background: linear-gradient(#242b36, #303944); }
+[data-theme='dark'] .sc-boba { background: linear-gradient(#302820, #403126); }
+[data-theme='dark'] .sc-pie { background: radial-gradient(circle at 80% 0%, #67502c55, transparent 50%), linear-gradient(#30291d, #3c3020); }
+[data-theme='dark'] .sc-candy { background: radial-gradient(circle at 0% 100%, #61394e66, transparent 60%), linear-gradient(135deg, #2b2232, #322638, #253446); }
+[data-theme='dark'] .sc-paper { background: linear-gradient(90deg, transparent 0 7%, #bb746244 7% calc(7% + 1.5px), transparent calc(7% + 1.5px)), repeating-linear-gradient(180deg, transparent 0 31px, #8bafd026 31px 32px), #252d29; }
+[data-theme='dark'] .bg-swatch .sc-paper { background-size: auto, 100% 10px, auto; }
+[data-theme='dark'] .scene .sc-cloud { opacity: 0.12; }
+[data-theme='dark'] .scene .sc-sun { opacity: 0.22; }
+[data-theme='dark'] .app-bg.bg-color::after,
+[data-theme='dark'] .bg-swatch.bg-color::before { content: ''; position: absolute; inset: 0; background: rgba(6, 14, 10, 0.78); pointer-events: none; }
+[data-theme='dark'] .app-bg.bg-image::after,
+[data-theme='dark'] .bg-swatch.bg-upload::before { content: ''; position: absolute; inset: 0; background: rgba(6, 14, 10, 0.72); pointer-events: none; }
+/* The header sits on the scene; overlay panels retain their own palette. */
+[data-theme='dark'] .brand, [data-theme='dark'] .board-empty { --c-ink: #edf4ef; --c-ink-2: #d2ded6; --c-muted: #b9cbbf; color: var(--c-ink); }

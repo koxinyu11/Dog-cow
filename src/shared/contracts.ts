@@ -82,6 +82,8 @@ export interface Payroll {
   extras: Extra[];
 }
 export interface IncomeSettings {
+  payBasis: 'monthly' | 'daily';
+  dailySalary: number | string;
   monthlySalary: number | string;
   startTime: string;
   endTime: string;
@@ -130,6 +132,7 @@ export interface Result {
   completion?: { taskId: string; date: string; allDone: boolean };
 }
 export const methods = [
+  'appearance',
   'bootstrap',
   'task',
   'copy',

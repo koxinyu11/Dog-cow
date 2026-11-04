@@ -357,3 +357,61 @@ test('destroy clears the only timer and asynchronous completion cannot notify or
   assert.equal(h.controller.updateSettings(base).applied, false);
   assert.equal((await h.controller.refreshCalendar()).applied, false);
 });
+
+
+test('clock settlement is shared, persisted, stable across ticks and recalculated after editing', (t) => {
+  const h = harness({ initialNow: at(8) });
+  t.after(() => h.controller.destroy());
+  h.controller.updateSettings({ ...base, stealMode: true, clockMode: true });
+  const observations = [];
+  h.controller.subscribe((state) => observations.push(state.snapshot?.earnedToday));
+  const commit = (start, end, now) => {
+    const proposal = setAttendanceTimes(h.controller.getState().attendance, {
+      date: '2026-11-04', startAt: at(start).getTime(), endAt: end === null ? null : at(end).getTime(), source: 'backfill',
+    }, now);
+    assert.equal(proposal.ok, true);
+    const result = h.controller.commitAttendance(proposal.attendance);
+    assert.equal(result.applied, true);
+    assert.equal(result.persisted, true);
+  };
+  commit(8, null, at(8));
+  h.advance(at(15)); h.fire();
+  closeTo(h.controller.getState().snapshot.earnedToday, 350);
+  commit(8, 15, at(15));
+  closeTo(h.controller.getState().snapshot.earnedToday, 400);
+  closeTo(h.controller.getState().snapshot.earlyAmount, 50);
+  assert.equal(h.controller.getState().snapshot.remainingSeconds, 0);
+  const writes = h.writes.length;
+  h.advance(at(16)); h.fire();
+  closeTo(h.controller.getState().snapshot.earnedToday, 400);
+  assert.equal(h.writes.length, writes);
+  commit(8, null, at(16));
+  closeTo(h.controller.getState().snapshot.earlyAmount, 0);
+  h.advance(at(15)); h.fire();
+  closeTo(h.controller.getState().snapshot.earnedToday, 350);
+  const restored = harness({ initialNow: at(15), items: [[SETTINGS_KEY, h.values.get(SETTINGS_KEY)]] });
+  t.after(() => restored.controller.destroy());
+  closeTo(restored.controller.getState().snapshot.earnedToday, 350);
+  assert.ok(observations.includes(400));
+});
+
+
+test('daily mode survives reload and a bad daily draft cannot replace valid income', (t) => {
+  const h = harness();
+  t.after(() => h.controller.destroy());
+  h.controller.updateSettings({ ...base, payBasis: 'daily', dailySalary: 200, salaryMode: 'gross' });
+  closeTo(h.controller.getState().snapshot.dailyIncome, 200);
+  closeTo(h.controller.getState().snapshot.earnedToday, 25);
+  const writes = h.writes.length;
+  assert.equal(h.controller.updateSettings({ ...h.controller.getState().settings, dailySalary: -1 }).applied, false);
+  assert.equal(h.writes.length, writes);
+  closeTo(h.controller.getState().snapshot.dailyIncome, 200);
+  const restored = harness({ items: [[SETTINGS_KEY, h.values.get(SETTINGS_KEY)]] });
+  t.after(() => restored.controller.destroy());
+  closeTo(restored.controller.getState().snapshot.dailyIncome, 200);
+  assert.equal(restored.controller.getState().settings.salaryMode, 'gross');
+  h.controller.updateSettings({ ...base, payBasis: 'daily', dailySalary: Number.MAX_VALUE });
+  assert.equal(h.controller.getState().snapshot, null);
+  assert.equal(h.controller.getState().payrollResult, null);
+  assert.equal(h.controller.getState().calculationError.code, 'daily-income-overflow');
+});

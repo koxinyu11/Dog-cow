@@ -561,27 +561,27 @@ test('late, lunch and early parts sum to 83.33 yuan without overlapping', () => 
   closeTo(snapshot.earnedToday, 400);
 });
 
-test('16:40 after a confirmed 16:30 departure accrues only ten minutes early time', () => {
+test('confirmed departure settles the full day immediately and stops earning', () => {
   const record = attendance([['start', 9], ['finish', 16, 30]]);
   const snapshot = calculateSnapshot(settings(clockModes), onWednesday(16, 40), undefined, [], record);
   assert.equal(snapshot.status, 'after-work');
-  assert.equal(snapshot.earlySeconds, 600);
-  closeTo(snapshot.earlyAmount, 50 / 6);
-  closeTo(snapshot.earnedToday, 400 - 50 / 3);
-  assert.equal(snapshot.earningPerSecond, snapshot.perSecond);
-  assert.equal(snapshot.remainingSeconds, 20 * 60);
+  assert.equal(snapshot.earlySeconds, 1800);
+  closeTo(snapshot.earlyAmount, 25);
+  closeTo(snapshot.earnedToday, 400);
+  assert.equal(snapshot.earningPerSecond, 0);
+  assert.equal(snapshot.remainingSeconds, 0);
 });
 
-test('finishing early never settles future salary or freezes standard-clock income', () => {
+test('finishing early fills the day and freezes the settlement at the departure time', () => {
   const record = attendance([['start', 9], ['finish', 15]]);
   const now = calculateSnapshot(settings(clockModes), onWednesday(15), undefined, [], record);
   const later = calculateSnapshot(settings(clockModes), onWednesday(16), undefined, [], record);
   const end = calculateSnapshot(settings(clockModes), onWednesday(17), undefined, [], record);
-  closeTo(now.earnedToday, 300);
-  closeTo(later.earnedToday, 350);
+  closeTo(now.earnedToday, 400);
+  closeTo(later.earnedToday, 400);
   closeTo(end.earnedToday, 400);
-  assert.equal(now.earlySeconds, 0);
-  assert.equal(later.earlySeconds, 3600);
+  assert.equal(now.earlySeconds, 7200);
+  assert.equal(later.earlySeconds, 7200);
   assert.equal(end.earlySeconds, 7200);
   assert.equal(now.elapsedSeconds, later.elapsedSeconds);
 });
@@ -605,13 +605,13 @@ test('a pause continuing to departure is split from the later early-departure in
   closeTo(snapshot.stolenAmount, 50);
 });
 
-test('extra time outside the standard window never offsets an early-departure category', () => {
+test('early work offsets departure settlement without increasing the day salary', () => {
   const record = attendance([['start', 8], ['finish', 16]]);
   const snapshot = calculateSnapshot(settings(clockModes), onWednesday(17), undefined, [], record);
   assert.equal(snapshot.elapsedSeconds, 8 * 3600);
   assert.equal(snapshot.extraWorkSeconds, 3600);
-  assert.equal(snapshot.earlySeconds, 3600);
-  closeTo(snapshot.stolenAmount, 50);
+  assert.equal(snapshot.earlySeconds, 0);
+  closeTo(snapshot.stolenAmount, 0);
   closeTo(snapshot.earnedToday, 400);
 });
 
@@ -812,4 +812,110 @@ test('gross income is converted once and the same net salary drives wages and st
 test('an uncomputable gross payroll reports an error rather than charging the gross salary', () => {
   const config = settings({ monthlySalary: Number.MAX_VALUE, salaryMode: 'gross' });
   assert.throws(() => calculateSnapshot(config, onWednesday(10)), { code: 'payroll-invalid' });
+});
+
+
+test('early starts earn immediately, cap at daily pay and settle only the remaining gap', () => {
+  for (const [start, finish, expectedBefore, gap] of [[9, 15, 300, 100], [8, 15, 350, 50], [8, 16, 400, 0]]) {
+    const running = attendance([['start', start]]);
+    const before = calculateSnapshot(settings(clockModes), onWednesday(finish), undefined, [], running);
+    closeTo(before.earnedToday, expectedBefore);
+    const record = attendance([['start', start], ['finish', finish]]);
+    const original = JSON.stringify(record);
+    for (const hour of [finish, 17, 23]) {
+      const after = calculateSnapshot(settings(clockModes), onWednesday(hour), undefined, [], record);
+      closeTo(after.earnedToday, 400);
+      closeTo(after.earlyAmount, gap);
+      assert.equal(after.remainingSeconds, 0);
+      assert.equal(after.earningPerSecond, 0);
+      assert.equal(after.progress, 1);
+    }
+    assert.equal(JSON.stringify(record), original);
+  }
+  const early = calculateSnapshot(settings(clockModes), onWednesday(8, 30), undefined, [], attendance([['start', 8]]));
+  closeTo(early.earnedToday, 25);
+  assert.equal(early.status, 'working');
+  assert.equal(early.earningPerSecond, early.perSecond);
+  const capped = calculateSnapshot(settings(clockModes), onWednesday(17), undefined, [], attendance([['start', 6]]));
+  closeTo(capped.earnedToday, 400);
+  assert.equal(capped.earningPerSecond, 0);
+});
+
+test('settlement keeps leave deductions and theft categories disjoint with early work', () => {
+  const record = attendance([['start', 8], ['pause', 12], ['resume', 13], ['finish', 15]]);
+  const deduction = leave({ fullDay: false, startTime: '16:00', endTime: '17:00' });
+  const snapshot = calculateSnapshot(settings(clockModes), onWednesday(15), undefined, [deduction], record);
+  closeTo(snapshot.payableToday, 350);
+  closeTo(snapshot.earnedToday, 350);
+  closeTo(snapshot.earlyAmount, 0);
+  closeTo(snapshot.lunchStolenAmount, 50);
+  closeTo(snapshot.stolenAmount, 50);
+  closeTo(snapshot.expectedDeduction, 50);
+  assert.equal(snapshot.stolenSeconds, snapshot.lateSeconds + snapshot.lunchStolenSeconds + snapshot.earlySeconds);
+});
+
+test('early settlement before scheduled start works and historical monthly totals stay capped', () => {
+  const record = attendance([['start', 7], ['finish', 8]]);
+  const now = calculateSnapshot(settings(clockModes), onWednesday(8), undefined, [], record);
+  assert.equal(now.status, 'after-work');
+  closeTo(now.earnedToday, 400);
+  closeTo(now.earlyAmount, 350);
+  const endOfMonth = calculateSnapshot(settings(clockModes), new Date(2026, 10, 30, 23), undefined, [], record);
+  closeTo(endOfMonth.earnedMonth, endOfMonth.expectedMonthIncome);
+  assert.ok(endOfMonth.earnedMonth <= 8400);
+});
+
+
+test('old settings default to monthly; daily validation only requires the active amount', () => {
+  const old = settings();
+  assert.equal(old.payBasis, 'monthly');
+  assert.equal(old.dailySalary, '');
+  const daily = settings({ payBasis: 'daily', dailySalary: '200.50', monthlySalary: '' });
+  assert.equal(daily.dailySalary, 200.5);
+  assert.equal(daily.monthlySalary, '');
+  for (const dailySalary of ['', -1, Infinity, NaN, true, null]) {
+    assert.ok(validateSettings({ ...baseSettings, payBasis: 'daily', dailySalary }).errors.dailySalary);
+  }
+  assert.ok(validateSettings({ ...baseSettings, payBasis: 'weekly' }).errors.payBasis);
+});
+
+test('daily pay is stable across months with different workday counts and ignores the monthly tax toggle', () => {
+  const config = settings({ payBasis: 'daily', dailySalary: 200, monthlySalary: 8400, salaryMode: 'gross' });
+  const november = calculateSnapshot(config, onWednesday(17));
+  const december = calculateSnapshot(config, new Date(2026, 11, 1, 17));
+  closeTo(november.dailyIncome, 200);
+  closeTo(december.dailyIncome, 200);
+  closeTo(november.expectedMonthIncome, 200 * 21);
+  closeTo(december.expectedMonthIncome, 200 * 23);
+  assert.equal(november.payrollResult.tax, 0);
+  assert.equal(november.payBasis, 'daily');
+  closeTo(calculateSnapshot(config, onWednesday(13)).earnedToday, 100);
+  closeTo(calculateSnapshot(config, new Date(2026, 10, 30, 23)).earnedMonth, 4200);
+  closeTo(calculateSnapshot(settings({ payBasis: 'daily', dailySalary: 0 }), onWednesday(17)).earnedToday, 0);
+});
+
+test('daily early work, settlement and unpaid leave use the fixed daily amount', () => {
+  const config = settings({ ...clockModes, payBasis: 'daily', dailySalary: 200 });
+  const running = attendance([['start', 8]]);
+  closeTo(calculateSnapshot(config, onWednesday(15), undefined, [], running).earnedToday, 175);
+  const finished = attendance([['start', 8], ['finish', 15]]);
+  const before = JSON.stringify(finished);
+  const closed = calculateSnapshot(config, onWednesday(15), undefined, [], finished);
+  closeTo(closed.earnedToday, 200);
+  closeTo(closed.earlyAmount, 25);
+  closeTo(closed.stolenAmount, 25);
+  closeTo(calculateSnapshot(config, onWednesday(23), undefined, [], finished).earnedToday, 200);
+  assert.equal(JSON.stringify(finished), before);
+  const unpaid = leave({ fullDay: false, startTime: '16:00', endTime: '17:00' });
+  const reduced = calculateSnapshot(config, onWednesday(15), undefined, [unpaid], finished);
+  closeTo(reduced.earnedToday, 175);
+  closeTo(reduced.earlyAmount, 0);
+  closeTo(reduced.expectedDeduction, 25);
+  closeTo(reduced.expectedMonthIncome, 4175);
+});
+
+test('daily rates use cents and overflow reports an explicit error instead of nonfinite income', () => {
+  const snapshot = calculateSnapshot(settings({ payBasis: 'daily', dailySalary: 123.45 }), onWednesday(17));
+  closeTo(snapshot.dailyIncome, 123.45);
+  assert.throws(() => calculateSnapshot(settings({ payBasis: 'daily', dailySalary: Number.MAX_VALUE }), onWednesday(17)), (error) => error.code === 'daily-income-overflow');
 });
