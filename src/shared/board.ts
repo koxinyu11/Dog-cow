@@ -1,3 +1,4 @@
+import { validFun, type FunState } from './fun.js';
 // Home board model: shared by main (validation, persistence) and renderer (layout, rendering).
 // Positions are not stored. Order + size are packed into a fixed-column grid, so modules can never overlap.
 
@@ -26,6 +27,7 @@ export const MODULE_IDS = [
   'tasks',
   'calendar',
   'stolen',
+  'mood', 'lunch', 'hopes', 'pasture', 'converter',
 ] as const;
 export type ModuleId = (typeof MODULE_IDS)[number];
 
@@ -56,12 +58,13 @@ export const BACKGROUND_PRESETS = {
   pie: '画饼工厂',
   candy: '带薪发呆',
   paper: '周报白纸',
+  'cloud-rest': '云端摸鱼', 'deep-rest': '深海放空', 'galaxy-off': '银河下班',
 } as const;
 export type PresetKey = keyof typeof BACKGROUND_PRESETS;
 /** Presets with a dark sky need light header text. */
-export const DARK_PRESETS: readonly PresetKey[] = ['night'];
+export const DARK_PRESETS: readonly PresetKey[] = ['night', 'deep-rest', 'galaxy-off'];
 /** Presets with slow ambient animation. */
-export const ANIMATED_PRESETS: readonly PresetKey[] = ['meadow', 'ocean', 'sunset', 'night', 'friday', 'monday'];
+export const ANIMATED_PRESETS: readonly PresetKey[] = ['meadow', 'ocean', 'sunset', 'night', 'friday', 'monday', 'cloud-rest', 'deep-rest', 'galaxy-off'];
 export type Background =
   | { kind: 'preset'; value: keyof typeof BACKGROUND_PRESETS }
   | { kind: 'color'; value: string }
@@ -73,6 +76,7 @@ export interface BoardItem {
 }
 export interface Board {
   version: 2;
+  fun?: FunState;
   items: BoardItem[];
   background: Background;
   bindings: Record<string, MetricId>;
@@ -118,6 +122,14 @@ export function validBackground(value: unknown): value is Background {
   return false;
 }
 
+/** Remove the retired preview card without discarding the rest of a saved board. */
+export function retireReceiptModule(value: unknown): unknown {
+  if (!isRecord(value) || !Array.isArray(value.items)) return value;
+  const colors = isRecord(value.colors) ? { ...value.colors } : value.colors;
+  if (isRecord(colors)) delete colors.receipt;
+  return { ...value, items: value.items.filter(item => !isRecord(item) || item.id !== 'receipt'), ...(colors === undefined ? {} : { colors }) };
+}
+
 export function validBoard(value: unknown, copyKeys: readonly string[]): value is Board {
   if (!isRecord(value) || value.version !== 2 || !Array.isArray(value.items)) return false;
   const ids = new Set<string>();
@@ -133,6 +145,7 @@ export function validBoard(value: unknown, copyKeys: readonly string[]): value i
       return false;
     ids.add(item.id);
   }
+  if (value.fun !== undefined && !validFun(value.fun)) return false;
   if (!validBackground(value.background) || !isRecord(value.bindings)) return false;
   if (value.columns !== undefined && value.columns !== 3 && value.columns !== 4) return false;
   if (
@@ -203,9 +216,10 @@ export const GOOD_SIZES: Record<ModuleId, SizeKey[]> = {
   progress: ['m', 's', 'tall'],
   calendar: ['l', 'm', 'wide'],
   stolen: ['m', 's', 'tall'],
+  mood: ['m', 'l'], lunch: ['m', 'l'], hopes: ['m', 'l'], pasture: ['m', 'l'], converter: ['m', 'l'],
 };
 /** Lower comes first: actions and live money on top, reference views below. */
-const IMPORTANCE: ModuleId[] = ['clock', 'income', 'work-time', 'week-summary', 'next-task', 'progress', 'tasks', 'calendar', 'stolen'];
+const IMPORTANCE: ModuleId[] = ['clock', 'income', 'work-time', 'week-summary', 'next-task', 'progress', 'tasks', 'calendar', 'stolen', 'mood', 'lunch', 'hopes', 'pasture', 'converter'];
 
 export function layoutScore(items: BoardItem[], columns: number) {
   const placed = pack(items, columns);

@@ -4,6 +4,9 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { PresetKey } from '../../shared/board';
 
 const layers: Partial<Record<PresetKey, ReactNode>> = {
+  'cloud-rest': <><i className="sc-sun" /><i className="sc-cloud c1" /><i className="sc-cloud c2" /><i className="reward-float">🐮 ☁️</i><i className="reward-caption">今天也轻一点</i></>,
+  'deep-rest': <><i className="reward-rays" /><i className="reward-bubbles">◦ ˚ ◦ ˚ ◦</i><i className="reward-jelly j1">🪼</i><i className="reward-jelly j2">🪼</i><i className="reward-seabed" /></>,
+  'galaxy-off': <><i className="reward-stars" /><i className="reward-orbit" /><i className="reward-planet">🪐</i><i className="reward-ship">🐮 🚀</i></>,
   meadow: (
     <>
       <i className="sc-sun" />

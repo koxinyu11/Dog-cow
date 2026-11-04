@@ -160,6 +160,8 @@ export const methods = [
   'copy',
   'layout',
   'board',
+  'fun',
+  'receiptImage',
   'settings',
   'leave',
   'removeLeave',

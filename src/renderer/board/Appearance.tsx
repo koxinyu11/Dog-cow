@@ -1,3 +1,5 @@
+import { moodData, MOOD_REWARDS } from '../../shared/mood';
+import { defaultFun, type FunState } from '../../shared/fun';
 import { useRef, useState, type CSSProperties } from 'react';
 import { ANIMATED_PRESETS, BACKGROUND_PRESETS, DARK_PRESETS, MAX_IMAGE_LENGTH, type Background, type PresetKey } from '../../shared/board';
 import { isDark } from './Board';
@@ -40,17 +42,20 @@ async function encode(file: File): Promise<string> {
 
 export function Appearance({
   background,
+  fun,
   setBackground,
   resetBoard,
   notify,
 }: {
   background: Background;
+  fun?: FunState;
   setBackground: (bg: Background) => Promise<void>;
   resetBoard: () => void;
   notify: (message: string) => void;
 }) {
   const { mode, resolved } = useTheme();
   const [motion, setMotion] = useState(() => localStorage.getItem(FX_PREF_KEY) !== 'off');
+  const unlocked = new Set(moodData(fun ?? defaultFun()).wallpapers);
   const file = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const choose = async (bg: Background, anchor?: Element | null) => {
@@ -74,7 +79,7 @@ export function Appearance({
       <section>
         <h3><Palette size={16} /> 背景</h3>
         <div className="bg-grid">
-          {(Object.keys(BACKGROUND_PRESETS) as PresetKey[]).map((key) => (
+          {(Object.keys(BACKGROUND_PRESETS) as PresetKey[]).filter(key=>!MOOD_REWARDS.some(r=>r.id===key)||unlocked.has(key)).map((key) => (
             <button
               key={key}
               className={`bg-swatch ${DARK_PRESETS.includes(key) ? 'is-dark' : ''}`}
@@ -83,7 +88,7 @@ export function Appearance({
             >
               <Scene preset={key} />
               <span className="bg-swatch-label">
-                {BACKGROUND_PRESETS[key]}
+                <span className="bg-swatch-name">{BACKGROUND_PRESETS[key]}</span>
                 {ANIMATED_PRESETS.includes(key) && <Sparkles size={11} aria-label="会动" />}
               </span>
             </button>

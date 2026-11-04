@@ -22,6 +22,8 @@ export const copyDefaults = {
   workTimeTitle: '工时与下班倒计时',
   clockTitle: '打卡操作',
   stolenTitle: '偷出金额',
+  moodTitle: '今日精神状态', receiptTitle: '下班小票', lunchTitle: '今天吃什么',
+  hopesTitle: '盼头清单', pastureTitle: '工位小牧场', converterTitle: '工资换算器',
 };
 export const emptyTasks = (): TaskState => ({
   tasks: [],

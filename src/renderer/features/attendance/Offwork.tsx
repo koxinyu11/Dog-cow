@@ -1,4 +1,7 @@
-import { useEffect } from 'react';
+import { receiptPng } from './receipt-image';
+import { weekendDays } from '../../../shared/fun';
+import { command } from '../../state';
+import { useEffect, useState } from 'react';
 import { Hourglass, House, PartyPopper } from 'lucide-react';
 import type { IncomeState } from '../../../shared/contracts';
 import { offworkNotice } from '../../../shared/offwork';
@@ -12,7 +15,7 @@ export function OffworkNotice({ income, openClock }: { income: IncomeState; open
   const notice = offworkNotice(income);
   if (!notice) return null;
   const remaining = `${String(Math.floor(notice.seconds / 60)).padStart(2, '0')}:${String(notice.seconds % 60).padStart(2, '0')}`;
-  return <aside className={`offwork-notice ${motionAllowed() ? 'is-animated' : ''} is-${notice.kind}`}>
+  return <aside className={`offwork-notice ${motionAllowed() ? 'is-animated' : ''} is-${notice.kind} ${notice.kind === 'soon' && notice.seconds <= 60 ? 'is-final-minute' : ''}`}>
     {notice.kind === 'soon' ? <Hourglass size={20} /> : <House size={20} />}
     <strong>{notice.text}</strong>
     <span className="offwork-timer">{notice.kind === 'soon' ? remaining : `已过下班时间 ${Math.floor(notice.seconds / 60)} 分钟`}</span>
@@ -20,13 +23,16 @@ export function OffworkNotice({ income, openClock }: { income: IncomeState; open
   </aside>;
 }
 
-export function OffworkReceipt({ income, date, completedTasks, onClose }: { income: IncomeState; date: string; completedTasks: number; onClose: () => void }) {
+export function OffworkReceipt({ income, date, completedTasks, celebrate = true, onClose }: { income: IncomeState; date: string; completedTasks: number; celebrate?: boolean; onClose: () => void }) {
   const s = income.snapshot!;
   const day = income.attendance.days.find((item) => item.date === date)!;
   const animated = motionAllowed();
-  useEffect(() => { fx('offwork-finale', { x: innerWidth / 2, y: innerHeight / 3 }); }, []);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState('');
+  useEffect(() => { if (celebrate) fx('offwork-finale', { x: innerWidth / 2, y: innerHeight / 3 }); }, [celebrate]);
   const rows = [
     ['今日完成', `${completedTasks} 件任务`],
+    ['距离周末', weekendDays(date) === 0 ? '周末快乐！' : `${weekendDays(date)} 天`],
     ['上班打卡', time(day.clockIn?.at)], ['下班打卡', time(day.clockOut?.at)],
     ['今日已工作', duration(s.elapsedSeconds)],
     ...(income.settings?.stealMode ? [
@@ -45,6 +51,14 @@ export function OffworkReceipt({ income, date, completedTasks, onClose }: { inco
         <p className="offwork-footer">今天的努力已签收<br />接下来，快乐归你。</p>
       </section>
     </div>
-    <div className="offwork-actions"><Button variant="primary" onClick={onClose}>收好，去生活</Button></div>
+    {feedback && <p className="offwork-save-feedback" role="status">{feedback}</p>}
+    <div className="offwork-actions"><Button disabled={saving} onClick={async () => {
+      setSaving(true); setFeedback('');
+      try {
+        const result = await command('receiptImage', { png: receiptPng(date, `¥${money(s.earnedToday)}`, rows) });
+        setFeedback(result.message);
+      } catch { setFeedback('图片没能保存，请检查保存位置后重试。'); }
+      finally { setSaving(false); }
+    }}>{saving ? '保存中…' : '保存图片'}</Button><Button variant="primary" onClick={onClose}>收好，去生活</Button></div>
   </Modal>;
 }

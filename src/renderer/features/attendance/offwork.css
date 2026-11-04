@@ -28,3 +28,14 @@
 @keyframes offwork-print { from { transform: translateY(-100%); } to { transform: translateY(0); } }
 @keyframes offwork-stamp { from { opacity: 0; transform: rotate(-7deg) scale(1.5); } to { opacity: 1; transform: rotate(-7deg) scale(1); } }
 @media (prefers-reduced-motion: reduce) { .offwork-notice, .offwork-dialog, .offwork-dialog::backdrop, .offwork-paper, .offwork-stamp { animation: none !important; } }
+
+/* The final minutes stand out from the ordinary dashboard. */
+.offwork-notice.is-soon { border:1px solid #ff7d79; border-radius:999px; background:linear-gradient(110deg,#e73140,#cf1832); color:#fff; padding:12px 22px; box-shadow:0 6px 24px #e7314038; }
+.offwork-notice.is-soon > svg,.offwork-notice.is-soon .offwork-timer { color:#fff; }
+.offwork-notice.is-soon .offwork-timer { font-size:30px; font-weight:800; letter-spacing:.05em; }
+.offwork-notice.is-soon button { background:#fff; color:#be1630; border-color:#fff; border-radius:999px; }
+.offwork-notice.is-final-minute.is-animated { animation:offwork-urgency 1s ease-in-out infinite alternate; }
+.offwork-actions { gap:10px; flex-wrap:wrap; }
+.offwork-save-feedback { text-align:center; color:var(--c-muted); font-size:12px; }
+@keyframes offwork-urgency { from { box-shadow:0 0 0 0 #f43f5e25; } to { box-shadow:0 0 0 6px #f43f5e15,0 6px 26px #e7314055; } }
+html.no-fx .offwork-notice,html.no-fx .offwork-paper,html.no-fx .offwork-stamp { animation:none!important; }

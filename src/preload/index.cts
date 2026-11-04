@@ -7,6 +7,8 @@ const allowed = new Set([
   'copy',
   'layout',
   'board',
+  'fun',
+  'receiptImage',
   'settings',
   'leave',
   'removeLeave',

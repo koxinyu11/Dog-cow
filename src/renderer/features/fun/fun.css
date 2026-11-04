@@ -1,0 +1,96 @@
+.fun-card { min-height:100%; display:flex; flex-direction:column; align-items:stretch; gap:6px; text-align:left; }
+.fun-card > * { flex-shrink:0; min-width:0; max-width:100%; }
+.fun-main { display:flex; align-items:center; gap:10px; min-width:0; }
+.fun-main > div { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.fun-main strong { font-size:16px; line-height:1.3; overflow-wrap:anywhere; }
+.fun-main small { color:var(--c-muted); font-size:11px; line-height:1.4; }
+.fun-main b { font-size:14px; }
+.fun-symbol,.mood-main > .ui-emoji { flex:none; font-size:28px; line-height:1.15; }
+.mood-main strong { color:var(--mood-color); }
+.fun-actions { display:flex; flex-wrap:wrap; align-items:center; gap:4px; min-width:0; }
+.fun-card .fun-actions > button { min-height:26px; padding:4px 8px; font-size:11px; }
+.fun-card .fun-actions > select { max-width:100%; min-height:26px; padding:2px 7px; font-size:11px; }
+.fun-card button[aria-pressed='true'],.mood-manager button[aria-pressed='true'] { background:var(--c-brand); color:var(--c-brand-ink); border-color:var(--c-brand); }
+.fun-date,.fun-result-button { border:0; background:none; padding:0; color:var(--c-brand); cursor:pointer; text-align:left; font-size:11px; }
+.fun-result-button { font-size:16px; font-weight:700; }
+.fun-detail { min-width:0; border-top:1px solid var(--c-line); padding-top:10px; }
+.fun-detail h3 { margin:0 0 8px; font-size:12px; color:var(--c-muted); }
+.fun-records { display:flex; flex-wrap:wrap; gap:6px; }
+.fun-records > span { background:var(--c-brand-2); color:var(--c-ink); border-radius:8px; padding:4px 8px; font-size:12px; overflow-wrap:anywhere; }
+.fun-timeline > button,.fun-conversions > button { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; padding:8px 4px; border:0; border-bottom:1px solid var(--c-line); background:transparent; cursor:pointer; text-align:left; }
+.fun-timeline > button span,.fun-conversions > button span { min-width:0; overflow-wrap:anywhere; }
+.fun-timeline small,.fun-conversions small { display:block; font-size:11px; color:var(--c-muted); }
+.fun-conversions b { flex-shrink:0; font-family:var(--f-num); font-size:15px; }
+.fun-pasture-scene { padding:4px 8px; border-radius:10px; text-align:center; background:color-mix(in srgb,var(--c-brand) 12%,transparent); }
+.fun-pasture-scene > span:first-child { display:block; font-size:22px; line-height:1.1; }
+.fun-pasture-scene > div { display:flex; flex-wrap:wrap; justify-content:center; font-size:12px; line-height:1.1; }
+.fun-fence { display:block; color:var(--c-muted); letter-spacing:6px; font-size:10px; line-height:1.1; }
+.fun-unlocks { display:grid; gap:10px; font-size:12px; color:var(--c-muted); }
+.fun-unlocks .is-unlocked { color:var(--c-brand); font-weight:700; }
+.fun-card progress { display:block; appearance:none; width:100%; height:5px; border:0; border-radius:8px; background:var(--c-line); overflow:hidden; }
+.fun-card progress::-webkit-progress-bar { background:var(--c-line); }
+.fun-card progress::-webkit-progress-value { background:var(--c-brand); border-radius:8px; }
+.mood-week { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px; }
+.mood-week > div { display:flex; flex-direction:column; align-items:center; gap:4px; min-width:0; padding:6px 0; border-radius:8px; background:color-mix(in srgb,var(--c-ink) 4%,transparent); }
+.mood-week span { font-size:9px; color:var(--c-muted); }
+.mood-week b { font-size:20px; }
+.mood-week small { width:100%; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9px; }
+.fun-quip { font-size:12px; color:var(--c-muted); margin:0 0 10px; }
+.fun-checkbox { display:flex; align-items:center; gap:8px; margin-top:12px; }
+.fun-hope-list { max-height:180px; overflow:auto; margin-top:16px; }
+.fun-hope-list > div { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px; }
+.fun-hope-list > div > span { flex:1; min-width:120px; overflow-wrap:anywhere; }
+.mood-manager { padding-bottom:24px; }
+.mood-option-list { max-height:260px; overflow:auto; margin-bottom:12px; }
+.mood-option-list > div { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+.mood-option-list > div > button:first-child { flex:1; justify-content:flex-start; overflow-wrap:anywhere; }
+.mood-option-list .is-archived { opacity:.65; }
+.mood-rewards { display:grid; gap:8px; margin:16px 0; }
+.mood-rewards > div { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; }
+.mood-rewards small { color:var(--c-muted); }
+.mood-palette { display:flex; flex-wrap:wrap; gap:8px; border:0; margin:14px 0; padding:0; }
+.mood-palette legend { margin-bottom:8px; font-size:12px; color:var(--c-muted); }
+.mood-color { width:30px; height:30px; border-radius:50%; border:3px solid transparent; cursor:pointer; }
+.mood-color[aria-pressed='true'] { outline:2px solid var(--c-ink); outline-offset:2px; }
+/* Each footprint has an explicit information and layout hierarchy. */
+.fun-card[data-size='s'] { gap:5px; justify-content:flex-start; }
+.fun-card[data-size='s'] .fun-main { gap:6px; }
+.fun-card[data-size='s'] .fun-symbol,.fun-card[data-size='s'] .ui-emoji { font-size:22px; }
+.fun-card[data-size='s'] .fun-main strong { font-size:14px; }
+.fun-card[data-size='s'] .fun-main small { font-size:10px; }
+.fun-card[data-size='m'] { gap:6px; }
+.fun-card[data-size='m'].fun-mood .fun-actions > button { padding:3px 5px; font-size:10px; }
+.fun-card[data-size='m'].fun-pasture { display:grid; grid-template-columns:1fr; gap:5px; align-content:start; }
+.fun-card[data-size='m'].fun-pasture .fun-main { justify-content:space-between; }
+.fun-card[data-size='m'].fun-pasture .fun-symbol { display:none; }
+.fun-card[data-size='l'] { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); grid-template-rows:auto auto 1fr; gap:14px; align-content:start; }
+.fun-card[data-size='l'] > .fun-main { grid-column:1; grid-row:1; align-items:flex-start; flex-direction:column; }
+.fun-card[data-size='l'] > .fun-secondary { grid-column:1; grid-row:2; }
+.fun-card[data-size='l'] > .fun-actions { grid-column:1; grid-row:3; align-content:start; }
+.fun-card[data-size='l']:not(:has(.fun-secondary)) > .fun-actions { grid-row:2; }
+.fun-card[data-size='l'] > .fun-detail { grid-column:2; grid-row:1 / span 3; border-top:0; border-left:1px solid var(--c-line); padding:0 0 0 14px; }
+.fun-card[data-size='l'] .fun-symbol,.fun-card[data-size='l'] .mood-main > .ui-emoji { font-size:52px; }
+.fun-card[data-size='l'] .fun-main strong { font-size:24px; }
+.fun-card[data-size='l'] .mood-week { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.fun-card[data-size='wide'] { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.3fr); grid-template-rows:auto auto; gap:8px 18px; align-items:center; }
+.fun-card[data-size='wide'] > .fun-main { grid-column:1; grid-row:1 / span 2; }
+.fun-card[data-size='wide'] > .fun-secondary { grid-column:2; grid-row:1; }
+.fun-card[data-size='wide'] > .fun-actions { grid-column:2; grid-row:2; }
+.fun-card[data-size='wide']:not(:has(.fun-secondary)) > .fun-actions { grid-row:1 / span 2; }
+.fun-card[data-size='wide'].fun-pasture > .fun-secondary { grid-row:1 / span 2; }
+.fun-card[data-size='wide'] > .fun-detail { grid-column:3; grid-row:1 / span 2; border-top:0; border-left:1px solid var(--c-line); padding:0 0 0 16px; max-height:108px; overflow:auto; }
+.fun-card[data-size='wide'] .fun-main strong { font-size:22px; }
+.fun-card[data-size='wide'] .fun-quip { display:none; }
+.fun-card[data-size='wide'] .mood-week { gap:2px; }
+.fun-card[data-size='wide'] .mood-week > div { padding:3px 0; }
+.fun-card[data-size='wide'] .mood-week b { font-size:16px; }
+.fun-card[data-size='tall'] { gap:14px; }
+.fun-card[data-size='tall'] > .fun-main { flex-direction:column; text-align:center; align-items:center; gap:8px; }
+.fun-card[data-size='tall'] .fun-symbol,.fun-card[data-size='tall'] .mood-main > .ui-emoji { font-size:48px; }
+.fun-card[data-size='tall'] .fun-main strong { font-size:22px; }
+.fun-card[data-size='tall'] .fun-actions { justify-content:center; }
+.fun-card[data-size='tall'] .fun-detail { margin-top:auto; }
+.fun-card[data-size='tall'] .fun-pasture-scene { padding:18px 10px; }
+.fun-card[data-size='tall'] .fun-timeline { border-left:2px solid var(--c-brand); border-top:0; padding:0 0 0 10px; }
+
+.mood-unlock-notice { padding:12px 14px; margin-bottom:14px; border:1px solid var(--c-brand); border-radius:var(--r-md); background:var(--c-brand-2); color:var(--c-ink); font-weight:600; overflow-wrap:anywhere; }

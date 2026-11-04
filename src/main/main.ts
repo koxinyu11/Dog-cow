@@ -1,3 +1,5 @@
+import { moodData, MOOD_REWARDS } from '../shared/mood.js';
+import { defaultFun, rewardTask, updateFun } from '../shared/fun.js';
 import { ReleaseUpdater } from './release-updates.js';
 import { boundedCalendarFetch } from './calendar-network.js';
 import { loadHolidayYear } from '../../app/income/src/calendar.js';
@@ -44,7 +46,7 @@ import {
 import { createController, type IncomeController } from './legacy-adapter.js';
 import { applyAttendanceAction, setAttendanceTimes } from '../../app/income/src/attendance.js';
 import { HOME_MODULES } from '../../app/income/src/home-layout.js';
-import { BOARD_KEY, defaultBoard, validBoard, type Board } from '../shared/board.js';
+import { BOARD_KEY, defaultBoard, validBoard, retireReceiptModule, type Board } from '../shared/board.js';
 import {
   createTransfer,
   parseTransfer,
@@ -170,7 +172,7 @@ function restoreModels() {
   try {
     const raw = repo.storage.getItem(BOARD_KEY);
     if (raw !== null) {
-      const candidate: unknown = JSON.parse(raw);
+      const candidate: unknown = retireReceiptModule(JSON.parse(raw));
       if (!validBoard(candidate, Object.keys(copyDefaults))) throw Error();
       board = candidate;
     }
@@ -231,6 +233,15 @@ function validPayload(payload: unknown): payload is Fields {
   return record(payload) && JSON.stringify(payload).length <= 20 * 1024 * 1024;
 }
 async function invoke(method: string, p: Fields): Promise<Result> {
+  if (method === 'receiptImage') {
+    if (!win || typeof p.png !== 'string' || p.png.length > 4_000_000 || !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(p.png)) throw Error('小票图片无效，请重试。');
+    const image = nativeImage.createFromDataURL(p.png);
+    if (image.isEmpty() || image.getSize().width > 2000 || image.getSize().height > 4000) throw Error('小票图片尺寸无效。');
+    const picked = await dialog.showSaveDialog(win, { defaultPath: `狗牛-收工小票-${localDate()}.png`, filters: [{ name: 'PNG 图片', extensions: ['png'] }] });
+    if (picked.canceled || !picked.filePath) return toastResult('已取消保存。');
+    await writeFile(picked.filePath, image.toPNG());
+    return { applied: true, persisted: true, message: '小票图片已保存。' };
+  }
   if (method === 'appearance') {
     if (!['light', 'dark', 'auto'].includes(String(p.mode)) || !['light', 'dark'].includes(String(p.resolved)))
       return toastResult('显示模式无效。');
@@ -476,6 +487,11 @@ async function invoke(method: string, p: Fields): Promise<Result> {
       } else throw Error('任务操作无效。');
       tasks = parseTasks(JSON.stringify(tasks), randomUUID);
       persistTask();
+      if (result.completion) {
+        board = { ...board, fun: rewardTask(board.fun ?? defaultFun(), result.completion.taskId) };
+        repo.storage.setItem(BOARD_KEY, JSON.stringify(board));
+        revisions.home++;
+      }
     } catch (error) {
       tasks = before;
       throw error;
@@ -498,10 +514,24 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     layoutWarning = '';
     repo.storage.setItem(layoutKey, JSON.stringify(layout));
     revisions.home++;
+  } else if (method === 'fun') {
+    expected(p, 'home');
+    const previous = board.fun ?? defaultFun();
+    const next = updateFun(previous, p, new Date());
+    const unlocked = MOOD_REWARDS.filter(r => !moodData(previous).wallpapers.includes(r.id) && moodData(next).wallpapers.includes(r.id));
+    if (unlocked.length) {
+      result.code = 'wallpaper-unlocked';
+      result.message = `🎉 解锁隐藏壁纸「${unlocked.map(r=>r.name).join('、')}」！去设置 → 背景看看。`;
+    }
+    board = { ...board, fun: next };
+    repo.storage.setItem(BOARD_KEY, JSON.stringify(board));
+    revisions.home++;
   } else if (method === 'board') {
     expected(p, 'home');
     if (!validBoard(p.board, Object.keys(copyDefaults))) throw Error('看板配置无效。');
-    board = structuredClone(p.board);
+    const requested = p.board.background;
+    if (requested.kind === 'preset' && MOOD_REWARDS.some(r => r.id === requested.value) && !moodData(board.fun ?? defaultFun()).wallpapers.includes(requested.value)) throw Error('这张壁纸还未解锁。');
+    board = { ...structuredClone(p.board), fun: board.fun };
     layoutWarning = '';
     repo.storage.setItem(BOARD_KEY, JSON.stringify(board));
     revisions.home++;

@@ -1,3 +1,4 @@
+import { FunModule } from '../features/fun/FunModules';
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import type { Fields, Snapshot, Task } from '../../shared/contracts';
 import type { ModuleId, SizeKey } from '../../shared/board';
@@ -530,6 +531,11 @@ function StolenModule({ state, size, openSettings }: ModuleCtx) {
 }
 
 export const MODULES: Record<ModuleId, ModuleDef> = {
+  mood: { id: 'mood', name: '今日精神状态', icon: Coffee, accent: '#dd858a', titleKey: 'moodTitle', blurb: '今天是哪一种牛', defaultSize: 'm', render: c => <FunModule kind="mood" {...c} /> },
+  lunch: { id: 'lunch', name: '今天吃什么', icon: UtensilsCrossed, accent: '#e28b47', titleKey: 'lunchTitle', blurb: '午餐选择困难救星', defaultSize: 'm', render: c => <FunModule kind="lunch" {...c} /> },
+  hopes: { id: 'hopes', name: '盼头清单', icon: TreePalm, accent: '#46a898', titleKey: 'hopesTitle', blurb: '给生活留个盼头', defaultSize: 'm', render: c => <FunModule kind="hopes" {...c} /> },
+  pasture: { id: 'pasture', name: '工位小牧场', icon: Sprout, accent: '#72a651', titleKey: 'pastureTitle', blurb: '一件事，一丛草', defaultSize: 'm', render: c => <FunModule kind="pasture" {...c} /> },
+  converter: { id: 'converter', name: '工资换算器', icon: Wallet, accent: '#bd84b9', titleKey: 'converterTitle', blurb: '今天赚了几份快乐', defaultSize: 'm', render: c => <FunModule kind="converter" {...c} /> },
   income: { id: 'income', name: '实时收入', icon: Wallet, accent: '#2f9e6b', titleKey: 'incomeTitle', blurb: '每秒都在涨的钱', defaultSize: 'm', render: (c) => <IncomeModule {...c} /> },
   'work-time': { id: 'work-time', name: '下班倒计时', icon: Hourglass, accent: '#5b6fe0', titleKey: 'workTimeTitle', blurb: '离自由还有多久', defaultSize: 'm', render: (c) => <WorkTimeModule {...c} /> },
   'week-summary': { id: 'week-summary', name: '本周任务概览', icon: ChartColumn, accent: '#f08a3e', titleKey: 'weekSummaryTitle', blurb: '七天的草吃了多少', defaultSize: 'l', render: (c) => <WeekModule {...c} /> },

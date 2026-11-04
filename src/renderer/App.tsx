@@ -36,6 +36,8 @@ const COPY_LABELS: Record<string, string> = {
   workTimeTitle: '下班倒计时',
   clockTitle: '打卡',
   stolenTitle: '偷出金额',
+  moodTitle: '今日精神状态', receiptTitle: '下班小票', lunchTitle: '今天吃什么',
+  hopesTitle: '盼头清单', pastureTitle: '工位小牧场', converterTitle: '工资换算器',
 };
 type Tab = 'look' | 'income' | 'records' | 'data';
 const taskNode = (id: string) => document.querySelector(`[data-task-id="${CSS.escape(id)}"]`);
@@ -253,6 +255,7 @@ export function App() {
             <div className="settings-pane" hidden={tab !== 'look'}>
               <Appearance
                 background={board.background}
+                fun={board.fun}
                 setBackground={(background) => saveBoard({ ...board, background })}
                 resetBoard={() => void saveBoard({ ...board, items: defaultBoard().items }).then(() => fx('module-add', document.querySelector('.board')))}
                 notify={notify}

@@ -151,3 +151,28 @@
 [data-theme='dark'] .bg-swatch.bg-upload::before { content: ''; position: absolute; inset: 0; background: rgba(6, 14, 10, 0.72); pointer-events: none; }
 /* The header sits on the scene; overlay panels retain their own palette. */
 [data-theme='dark'] .brand, [data-theme='dark'] .board-empty { --c-ink: #edf4ef; --c-ink-2: #d2ded6; --c-muted: #b9cbbf; color: var(--c-ink); }
+
+/* Earned scenes use the same motion switch and reduced-motion rules as presets. */
+.sc-cloud-rest { background:linear-gradient(160deg,#fcebd7,#dff2fa 55%,#e7e0ff); }
+.sc-cloud-rest .sc-sun { top:8%; right:16%; }
+.reward-float { top:35%; left:18%; font-size:9cqmin; animation:reward-bob 9s ease-in-out infinite alternate; }
+.reward-caption { bottom:12%; right:10%; font:600 2.5cqmin sans-serif; color:#76859d; letter-spacing:.2em; }
+.sc-deep-rest { background:radial-gradient(ellipse at 40% 0,#247b91,#123e68 48%,#12283f); }
+.reward-rays { inset:-30%; background:conic-gradient(from 150deg at 50% 0,transparent,#87dfda22 8deg,transparent 18deg,#8cdcd511 30deg,transparent 44deg); animation:reward-rays 20s ease-in-out infinite alternate; }
+.reward-jelly { font-size:10cqmin; filter:drop-shadow(0 0 20px #a4e3e8); animation:reward-bob 12s ease-in-out infinite alternate; }
+.reward-jelly.j1 { top:25%; left:18%; }
+.reward-jelly.j2 { bottom:16%; right:12%; font-size:7cqmin; animation-delay:-5s; }
+.reward-bubbles { bottom:5%; left:45%; color:#bceff3; font-size:8cqmin; opacity:.35; animation:reward-bubbles 25s linear infinite; }
+.reward-seabed { bottom:-15%; inset-inline:-10%; height:30%; border-radius:50%; background:#10283c; }
+.sc-galaxy-off { background:radial-gradient(ellipse at 70% 30%,#513b78,#232d56 45%,#131a30); }
+.reward-stars { inset:0; background:radial-gradient(circle,#fff 0 1px,transparent 2px) 0 0/14cqw 12cqh,radial-gradient(circle,#c4b3ed 0 1px,transparent 2px) 6cqw 7cqh/19cqw 16cqh; opacity:.65; animation:reward-twinkle 8s ease-in-out infinite alternate; }
+.reward-orbit { width:70cqw; height:24cqw; border:1px solid #d8c9ff22; border-radius:50%; left:20%; top:22%; transform:rotate(-22deg); }
+.reward-planet { top:12%; right:12%; font-size:16cqmin; animation:reward-bob 18s ease-in-out infinite alternate; }
+.reward-ship { bottom:20%; left:12%; font-size:6cqmin; animation:reward-flight 45s ease-in-out infinite alternate; }
+@keyframes reward-bob { from { translate:0 -1cqmin; rotate:-3deg; } to { translate:0 3cqmin; rotate:3deg; } }
+@keyframes reward-rays { to { rotate:8deg; opacity:.6; } }
+@keyframes reward-bubbles { from { translate:0 15cqh; opacity:0; } 20% { opacity:.35; } to { translate:3cqw -85cqh; opacity:0; } }
+@keyframes reward-twinkle { to { opacity:.25; } }
+@keyframes reward-flight { to { translate:50cqw -12cqh; } }
+[data-theme='dark'] .sc-cloud-rest { background:linear-gradient(160deg,#322d3e,#203746 55%,#302b49); }
+[data-theme='dark'] .sc-cloud-rest .reward-caption { color:#b5c5db; }

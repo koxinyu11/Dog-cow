@@ -55,14 +55,14 @@ test('every background theme key is valid, unknown keys are rejected', () => {
 });
 
 
-test('default home includes every module once and removed cards remain a valid saved choice', () => {
+test('default home keeps original nine cards and new fun cards stay optional', () => {
   const board = defaultBoard();
-  assert.deepEqual([...board.items.map((item) => item.id)].sort(), [...MODULE_IDS].sort());
+  assert.deepEqual([...board.items.map((item) => item.id)].sort(), MODULE_IDS.filter(id => !['mood','receipt','lunch','hopes','pasture','converter'].includes(id)).sort());
   for (const columns of [12, 6]) {
     assert.equal(overlaps(pack(board.items, columns)), false);
   }
   const customized = { ...board, items: board.items.filter((item) => item.id !== 'calendar') };
   assert.equal(validBoard(customized, keys), true);
   assert.equal(customized.items.some((item) => item.id === 'calendar'), false);
-  assert.equal(defaultBoard().items.length, MODULE_IDS.length);
+  assert.equal(defaultBoard().items.length, 9);
 });
