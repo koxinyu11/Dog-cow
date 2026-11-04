@@ -2,6 +2,10 @@ name: Publish desktop release
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - README.md
+      - docs/**
+      - .github/workflows/release.yml
   workflow_dispatch:
 permissions:
   contents: read

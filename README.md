@@ -6,7 +6,7 @@
 
 给打工狗和上班牛的桌面搭子：记待办、养小牛，顺便看看今天赚了几口草。
 
-[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.0.0-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.0/DogCow-arm64-3.0.0.dmg)
+[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.0.1-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.1/DogCow-arm64-3.0.1.dmg)
 [![所有版本](https://img.shields.io/badge/所有版本-Releases-343b36?style=for-the-badge&logo=github&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases)
 
 [怎么安装](#下载安装) &nbsp; · &nbsp; [能做什么](#主要功能) &nbsp; · &nbsp; [最近更新](#最新版更新) &nbsp; · &nbsp; [常见问题](#常见问题) &nbsp; · &nbsp; [技术栈](#技术栈) &nbsp; · &nbsp; [隐私说明](#隐私说明)
@@ -17,13 +17,13 @@
 
 ## 下载安装
 
-**Mac · Apple Silicon（M 系列芯片） · v3.0.0**
+**Mac · Apple Silicon（M 系列芯片） · v3.0.1**
 
 | 安装方式 | 下载 | 怎么装 |
 | :--- | :--- | :--- |
-| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.0/DogCow-arm64-3.0.0.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
-| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.0/DogCow-darwin-arm64-3.0.0.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
-| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.0/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
+| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.1/DogCow-arm64-3.0.1.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
+| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.1/DogCow-darwin-arm64-3.0.1.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
+| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.1/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
 
 > 本次仅提供 **Apple Silicon（arm64）** 安装包，暂不提供 Intel Mac 和 Windows 包。安装包采用本地测试签名，尚未完成 Apple Developer ID 签名和公证；若 macOS 阻止打开，请先确认来源，再查看“系统设置 → 隐私与安全性”的允许打开选项。
 
@@ -49,7 +49,7 @@ npm run dev
 
 早上打开狗牛，把今天要啃的活儿列好。做完一件，小牛就离草地近一点；忙累了，看看收入时钟和下班倒计时——今天的草料，心里有数。
 
-以下为 v3.0.0 功能。
+以下为 v3.0.1 功能。
 
 | | 狗牛能帮你 | 怎么用 |
 | :---: | :--- | :--- |
@@ -64,22 +64,20 @@ npm run dev
 
 ## 最新版更新
 
-### v3.0.0 · 已发布
+### v3.0.1 · 已发布
 
-小牛搬进新工位，这次带来了：
+这一版让工位更好改、更好收，也更懂午饭：
 
-- **工位随你摆**：九类首页卡片支持拖动、缩放和移除，小卡片也能查看完整内容。
-- **白天黑夜都能上班**：新增浅色、暗黑和跟随系统模式，支持主题背景与自定义卡片颜色。
-- **草料按月算，也能按天算**：新增“包月上班”和“按天营业”，支持开启“算算到手”估算税后月薪。
-- **早到的牛，也有记录**：提前上班开始累计，每日收入封顶；下班补齐当日应得金额，差额计入偷出金额，不额外增加工资。
-- **点起来更顺手**：统一日期、时间和下拉选择样式，加载时由小牛走向草丛，数据就绪再开吃。
-- **修修围栏**：修复设置按钮重叠和金额卡片裁切，换上新应用图标。
+- **点图标改内容**：点击每个模块左上角图标，会打开该模块的独立内容编辑窗口，不再把图标本身当作修改项。
+- **一键收成长条**：窗口右上角新增收起按钮，缩成只显示“狗牛”的横条，需要时再一键展开。
+- **新增“热量爆表”**：可从模块库加入，与“今天吃什么”联动；确认餐食后自动显示常见单人份的估算热量。
+- **旧数据继续可用**：任务、排班、工资、卡片布局和已有趣味模块数据格式保持兼容。
 
-[查看完整发布说明](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.0)
+[查看完整发布说明](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.1)
 
 ## 技术栈
 
-v3.0.0 采用以下技术：
+v3.0.1 采用以下技术：
 
 | 层级 | 技术 |
 | :--- | :--- |
@@ -91,7 +89,7 @@ v3.0.0 采用以下技术：
 
 ## 隐私说明
 
-以下说明针对当前 v3.0.0 源码实现。
+以下说明针对当前 v3.0.1 源码实现。
 
 - **数据留在本机**：任务、薪资、考勤和设置保存在本机文件中；当前未提供账号系统或云同步，未接入使用行为统计或广告追踪。
 - **联网用途明确**：中国调休日历会从 GitHub / jsDelivr 获取对应年份的公共日历，请求不附带你的任务、薪资或考勤数据。点击发布页或政策来源链接时，会交由系统浏览器打开，对方网站会接收到正常访问请求。
@@ -105,7 +103,7 @@ v3.0.0 采用以下技术：
 <details>
 <summary><strong>下载链接打不开，或者下载失败怎么办？</strong></summary>
 
-可以从 [Releases 页面](https://github.com/koxinyu11/Dog-cow/releases) 展开对应版本的 Assets，选择 `DogCow-arm64-3.0.0.dmg` 或 `DogCow-darwin-arm64-3.0.0.zip`。下载中断时请重新下载并完整解压，仍有问题可在 Issues 反馈。
+可以从 [Releases 页面](https://github.com/koxinyu11/Dog-cow/releases) 展开对应版本的 Assets，选择 `DogCow-arm64-3.0.1.dmg` 或 `DogCow-darwin-arm64-3.0.1.zip`。下载中断时请重新下载并完整解压，仍有问题可在 Issues 反馈。
 
 </details>
 
@@ -119,21 +117,21 @@ v3.0.0 采用以下技术：
 <details>
 <summary><strong>支持 Windows 和 Intel Mac 吗？</strong></summary>
 
-v3.0.0 本次只提供 Apple Silicon（M 系列芯片）的 Mac 安装包。Intel Mac 与 Windows 安装包暂未发布，请勿下载 arm64 包用于这些设备。
+v3.0.1 本次只提供 Apple Silicon（M 系列芯片）的 Mac 安装包。Intel Mac 与 Windows 安装包暂未发布，请勿下载 arm64 包用于这些设备。
 
 </details>
 
 <details>
 <summary><strong>旧版怎么升级到 3.0？</strong></summary>
 
-先在旧版导出备份，再下载安装 v3.0.0，通过“设置 → 迁移备份”导入并核对结果。新旧版本数据不会自动互通；确认迁移成功前，保留旧应用和原数据。当前未启用自动安装更新。
+先在旧版导出备份，再下载安装 v3.0.1，通过“设置 → 迁移备份”导入并核对结果。新旧版本数据不会自动互通；确认迁移成功前，保留旧应用和原数据。当前未启用自动安装更新。
 
 </details>
 
 <details>
 <summary><strong>新版首页没有收入、工时和打卡卡片，在哪里打开？</strong></summary>
 
-v3.0.0 默认展示九类卡片。若已移除卡片，可在“设置 → 首页模块”重新开启；隐藏卡片不会清除对应数据。
+v3.0.1 默认展示九类卡片；“热量爆表”等附加卡片可从模块库加入。隐藏或移除卡片不会清除对应数据。
 
 </details>
 
@@ -147,7 +145,7 @@ v3.0.0 默认展示九类卡片。若已移除卡片，可在“设置 → 首�
 <details>
 <summary><strong>数据保存在哪里？更新后会自动同步吗？</strong></summary>
 
-v3.0.0 的任务与设置自动保存在本机，支持备份和导入。旧版、浏览器预览与新版的数据不会自动互通，换设备或切换大版本前请先备份，再按[迁移步骤](docs/REFERENCE.md#数据与迁移)操作。若提示未保存，请先重试保存，再退出应用。
+v3.0.1 的任务与设置自动保存在本机，支持备份和导入。旧版、浏览器预览与新版的数据不会自动互通，换设备或切换大版本前请先备份，再按[迁移步骤](docs/REFERENCE.md#数据与迁移)操作。若提示未保存，请先重试保存，再退出应用。
 
 </details>
 
