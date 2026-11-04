@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { setTimeout as delay } from 'node:timers/promises';
 import {
   cp,
   lstat,
@@ -16,6 +17,27 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const run = promisify(execFile);
+
+// hdiutil create can fail transiently with EBUSY on hosted macOS runners.
+// Retry only that exact failure, never timeouts, signing errors or verification failures.
+export async function createDmgImage({ contents, image, name }, execute = run, wait = delay) {
+  const args = ['create', '-ov', '-volname', name, '-srcfolder', contents,
+    '-fs', 'HFS+', '-format', 'UDZO', image];
+  const backoff = [2000, 5000];
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await execute('/usr/bin/hdiutil', args, { timeout: 180_000 });
+      return;
+    } catch (error) {
+      const busy = !error?.killed && !error?.signal
+        && /hdiutil:\s*create failed - Resource busy/i.test(String(error?.stderr || ''));
+      if (!busy || attempt === 2) throw error;
+      console.warn(`[dmg:create] Resource busy; retry ${attempt + 1}/2 in ${backoff[attempt]}ms.`);
+      await wait(backoff[attempt]);
+    }
+  }
+}
+
 
 // Build beside the destination and publish only after read-only verification.
 // No third-party image parser or Finder automation is needed.
@@ -56,11 +78,7 @@ export async function makeDmg({ app, output, name = '狗牛' }) {
       verbatimSymlinks: true,
     });
     await symlink('/Applications', path.join(contents, 'Applications'));
-    await run(
-      '/usr/bin/hdiutil',
-      ['create', '-volname', name, '-srcfolder', contents, '-format', 'UDZO', image],
-      { timeout: 180_000 },
-    );
+    await createDmgImage({ contents, image, name });
     await run('/usr/bin/hdiutil', ['verify', image], { timeout: 120_000 });
     await mkdir(mount);
     await run(

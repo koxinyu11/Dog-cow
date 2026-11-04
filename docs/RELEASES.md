@@ -8,6 +8,8 @@
 
 自动发布仅测试并构建 Mac arm64，失败则停止公开发布。构建完成后，发布任务创建草稿、上传 arm64 的 DMG、ZIP 及 SHA256SUMS.txt，确认所有附件上传完成且 GitHub 提供 SHA-256，再转为正式版并标记 latest。失败的草稿保持不可作为最新正式版分发，不用部分包替代完整发布。
 
+DMG 使用 HFS+ 文件系统；仅针对 hdiutil create 的 Resource busy 最多尝试 3 次，间隔 2 秒、5 秒。超时、其他错误及完整性或签名校验失败立即停止，不发布候选。
+
 Mac 候选仍使用 ad-hoc 签名及现有 DMG 校验，不代表 Developer ID 签名或 Apple 公证。Windows 产物为安装器；运行与安装验收需在 Windows 执行。
 
 `.github/workflows/build.yml` 保留 PR 的 Mac arm64 检查及手动构建；手动勾选 mac_intel 可增加 Intel 包，勾选 windows 可增加 Windows 安装包。main 自动发布不再构建这两个目标，避免等待未使用的平台。
