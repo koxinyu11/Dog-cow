@@ -4,6 +4,9 @@ module.exports = {
     name: '狗牛',
     executableName: process.platform === 'win32' ? 'DogCow' : '狗牛',
     appBundleId: 'app.dogcow.desktop',
+    ...(process.env.DOGCOW_ELECTRON_ZIP_DIR
+      ? { electronZipDir: process.env.DOGCOW_ELECTRON_ZIP_DIR }
+      : {}),
     asar: true,
     icon: path.join(__dirname, 'assets', '狗牛'),
     prune: true,
