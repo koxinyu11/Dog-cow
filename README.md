@@ -6,7 +6,7 @@
 
 给打工狗和上班牛的桌面搭子：记待办、养小牛，顺便看看今天赚了几口草。
 
-[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.0.2-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.2/DogCow-arm64-3.0.2.dmg)
+[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.0.8-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.8/DogCow-arm64-3.0.8.dmg)
 [![所有版本](https://img.shields.io/badge/所有版本-Releases-343b36?style=for-the-badge&logo=github&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases)
 
 [怎么安装](#下载安装) &nbsp; · &nbsp; [能做什么](#主要功能) &nbsp; · &nbsp; [最近更新](#最新版更新) &nbsp; · &nbsp; [常见问题](#常见问题) &nbsp; · &nbsp; [技术栈](#技术栈) &nbsp; · &nbsp; [隐私说明](#隐私说明)
@@ -17,17 +17,17 @@
 
 ## 下载安装
 
-**Mac · Apple Silicon（M 系列芯片） · v3.0.2**
+**Mac · Apple Silicon（M 系列芯片） · v3.0.8**
 
 | 安装方式 | 下载 | 怎么装 |
 | :--- | :--- | :--- |
-| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.2/DogCow-arm64-3.0.2.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
-| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.2/DogCow-darwin-arm64-3.0.2.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
-| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.2/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
+| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.8/DogCow-arm64-3.0.8.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
+| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.8/DogCow-darwin-arm64-3.0.8.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
+| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.8/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
 
 > 本次仅提供 **Apple Silicon（arm64）** 安装包，暂不提供 Intel Mac 和 Windows 包。安装包采用本地测试签名，尚未完成 Apple Developer ID 签名和公证；若 macOS 阻止打开，请先确认来源，再查看“系统设置 → 隐私与安全性”的允许打开选项。
 
-**旧版用户先备份：** 在原版本导出备份，再通过新版“设置 → 迁移备份”导入。确认导入结果前，请保留原应用和原数据。当前更新需手动下载。
+**旧版用户先备份：** 在原版本导出备份，再通过新版“设置 → 迁移备份”导入。确认导入结果前，请保留原应用和原数据。正式版会自动检查并下载更新，也可在“设置 → 迁移备份 → 版本与更新”中重试；下载完成后仍需手动安装。安装后从“应用程序”打开，并推出安装镜像。
 
 <details>
 <summary><strong>想从源码启动？</strong></summary>
@@ -42,6 +42,8 @@ npm run dev
 ```
 
 已有旧版数据时，请先备份。新版与旧版不会自动共享数据，迁移步骤见[使用参考](docs/REFERENCE.md#数据与迁移)。
+
+开发实例使用独立的 `DogCow-dev` 数据目录，不下载正式版更新。请用 `npm run dev` 启动，无需保留 `build/`、`out/` 中的旧打包应用。正式版与开发实例可以分别保留；遇到启动冲突时，不要为了启动开发版而强制关闭正式版。
 
 </details>
 
@@ -64,7 +66,11 @@ npm run dev
 
 ## 最新版更新
 
-### v3.0.2 · 已发布
+### v3.0.8 · 当前正式版
+
+提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。更新下载失败时，可从 [v3.0.8 发布页](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.8) 手动下载；具体改动见发布页的完整变更记录。
+
+### v3.0.2 · 历史更新
 
 这一版让午饭和热量记录更贴近实际：
 
@@ -89,10 +95,11 @@ v3.0.2 采用以下技术：
 
 ## 隐私说明
 
-以下说明针对当前 v3.0.2 源码实现。
+以下说明依据当前仓库源码中的存储、网络与权限实现。
 
 - **数据留在本机**：任务、薪资、考勤和设置保存在本机文件中；当前未提供账号系统或云同步，未接入使用行为统计或广告追踪。
 - **联网用途明确**：中国调休日历会从 GitHub / jsDelivr 获取对应年份的公共日历，请求不附带你的任务、薪资或考勤数据。点击发布页或政策来源链接时，会交由系统浏览器打开，对方网站会接收到正常访问请求。
+- **更新检查与下载**：正式版启动后会检查 GitHub Releases，并定期检查新版本；发现适配安装包时自动下载，安装前校验大小与 SHA-256。请求不附带任务、薪资或考勤数据，安装仍由你手动完成。
 - **备份由你保管**：导出和迁移在本机进行，不会自动上传。数据和备份采用 JSON 格式，未做应用层加密，请勿将包含个人信息的文件公开分享。
 - **界面权限隔离**：桌面界面启用上下文隔离与沙箱，关闭 Node.js 直接访问，通过受控接口读写业务数据。
 - **卸载与删除分开**：删除应用不会自动清除本机数据。Mac 正式版数据位于 `~/Library/Application Support/DogCow/`，开发版位于 `~/Library/Application Support/DogCow-dev/`；需要清除时，请先退出应用并确认备份，再删除对应目录及自行导出的备份文件。
@@ -103,7 +110,19 @@ v3.0.2 采用以下技术：
 <details>
 <summary><strong>下载链接打不开，或者下载失败怎么办？</strong></summary>
 
-可以从 [Releases 页面](https://github.com/koxinyu11/Dog-cow/releases) 展开对应版本的 Assets，选择 `DogCow-arm64-3.0.2.dmg` 或 `DogCow-darwin-arm64-3.0.2.zip`。下载中断时请重新下载并完整解压，仍有问题可在 Issues 反馈。
+可以从 [Releases 页面](https://github.com/koxinyu11/Dog-cow/releases) 展开对应版本的 Assets，选择 `DogCow-arm64-3.0.8.dmg` 或 `DogCow-darwin-arm64-3.0.8.zip`。下载中断时请重新下载并完整解压，仍有问题可在 Issues 反馈。
+
+</details>
+
+<details>
+<summary><strong>为什么电脑上出现多个“狗牛”图标？哪些可以清理？</strong></summary>
+
+macOS 可能同时识别“应用程序”中的正式版、挂载安装镜像中的应用、源码目录 `build/` 和 `out/` 内的打包产物，以及 `~/Library/Application Support/DogCow-app-backups/` 内的旧应用备份。它们名称和图标相同，多个图标不代表同时运行了多个实例。
+
+- 日常使用保留 `/Applications/狗牛.app`，从“应用程序”启动；版本可在设置中核对。
+- 完成安装后推出“狗牛”磁盘镜像；不再需要的旧 DMG、ZIP、旧构建和旧应用备份可移到废纸篓。先核对路径、版本，并确认该副本没有运行；迁移尚未核对完成时保留旧版备份。
+- 开发时保留源码与依赖，通过 `npm run dev` 启动；旧打包产物并不是开发实例所必需的文件。
+- 清理应用副本时，不要删除 `DogCow/`、`DogCow-dev/` 业务数据目录或个人导出的数据备份。正式包实例不要为清理或开发验收而强制退出。
 
 </details>
 
@@ -117,14 +136,14 @@ v3.0.2 采用以下技术：
 <details>
 <summary><strong>支持 Windows 和 Intel Mac 吗？</strong></summary>
 
-v3.0.2 本次只提供 Apple Silicon（M 系列芯片）的 Mac 安装包。Intel Mac 与 Windows 安装包暂未发布，请勿下载 arm64 包用于这些设备。
+当前 v3.0.8 只提供 Apple Silicon（M 系列芯片）的 Mac 安装包。Intel Mac 与 Windows 安装包暂未发布，请勿下载 arm64 包用于这些设备。
 
 </details>
 
 <details>
 <summary><strong>旧版怎么升级到 3.0？</strong></summary>
 
-先在旧版导出备份，再下载安装 v3.0.2，通过“设置 → 迁移备份”导入并核对结果。新旧版本数据不会自动互通；确认迁移成功前，保留旧应用和原数据。当前未启用自动安装更新。
+先在旧版导出备份，再下载安装 v3.0.8，通过“设置 → 迁移备份”导入并核对结果。新旧版本数据不会自动互通；确认迁移成功前，保留旧应用和原数据。当前未启用自动安装更新。
 
 </details>
 
