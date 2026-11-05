@@ -1,0 +1,6 @@
+.tray-settings { padding-block: 12px; }
+.tray-settings-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.tray-preview { margin-inline-start: auto; min-width: 88px; text-align: center; font-variant-numeric: tabular-nums; }
+.tray-feedback { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-block-start: 12px; color: var(--text-muted, inherit); }
+
+.cow-mark { display: inline-block; flex: none; background: currentColor; mask: url('../../../../assets/tray-cow.svg') center / contain no-repeat; }

@@ -1,3 +1,5 @@
+import { HopeManagerLauncher } from './features/fun/HopeManagerLauncher';
+import { TraySettings } from './features/tray/TraySettings';
 import { ToiletStatus } from './features/toilet/PaidToilet';
 import { TitleChip } from './features/titles/TitleBadge';
 import { TitlesPane } from './features/titles/TitlesPane';
@@ -102,6 +104,10 @@ export function App() {
     window.addEventListener('dogcow:offwork-saved', saved);
     return () => window.removeEventListener('dogcow:offwork-saved', saved);
   }, [state?.tasks.tasks]);
+  useEffect(() => window.dogcow.openHopes(() => setSettings(false)), []);
+  useEffect(() => window.dogcow.openIncomeSettings(() => {
+    setSettings(true); setTab('income');
+  }), []);
   useEffect(() => window.dogcow.openCapsuleSettings(() => {
     setSettings(true); setTab('look');
     requestAnimationFrame(() => document.getElementById('capsule-settings')?.focus());
@@ -217,6 +223,7 @@ export function App() {
   return (
     <MenuProvider>
       <BoardContext.Provider value={{ metrics, bindings: board.bindings, bind }}>
+        <HopeManagerLauncher state={state} notify={notify} />
         <div className={`app-bg ${bg.className}`} style={bg.style} aria-hidden="true">
           {!state.compact && board.background.kind === 'preset' && <Scene preset={board.background.value} />}
         </div>
@@ -336,6 +343,7 @@ export function App() {
               ]}
             />
             <div className="settings-pane" hidden={tab !== 'look'}>
+              <TraySettings state={state} notify={notify} />
               <CapsuleSettings state={state} notify={notify} />
               <Appearance
                 background={board.background}

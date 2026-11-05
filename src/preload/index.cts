@@ -26,6 +26,10 @@ const allowed = new Set([
   'windowModeReady',
   'windowTransitionReady',
   'capsulePreferences',
+  'trayPreferences',
+  'trayPanelAction',
+  'retryTray',
+  'copyTrayDiagnostics',
   'resetCapsulePosition',
   'capsuleMenu',
   'checkUpdates',
@@ -35,6 +39,21 @@ const allowed = new Set([
   'quit',
 ]);
 const bridge: Bridge = {
+  openHopes(callback) {
+    const handler = () => callback();
+    ipcRenderer.on('dogcow:open-hopes', handler);
+    return () => ipcRenderer.removeListener('dogcow:open-hopes', handler);
+  },
+  openIncomeSettings(callback) {
+    const handler = () => callback();
+    ipcRenderer.on('dogcow:open-income-settings', handler);
+    return () => ipcRenderer.removeListener('dogcow:open-income-settings', handler);
+  },
+  trayPanel(callback) {
+    const handler = (_event: Electron.IpcRendererEvent, value: import('../shared/tray.js').TrayPanelEvent) => callback(value);
+    ipcRenderer.on('dogcow:tray-panel', handler);
+    return () => ipcRenderer.removeListener('dogcow:tray-panel', handler);
+  },
   invoke(method: Method, payload = {}) {
     if (!allowed.has(method)) return Promise.reject(Error('不允许的操作。'));
     return ipcRenderer.invoke(`dogcow:${method}`, payload);

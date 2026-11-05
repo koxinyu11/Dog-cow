@@ -1,3 +1,4 @@
+import { sortedHopes } from '../../../shared/hope-summary';
 import { useState, type CSSProperties } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import type { ModuleCtx } from '../../board/modules';
@@ -13,9 +14,6 @@ const weekday = (date: string) => `周${WEEK[new Date(`${date}T12:00:00`).getDay
 const quip = (days: number) => days > 30 ? '熬着吧' : days > 7 ? '快了快了' : days > 1 ? '已经闻到味了' : days === 1 ? '明天！' : days === 0 ? '就是今天！' : '已经过去啦';
 
 type Item = { hope: Hope; at: ReturnType<typeof hopeDate> };
-/** Upcoming first (nearest on top), then dates waiting for holiday data, then past one-off hopes. */
-const rank = (item: Item) => !item.at ? 1e6 : item.at.days < 0 ? 2e6 - item.at.days : item.at.days;
-
 const dayText = (at: Item['at']) => !at ? '待定' : at.days === 0 ? '今天' : at.days < 0 ? `过 ${-at.days} 天` : `${at.days} 天`;
 const icon = (hope: Hope) => hope.emoji ?? '✨';
 
@@ -26,7 +24,7 @@ export function HopesCard({ ctx, busy, run }: { ctx: ModuleCtx; busy: boolean; r
   const fun = state.board.fun ?? defaultFun();
   const holidays = state.hopeHolidays ?? [];
   const [open, setOpen] = useState(false);
-  const items: Item[] = fun.hopes.map(hope => ({ hope, at: hopeDate(hope, today, holidays) })).sort((a, b) => rank(a) - rank(b));
+  const items: Item[] = sortedHopes(fun.hopes, today, holidays);
   const index = Math.max(0, items.findIndex(item => item.hope.id === fun.pinned));
   const pin = (id: string) => { if (!busy && id !== fun.pinned) void run({ action: 'pin', id }); };
   const view: View = {
@@ -161,7 +159,7 @@ function HopeTile({ item, onClick }: { item: Item; onClick: () => void }) {
 
 const REPEAT_CHOICES: [HopeRepeat | '', string][] = [['', '不重复'], ['week', '每周'], ['month', '每月'], ['year', '每年']];
 
-function HopeManager({ ctx, busy, run, onClose }: { ctx: ModuleCtx; busy: boolean; run: (p: Fields) => Promise<Result | null>; onClose: () => void }) {
+export function HopeManager({ ctx, busy, run, onClose }: { ctx: Pick<ModuleCtx, 'state' | 'today'>; busy: boolean; run: (p: Fields) => Promise<Result | null>; onClose: () => void }) {
   const { state, today } = ctx;
   const fun = state.board.fun ?? defaultFun();
   const holidays = state.hopeHolidays ?? [];

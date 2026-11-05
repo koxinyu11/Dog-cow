@@ -1,3 +1,7 @@
+import { traySummary } from '../shared/tray-summary.js';
+import { TrayPanelController } from './tray-panel-controller.js';
+import { TrayController } from './tray-controller.js';
+import { trayView, isTrayDisplay, TRAY_ERRORS, trustedPanelCommand, type TrayPanelData, type TrayDisplay } from '../shared/tray.js';
 import { TOILET_KEY, changeToilet, reviewToilet, endToilet } from '../../app/income/src/paid-toilet.js';
 import { TOILET_ERRORS } from '../shared/toilet-command.js';
 import { createUpdateFetch } from './update-transport.js';
@@ -105,6 +109,10 @@ let layout: Layout = {
 };
 let board: Board = defaultBoard();
 let revisions = { tasks: 0, income: 0, home: 0 };
+let trayController: TrayController | undefined;
+let trayPanel: TrayPanelController | undefined;
+let panelSequence = 0;
+let panelError: { errorCode: string; correlationId: string } | undefined;
 let windows: WindowController;
 let windowStore: WindowStateStore;
 let quitting = false;
@@ -154,6 +162,7 @@ function hopeHolidays() {
 function snapshot(): Snapshot {
   const windowState = windows?.snapshot() ?? { ...windowStore.value, phase: 'idle' as const, dirty: windowStore.dirty, warning: windowStore.warning };
   return {
+    tray: trayController ? { ...trayController.state, ...panelError } : undefined,
     compact: windowState.mode === 'capsule',
     window: windowState,
     sequence: ++sequence,
@@ -171,8 +180,41 @@ function snapshot(): Snapshot {
     updates: releaseUpdater ? { ...releaseUpdater.state } : undefined,
   };
 }
+function panelData(): TrayPanelData {
+  return { sequence: ++panelSequence, view: trayView({ income, tasks, taskError }, windowStore.value.tray?.display ?? 'icon'),
+    summary: traySummary({ income, tasks, taskError, board, hopeHolidays: hopeHolidays() }),
+    configured: !!income.settings, calculationError: !!income.calculationError,
+    revision: windowStore.value.revision, dirty: windowStore.dirty, warning: windowStore.warning,
+    correlationId: windowStore.correlationId, canSwitch: windows.phase === 'idle' && !quitPending && !quitting,
+    tray: trayController ? { ...trayController.state, ...panelError } : undefined,
+    theme: nativeTheme.shouldUseDarkColors ? 'dark' : 'light' };
+}
 function broadcast() {
+  if (trayController && income) trayController.update(trayView({ income, tasks, taskError }, windowStore.value.tray?.display ?? 'icon'));
+  trayPanel?.publish();
   if (win && !win.isDestroyed()) win.webContents.send('dogcow:state', snapshot());
+}
+function revealWindow() {
+  if (!win || win.isDestroyed()) return;
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+}
+async function setTrayDisplay(display: unknown, expectedRevision?: unknown): Promise<Result> {
+  const errorCode = !isTrayDisplay(display) ? 'TRAY_INVALID_INPUT' : expectedRevision !== undefined && expectedRevision !== windowStore.value.revision ? 'TRAY_REVISION_CONFLICT' : undefined;
+  if (errorCode) {
+    const correlationId = randomUUID();
+    console.warn(JSON.stringify({ operation: 'tray', stage: 'preferences', errorCode, correlationId, revision: windowStore.value.revision }));
+    return { ...toastResult(TRAY_ERRORS[errorCode]), errorCode, correlationId, snapshot: snapshot() };
+  }
+  windowStore.update({ tray: { display: display as TrayDisplay } });
+  broadcast();
+  // Explicit selection also retries a previous failed write, preserving corrupt originals.
+  if (windowStore.warning) windowStore.dirty = true;
+  const persisted = await windowStore.flush(true);
+  broadcast();
+  return { applied: true, persisted, message: persisted ? '' : TRAY_ERRORS.TRAY_SAVE_FAILED,
+    ...(!persisted ? { errorCode: 'TRAY_SAVE_FAILED', correlationId: windowStore.correlationId } : {}), snapshot: snapshot() };
 }
 function restoreModels() {
   taskError = '';
@@ -345,6 +387,18 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     return toastResult('');
   }
   if (method === 'bootstrap') return { ...toastResult(''), snapshot: snapshot() };
+  if (method === 'trayPreferences') {
+    if (Object.keys(p).some(key => !['display', 'expectedWindowRevision', 'requestId'].includes(key)) || !Number.isSafeInteger(p.expectedWindowRevision)) return toastResult(TRAY_ERRORS.TRAY_INVALID_INPUT);
+    return setTrayDisplay(p.display, p.expectedWindowRevision);
+  }
+  if (method === 'retryTray') { panelError = undefined; trayController?.initialize(); broadcast(); return { ...toastResult(''), snapshot: snapshot() }; }
+  if (method === 'copyTrayDiagnostics') {
+    clipboard.writeText(JSON.stringify({ version: app.getVersion(), platform: process.platform, arch: process.arch,
+      tray: { ...trayController?.state, ...panelError }, display: windowStore.value.tray?.display ?? 'icon', visible: win?.isVisible(),
+      revision: windowStore.value.revision, dirty: windowStore.dirty, warning: windowStore.warning,
+      storageCorrelationId: windowStore.correlationId }, null, 2));
+    return toastResult('已复制诊断信息。');
+  }
   if (method === 'capsulePreferences') return windows.preferences(p);
   if (method === 'resetCapsulePosition') return windows.resetPosition();
   if (method === 'capsuleMenu') { windows.menu(); return toastResult(''); }
@@ -803,6 +857,7 @@ async function doQuit() {
   if (!repo.readError) titles.settle();
   const saved = (!repo.dirty || (await repo.flush())) && await windows.flush();
   if (!flushed || !saved) {
+    revealWindow();
     const answer = await dialog.showMessageBox(win, {
       type: 'warning',
       buttons: ['取消退出', '重试保存', '放弃未保存修改并退出'],
@@ -816,6 +871,8 @@ async function doQuit() {
   }
   quitting = true;
   controller.destroy();
+  trayPanel?.dispose();
+  trayController?.dispose();
   app.quit();
 }
 async function checkUpdates(): Promise<Result> {
@@ -904,8 +961,39 @@ async function start() {
     callback(false),
   );
   for (const method of methods)
-    ipcMain.handle(`dogcow:${method}`, (event, payload: unknown) => {
+    ipcMain.handle(`dogcow:${method}`, async (event, payload: unknown) => {
       const url = event.senderFrame?.url ?? '';
+      if (trayPanel?.owns(event.sender)) {
+        if (event.senderFrame !== event.sender.mainFrame || !trustedPanelCommand(method, url, devUrl) || !validPayload(payload ?? {})) return toastResult('操作来源或参数无效。');
+        const p = (payload ?? {}) as Fields;
+        if (method === 'bootstrap') return { ...toastResult(''), trayPanel: panelData() };
+        if (method === 'trayPanelAction') {
+          if (p.action === 'ready') { trayPanel.acknowledgeReady(); return toastResult(''); }
+          if (p.action === 'resize') { trayPanel.resize(p.height); return toastResult(''); }
+          if (p.action === 'hide') { trayPanel.hide(); return toastResult(''); }
+          if (p.action === 'quit') { trayPanel.hide(true); setImmediate(() => void requestQuit()); return toastResult(''); }
+          if (p.action === 'open' || p.action === 'settings' || p.action === 'hopes') {
+            revealWindow();
+            const result = await windows.request('expanded');
+            if (p.action === 'hopes' && result.applied) win?.webContents.send('dogcow:open-hopes');
+            if (p.action === 'settings' && result.applied) win?.webContents.send('dogcow:open-income-settings');
+            if (result.message) void dialog.showMessageBox(win!, { message: result.message });
+            return { ...result, snapshot: undefined };
+          }
+          return toastResult('操作无效。');
+        }
+        const job = commands.then(async () => {
+          const result = await invoke(method, p);
+          const { snapshot: _snapshot, ...safe } = result;
+          return { ...safe, trayPanel: panelData() };
+        }).catch(error => {
+          const correlationId = randomUUID();
+          console.error(JSON.stringify({ operation: 'trayPanel', stage: 'command', errorCode: 'TRAY_PANEL_FAILED', correlationId, cause: error instanceof Error ? error.name : 'unknown' }));
+          return { ...toastResult(TRAY_ERRORS.TRAY_PANEL_FAILED), errorCode: 'TRAY_PANEL_FAILED', correlationId, trayPanel: panelData() };
+        });
+        commands = job;
+        return job;
+      }
       if (
         event.sender !== win?.webContents ||
         event.senderFrame !== event.sender.mainFrame ||
@@ -993,10 +1081,29 @@ async function start() {
   };
   powerMonitor.on('suspend', interruptToilet);
   powerMonitor.on('resume', interruptToilet);
+  trayPanel = new TrayPanelController({
+    preload: path.join(app.getAppPath(), 'dist-electron/src/preload/index.cjs'),
+    url: devUrl ? `${devUrl}/?surface=tray` : 'dogcow://app/index.html?surface=tray',
+    data: panelData,
+    environment: () => ({ dockVisible: app.dock?.isVisible(), mainVisible: win?.isVisible(),
+      mainFocused: win?.isFocused(), mainAlwaysOnTop: win?.isAlwaysOnTop() }),
+    failed: (errorCode, correlationId) => { panelError = { errorCode, correlationId }; revealWindow(); broadcast(); },
+  });
+  trayController = new TrayController({
+    iconPath: path.join(app.getAppPath(), 'assets', 'trayTemplate.png'),
+    togglePanel: bounds => { panelError = undefined; void trayPanel?.toggle(bounds); },
+    changed: broadcast,
+    failed: revealWindow,
+  });
+  trayController.initialize();
+  app.once('will-quit', () => { trayPanel?.dispose(); trayController?.dispose(); });
   win.on('close', (event) => {
     if (!quitting) {
       event.preventDefault();
-      void requestQuit();
+      if (process.platform === 'darwin' && trayController?.state.available) {
+        if (windows.phase !== 'idle' || quitPending) return;
+        win?.hide();
+      } else void requestQuit();
     }
   });
   win.on('closed', () => {
@@ -1008,10 +1115,7 @@ async function start() {
       void requestQuit();
     }
   });
-  app.on('activate', () => {
-    win?.show();
-    win?.focus();
-  });
+  app.on('activate', revealWindow);
   win.once('ready-to-show', () => {
     win?.show();
     broadcast();

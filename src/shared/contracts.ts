@@ -159,6 +159,7 @@ export interface UpdateState {
   message: string;
 }
 export interface Snapshot {
+  tray?: import('./tray.js').TrayState;
   updates?: UpdateState;
   compact: boolean;
   window: WindowSnapshot;
@@ -177,6 +178,7 @@ export interface Snapshot {
   version: string;
 }
 export interface Result {
+  trayPanel?: import('./tray.js').TrayPanelData;
   offwork?: { income: IncomeState; date: string };
 
   applied: boolean;
@@ -214,6 +216,10 @@ export const methods = [
   'windowModeReady',
   'windowTransitionReady',
   'capsulePreferences',
+  'trayPreferences',
+  'trayPanelAction',
+  'retryTray',
+  'copyTrayDiagnostics',
   'resetCapsulePosition',
   'capsuleMenu',
   'checkUpdates',
@@ -224,6 +230,9 @@ export const methods = [
 ] as const;
 export type Method = (typeof methods)[number];
 export interface Bridge {
+  openHopes(callback: () => void): () => void;
+  openIncomeSettings(callback: () => void): () => void;
+  trayPanel(callback: (value: import('./tray.js').TrayPanelEvent) => void): () => void;
   invoke(method: Method, payload?: Fields): Promise<Result>;
   subscribe(callback: (snapshot: Snapshot) => void): () => void;
   windowTransition(callback: (transition: WindowTransition) => void): () => void;

@@ -1,3 +1,4 @@
+import { isTrayDisplay } from '../shared/tray.js';
 import { readFile, mkdir, open, rename, copyFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -8,6 +9,7 @@ export class WindowStateStore {
   value: WindowPreferences = { version: 1, revision: 0, mode: 'expanded', metric: 'countdown', alwaysOnTop: false, expanded: { bounds: { x: 100, y: 100, width: 1280, height: 820 }, maximized: false, fullscreen: false }, capsule: null };
   dirty = false;
   warning = '';
+  correlationId = '';
   private preserveOriginal = false;
   private queue: Promise<boolean> = Promise.resolve(true);
   constructor(private directory: string) {}
@@ -17,6 +19,8 @@ export class WindowStateStore {
       const v: unknown = JSON.parse(await readFile(this.file, 'utf8'));
       if (!record(v) || v.version !== 1 || !Number.isSafeInteger(v.revision) || Number(v.revision) < 0 || !isMode(v.mode) || typeof v.alwaysOnTop !== 'boolean' || !record(v.expanded) || !validRect(v.expanded.bounds) || typeof v.expanded.maximized !== 'boolean' || typeof v.expanded.fullscreen !== 'boolean' || !(v.capsule === null || (record(v.capsule) && validRect({ ...v.capsule, width: 240, height: 32 })))) throw Error('invalid preferences');
       this.value = { ...v, metric: isMetric(v.metric) ? v.metric : 'countdown' } as unknown as WindowPreferences;
+      this.value.tray = { display: record(v.tray) && isTrayDisplay(v.tray.display) ? v.tray.display : 'icon' };
+      if (v.tray !== undefined && (!record(v.tray) || !isTrayDisplay(v.tray.display))) { this.warning = 'WINDOW_PREFERENCES_INVALID'; this.preserveOriginal = true; }
       if (!isMetric(v.metric)) { this.warning = 'WINDOW_PREFERENCES_INVALID'; this.preserveOriginal = true; }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') { this.warning = 'WINDOW_PREFERENCES_INVALID'; this.preserveOriginal = true; return; }
@@ -49,10 +53,12 @@ export class WindowStateStore {
         if (await readFile(this.file, 'utf8') !== payload) throw Error('readback');
         if (this.value.revision === value.revision) this.dirty = false;
         this.warning = '';
+        this.correlationId = '';
         return true;
       } catch (error) {
         this.warning = 'WINDOW_PREFERENCES_SAVE_FAILED';
-        console.error(JSON.stringify({ operation: 'windowPreferences', stage: 'write', errorCode: this.warning, cause: (error as NodeJS.ErrnoException).code ?? 'unknown', correlationId: randomUUID() }));
+        this.correlationId = randomUUID();
+        console.error(JSON.stringify({ operation: 'windowPreferences', stage: 'write', errorCode: this.warning, cause: (error as NodeJS.ErrnoException).code ?? 'unknown', correlationId: this.correlationId }));
         await unlink(temp).catch(() => {});
         return false;
       }

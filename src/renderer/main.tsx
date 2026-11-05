@@ -1,3 +1,4 @@
+import { TrayPanel } from './features/tray/TrayPanel';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { initializeTheme } from './theme';
@@ -19,13 +20,14 @@ if (localStorage.getItem(FX_PREF_KEY) === 'off') {
   setFxEnabled(false);
   document.documentElement.classList.add('no-fx');
 }
-initializeTheme();
 const root = createRoot(document.getElementById('root')!);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
-void boot().catch(() => {
-  root.render(<LoadingScreen ready={false} onComplete={() => {}} error="狗牛无法连接本机服务。请保留本机数据并重新打开。" />);
-});
+if (new URLSearchParams(location.search).get('surface') === 'tray') {
+  document.body.classList.add('tray-panel-body');
+  root.render(<React.StrictMode><TrayPanel /></React.StrictMode>);
+} else {
+  initializeTheme();
+  root.render(<React.StrictMode><App /></React.StrictMode>);
+  void boot().catch(() => {
+    root.render(<LoadingScreen ready={false} onComplete={() => {}} error="狗牛无法连接本机服务。请保留本机数据并重新打开。" />);
+  });
+}
