@@ -1,6 +1,7 @@
 import { moodData, moodStreak, validMoodData, MOOD_REWARDS, type MoodOption } from './mood.js';
 import { addDays, localDate, record, validDate } from '../domain/tasks/model.js';
 import type { Fields } from './contracts.js';
+import { findMeal } from './meals.js';
 
 export interface FunState {
   mood: { date: string; value: number } | null;
@@ -105,7 +106,7 @@ export function hopeDate(hope: Hope, today: string, holidays: HolidayStart[]): {
 }
 
 export const defaultFun = (): FunState => ({
-  mood: null, meals: ['牛肉面', '盖浇饭', '饺子', '麻辣烫', '轻食'], noRepeat: true,
+  mood: null, meals: ['牛肉面', '盖浇饭', '饺子', '麻辣烫', '轻食', '黄焖鸡米饭', '小笼包', '兰州拉面', '寿司', '炸鸡', '皮蛋瘦肉粥', '煎饼果子'], noRepeat: true,
   lunch: { week: '', used: [], date: '', chosen: '' }, hopes: [], pinned: '', rewarded: [],
   products: [PRODUCT_PRESETS[0], PRODUCT_PRESETS[3], PRODUCT_PRESETS[6]].map(p => ({ ...p })), product: 0,
 });
@@ -116,13 +117,15 @@ export const weekendDays = (date: string) => {
 };
 export const daysUntil = (today: string, target: string) => Math.round((Date.UTC(...parts(target)) - Date.UTC(...parts(today))) / 86400000);
 function parts(date: string): [number, number, number] { const [y, m, d] = date.split('-').map(Number); return [y, m - 1, d]; }
+/** Menu size limit; the editor text limit allows MAX_MEALS lines of up to 100 characters. */
+export const MAX_MEALS = 500;
 const text = (v: unknown, max = 60): v is string => typeof v === 'string' && v.trim().length > 0 && v.length <= max;
 const strings = (v: unknown, max: number): v is string[] => Array.isArray(v) && v.length <= max && v.every(x => text(x, 100)) && new Set(v).size === v.length;
 export function validFun(v: unknown): v is FunState {
   if (!record(v) || !validMoodData(v)) return false;
   return (v.mood === null || (record(v.mood) && validDate(v.mood.date) && Number.isInteger(v.mood.value) && Number(v.mood.value) >= 0 && Number(v.mood.value) < 3))
-    && strings(v.meals, 50) && typeof v.noRepeat === 'boolean'
-    && record(v.lunch) && (v.lunch.week === '' || validDate(v.lunch.week)) && strings(v.lunch.used, 50)
+    && strings(v.meals, MAX_MEALS) && typeof v.noRepeat === 'boolean'
+    && record(v.lunch) && (v.lunch.week === '' || validDate(v.lunch.week)) && strings(v.lunch.used, MAX_MEALS + 20)
     && (v.lunch.date === '' || validDate(v.lunch.date)) && typeof v.lunch.chosen === 'string' && v.lunch.chosen.length <= 100
     && (v.lunch.servings === undefined || (typeof v.lunch.servings === 'number' && Number.isFinite(v.lunch.servings) && v.lunch.servings >= 0.1 && v.lunch.servings <= 20))
     && (v.lunch.calories === undefined || (typeof v.lunch.calories === 'number' && Number.isInteger(v.lunch.calories) && v.lunch.calories >= 0 && v.lunch.calories <= 10000))
@@ -142,6 +145,8 @@ export function lunchOptions(fun: FunState, date: string) {
 
 /** Common single-serving estimate used by the linked lunch/calorie cards. */
 export function estimateMealCalories(meal: string) {
+  const known = findMeal(meal);
+  if (known) return known.kcal;
   const rules: Array<[RegExp, number]> = [
     [/火锅|麻辣烫|冒菜/, 900],
     [/炸鸡|炸串|油炸|薯条/, 850],
@@ -190,7 +195,7 @@ export function updateFun(previous: FunState, p: Fields, now: Date): FunState {
       Object.assign(next,data); break;
     }
     case 'meals':
-      if (typeof p.value !== 'string' || p.value.length > 5050 || typeof p.noRepeat !== 'boolean') throw Error('午餐清单无效。');
+      if (typeof p.value !== 'string' || p.value.length > MAX_MEALS * 101 || typeof p.noRepeat !== 'boolean') throw Error('午餐清单无效。');
       next.meals = [...new Set(p.value.split('\n').map(x => x.trim()).filter(Boolean))]; next.noRepeat = p.noRepeat; break;
     case 'lunch':
       if (typeof p.value !== 'string' || !lunchOptions(next, today).includes(p.value)) throw Error('这道菜已选过或不在清单里，请重新抽。');

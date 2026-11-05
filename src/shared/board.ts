@@ -218,7 +218,7 @@ export const GOOD_SIZES: Record<ModuleId, SizeKey[]> = {
   calendar: ['l', 'm', 'wide'],
   stolen: ['m', 's', 'tall'],
   'paid-toilet': ['m', 'l', 'tall', 'wide', 's'],
-  mood: ['m', 'l'], lunch: ['m', 'l'], calories: ['m', 's', 'l'], hopes: ['m', 'l'], pasture: ['m', 'l'], converter: ['m', 'l'],
+  mood: ['m', 'l'], lunch: ['m', 'l', 's', 'tall', 'wide'], calories: ['m', 's', 'l'], hopes: ['m', 'l'], pasture: ['m', 'l'], converter: ['m', 'l'],
 };
 /** Lower comes first: actions and live money on top, reference views below. */
 const IMPORTANCE: ModuleId[] = ['clock', 'income', 'work-time', 'week-summary', 'next-task', 'progress', 'tasks', 'calendar', 'stolen', 'paid-toilet', 'mood', 'lunch', 'calories', 'hopes', 'pasture', 'converter'];
