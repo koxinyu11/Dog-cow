@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Briefcase, History, Square, Trash2 } from 'lucide-react';
 import { shouldCelebrateToilet, toiletRecordOnDate } from '../../../shared/toilet';
 import type { Snapshot, ToiletRecord } from '../../../shared/contracts';
@@ -17,21 +17,52 @@ type Detail = { id: string; date?: string; effectiveSeconds: number; addedSecond
 const number = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? value : 0;
 const activeRecord = (state: Snapshot) => state.income.toilet?.records.find(item => item.status !== 'completed');
 
-/** State drives the scene. Its decoration never owns the business timer. */
-function Workstation({ occupied }: { occupied: boolean }) {
-  return <svg className={`toilet-scene ${occupied ? 'is-occupied' : ''}`} viewBox="0 0 150 116" aria-hidden="true">
-    <rect x="25" y="10" width="100" height="100" rx="12" fill="var(--toilet-room)" />
-    <path d="M58 58h38v17c0 13-9 20-21 20H65V80c-9-2-14-8-14-15v-7h7Z" fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="2" />
-    <rect x="83" y="30" width="20" height="31" rx="5" fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="2" />
-    <g className="toilet-cow">
-      <path d="M51 36 44 25 56 29M78 36l7-11-12 4" fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="2" />
-      <ellipse cx="64" cy="44" rx="20" ry="17" fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="2" />
-      <ellipse cx="64" cy="51" rx="14" ry="8" fill="var(--toilet-room)" />
-      <path d="M55 41h1m15 0h1m-13 10h1m8 0h1" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+const LINES = ['人在隔间，薪在工位。', '每一秒都是老板买单。', '蹲得越久，赚得越稳。', '此刻的我，按秒计费。', '屎可以等，钱不行。', '带薪排毒，合法合规。'];
+const IDLE_LINE = '换个工位，继续领薪。';
+
+type Mode = 'idle' | 'running' | 'review' | 'off';
+
+/** Decoration only: derived from record state, never owns the business timer. */
+function Stall({ mode, seconds, coinEvery, flushing, decor = false, mine = false, iconSign = false }: { mode: Mode; seconds: number; coinEvery: number; flushing: boolean; decor?: boolean; mine?: boolean; iconSign?: boolean }) {
+  const roll = mode === 'running' ? Math.max(0, 1 - Math.floor(seconds / 300) / 3) : 1;
+  const sign = iconSign ? mode === 'running' ? '💩' : mode === 'review' ? '🧻' : mode === 'off' ? '⏸' : '✓'
+    : mode === 'running' ? '💩 使用中' : mode === 'review' ? '待核对' : mode === 'off' ? '暂停营业' : '空闲';
+  return <svg className={`toilet-scene is-${mode} ${flushing ? 'is-flushing' : ''} ${decor ? 'is-decor' : ''}`} viewBox="0 0 150 120" preserveAspectRatio="xMidYMax meet" aria-hidden="true"
+    style={{ '--coin-every': `${coinEvery}s` } as CSSProperties}>
+    <rect x="8" y="6" width="134" height="108" rx="14" fill="var(--toilet-room)" />
+    {/* toilet behind the door */}
+    <g className="toilet-bowl">
+      <rect x="66" y="40" width="26" height="22" rx="5" fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="2" />
+      <path d="M56 64h46v6c0 12-9 19-20 19h-6c-11 0-20-7-20-19Z" fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="2" />
+      <path d="M70 89v10h18V89" fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="2" />
+      <text className="toilet-flush-poop" x="79" y="74" textAnchor="middle" fontSize="13">💩</text>
     </g>
-    <g className="toilet-door"><rect x="32" y="15" width="86" height="91" rx="8" fill="var(--toilet-door)" stroke="currentColor" strokeWidth="2" /><path d="M101 64h5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></g>
-    <rect x="46" y="77" width="53" height="19" rx="6" fill="var(--toilet-porcelain)" />
-    <text x="72" y="90" textAnchor="middle" fontSize="10" fill="currentColor">{occupied ? '使用中' : '空闲'}</text>
+    {/* toilet paper roll shrinks while the timer runs */}
+    <g className="toilet-roll">
+      <path d="M112 44h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="119" cy="54" r={4 + 6 * roll} fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="2" />
+      <circle cx="119" cy="54" r="3" fill="var(--toilet-room)" stroke="currentColor" strokeWidth="1.5" />
+    </g>
+    {/* door swings closed when occupied */}
+    <g className="toilet-door">
+      <rect x="20" y="14" width="78" height="86" rx="7" fill="var(--toilet-door)" stroke="currentColor" strokeWidth="2" />
+      <circle cx="88" cy="58" r="2.5" fill="currentColor" />
+      {!decor && <g className="toilet-sign">
+        <rect x="31" y="24" width="56" height="17" rx="8.5" fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="1.5" />
+        <text x="59" y="36" textAnchor="middle" fontSize="9" fontWeight="700" fill="currentColor">{sign}</text>
+      </g>}
+      {mine && <g className="toilet-mine"><rect x="24" y="78" width="20" height="14" rx="4" fill="var(--accent, #56865b)" /><text x="34" y="88.5" textAnchor="middle" fontSize="9" fontWeight="700" fill="#fff">你</text></g>}
+    </g>
+    {/* hooves peeking under the door */}
+    <g className="toilet-hooves" fill="currentColor">
+      <rect x="44" y="100" width="11" height="8" rx="3" /><rect x="62" y="100" width="11" height="8" rx="3" />
+    </g>
+    {mode === 'running' && !decor && <g className="toilet-coins">
+      {[24, 93, 104].map((x, i) => <g key={x} className="toilet-coin" style={{ animationDelay: `calc(var(--coin-every) * ${i / 3})` }}>
+        <circle cx={x} cy="6" r="4.5" fill="#f0bf45" stroke="#a87412" strokeWidth="1.2" />
+        <text x={x} y="8.6" textAnchor="middle" fontSize="6" fontWeight="800" fill="#8a5a0e">¥</text>
+      </g>)}
+    </g>}
   </svg>;
 }
 
@@ -62,26 +93,47 @@ export function PaidToilet({ state, size, openSettings, openClock, notify }: Mod
     } catch { setError('未收到操作结果，请核对当前状态后重试。'); }
     finally { setBusy(false); }
   };
-  return <div className={`paid-toilet size-${size} ${settled ? 'has-settled' : ''}`} onAnimationEnd={() => setSettled('')}>
-    <Workstation occupied={!!running} />
+  const mode: Mode = active?.status === 'needs-review' || pending ? 'review' : running ? 'running' : !active && reason ? 'off' : 'idle';
+  const rate = currentDetail && currentDetail.addedSeconds > 0 ? currentDetail.amount / currentDetail.addedSeconds : 0;
+  const coinEvery = rate > 0 ? Math.min(4, Math.max(0.8, 0.1 / rate)) : 2.4;
+  const line = running && active ? LINES[[...active.id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % LINES.length] : IDLE_LINE;
+  const settings = state.income.settings;
+  // A blocked card turns its main action into the way out instead of adding a hint row.
+  const fix = mode !== 'off' || data?.error || state.save.readError ? null
+    : !settings || !settings.stealMode ? { label: '去设置', go: () => openSettings('income') }
+    : settings.clockMode && reason.includes('上班打卡') ? { label: '先打卡', go: () => openClock('start') } : null;
+  const today = localDate(new Date(state.income.now));
+  const todayCount = data?.records.filter(item => item.status !== 'needs-review' && toiletRecordOnDate(item, today, state.income.now)).length ?? 0;
+  const label = pending ? '记录尚未保存' : mode === 'review' ? '上次记录待核对' : running ? '本次用时' : '今日有效偷出';
+  const main = mode === 'off'
+    ? fix ? <Button size="sm" variant="primary" title={reason} onClick={fix.go}>{fix.label} →</Button> : <span className="toilet-reason" title={reason}>暂不可用</span>
+    : <button type="button" className={`toilet-poop is-${mode}`} disabled={busy || pending} onClick={() => void perform()}
+      aria-label={running ? '拉完了' : active ? '核对时间' : '拉屎'} title={running ? '拉完了' : active ? '核对时间' : '拉屎'}>
+      <span aria-hidden="true">{busy ? '⏳' : running ? '🚽' : active ? '🧻' : '💩'}</span>
+    </button>;
+  return <div className={`paid-toilet size-${size} is-${mode} ${settled ? 'has-settled' : ''}`} onAnimationEnd={event => { if (event.animationName === 'toilet-settled') setSettled(''); }}>
+    {size !== 's' && <div className="toilet-stage">
+      {size === 'tall' && <div className="toilet-lamp">{running ? '💩 使用中' : mode === 'off' ? '暂停营业' : '空闲'}</div>}
+      {size === 'wide' && <><Stall mode="running" decor seconds={0} coinEvery={0} flushing={false} /><Stall mode="idle" decor seconds={0} coinEvery={0} flushing={false} /></>}
+      <Stall mode={mode} seconds={seconds} coinEvery={coinEvery} flushing={!!settled} mine={size === 'wide'} iconSign={size === 'tall'} />
+    </div>}
     <div className="toilet-content">
-      <span className="m-label">{pending ? '记录尚未保存' : active?.status === 'needs-review' ? '上次记录待核对' : running ? '本次用时' : '今日有效偷出'}</span>
-      <strong className="toilet-timer">{active?.status === 'needs-review' ? '待核对' : duration(seconds)}</strong>
-      <span className="toilet-amount">{active ? `本次有效 ${duration(currentDetail?.addedSeconds ?? 0)} · 约 ¥${money(currentDetail?.amount ?? 0)}` : `对应约 ¥${money(number(snapshot?.toiletStolenAmount))}`}</span>
+      {size === 's' && <span className="toilet-chip">{running ? '💩 使用中' : mode === 'off' ? '暂停营业' : mode === 'review' ? '待核对' : '空闲'}</span>}
+      <span className="m-label">{label}</span>
+      <strong className="toilet-timer">{mode === 'review' ? '待核对' : duration(seconds)}</strong>
+      {error ? <span className="toilet-error" role="status">{error}</span>
+        : <span className="toilet-amount">{active ? `本次约 ¥${money(currentDetail?.amount ?? 0)}` : `约 ¥${money(number(snapshot?.toiletStolenAmount))}`}</span>}
       {running && <span className="toilet-today">今日累计 {duration(number(snapshot?.toiletStolenSeconds))} · 约 ¥{money(number(snapshot?.toiletStolenAmount))}</span>}
-      <span className="toilet-copy">{running ? '人在隔间，薪在工位。' : '换个工位，继续领薪。'}</span>
+      <span className="toilet-copy">{mode === 'off' ? reason : line}</span>
     </div>
     <div className="toilet-actions">
-      <Button variant="primary" size="sm" disabled={busy || pending || (!active && !!reason)} onClick={() => void perform()}>
-        {busy ? '保存中…' : running ? '拉完了' : active ? '核对时间' : '拉屎'}
-      </Button>
-      <Button size="sm" variant="ghost" aria-label="带薪拉屎记录详情" onClick={() => setOpen(true)}><History size={15} />详情</Button>
+      {main}
+      <Button size="sm" variant="ghost" aria-label="带薪拉屎记录详情" title="记录详情" onClick={() => setOpen(true)}><History size={15} />{size === 'tall' || size === 'wide' ? '详情' : ''}</Button>
     </div>
-    {(error || reason && !active) && <div className="toilet-error" role="status">{error || reason}
-      {!error && !data?.error && !state.save.readError && (!state.income.settings || !state.income.settings.stealMode)
-        && <Button size="sm" variant="ghost" onClick={() => openSettings('income')}>去设置</Button>}
-      {!error && state.income.settings?.clockMode && reason.includes('上班打卡') && <Button size="sm" variant="ghost" onClick={() => openClock('start')}>去打卡</Button>}
-    </div>}
+    {size === 'l' && <button type="button" className="toilet-strip" onClick={() => setOpen(true)}>
+      <span>今天</span><span className="toilet-strip-poops" aria-hidden="true">{todayCount ? '💩'.repeat(Math.min(todayCount, 8)) : '·'}</span>
+      <span>{todayCount ? `${todayCount} 次${todayCount > 8 ? ' ↑' : ''}` : '还没蹲过'}</span>
+    </button>}
     {open && <ToiletDetails state={state} onClose={() => setOpen(false)} />}
   </div>;
 }

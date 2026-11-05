@@ -1,28 +1,107 @@
+/* ── Shared pieces ── */
 .paid-toilet {
-  --toilet-room: color-mix(in srgb, var(--accent, #56865b) 15%, transparent);
-  --toilet-door: color-mix(in srgb, #56865b 28%, var(--c-surface-solid, #f5f1e8));
+  --toilet-room: color-mix(in srgb, var(--accent, #56865b) 14%, transparent);
+  --toilet-door: color-mix(in srgb, #56865b 30%, var(--c-surface-solid, #f5f1e8));
   --toilet-porcelain: var(--c-surface-solid, #fffaf1);
-  display: grid; grid-template-columns: minmax(60px, .8fr) minmax(0, 1fr); gap: 6px 10px; height: 100%; align-content: center; position: relative;
+  display: grid; gap: 6px 12px; height: 100%; min-height: 0; position: relative; container-type: inline-size;
+  grid-template-areas: "stage content" "stage actions"; grid-template-columns: minmax(56px, 34%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto;
 }
-.toilet-scene { width: 100%; max-height: 116px; align-self: center; color: var(--c-ink, #32473a); }
-.toilet-door { transform-origin: 33px 60px; transform: scaleX(.16); transition: transform 650ms cubic-bezier(.2,.7,.3,1); }
-.is-occupied .toilet-door { transform: scaleX(1); }
-.toilet-cow { transition: transform 600ms ease; }
-.is-occupied .toilet-cow { transform: translateX(8px); }
-.toilet-content { display: flex; flex-direction: column; justify-content: center; min-width: 0; gap: 3px; }
-.toilet-timer { font-variant-numeric: tabular-nums; font-size: clamp(20px, 6cqw, 38px); letter-spacing: -.035em; white-space: nowrap; }
-.toilet-amount { font-size: 12px; font-variant-numeric: tabular-nums; }
-.toilet-copy { font-size: 11px; opacity: .65; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.toilet-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.paid-toilet > .toilet-actions, .paid-toilet > .toilet-error { grid-column: 1 / -1; }
-.toilet-error { font-size: 11px; line-height: 1.4; }
-.paid-toilet.size-s { grid-template-columns: 1fr; gap: 4px; }
-.paid-toilet.size-s .toilet-scene, .paid-toilet.size-s .toilet-copy, .paid-toilet.size-s .toilet-amount { display: none; }
-.paid-toilet.size-s .toilet-timer { font-size: 24px; }
-.paid-toilet.size-m .toilet-copy { display: none; }
-.paid-toilet.size-wide { grid-template-columns: 70px minmax(0, 1fr) auto; }
-.paid-toilet.size-wide > .toilet-actions { grid-column: 3; grid-row: 1; }
-.paid-toilet.size-wide > .toilet-error { grid-column: 1 / -1; }
+.toilet-stage { grid-area: stage; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-end; min-height: 0; min-width: 0; gap: 4px; }
+.toilet-content { grid-area: content; display: flex; flex-direction: column; justify-content: center; min-width: 0; min-height: 0; gap: 2px; }
+.toilet-content > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
+.paid-toilet > .toilet-actions { grid-area: actions; }
+.toilet-scene { width: 100%; height: 100%; min-height: 0; color: var(--c-ink, #32473a); overflow: visible; }
+.is-off .toilet-scene:not(.is-decor) { opacity: .55; filter: grayscale(.7); }
+.toilet-scene.is-decor { opacity: .45; }
+.toilet-door { transform-box: fill-box; transform-origin: left center; transform: perspective(300px) rotateY(-58deg); transition: transform 650ms cubic-bezier(.2,.7,.3,1); }
+.toilet-scene.is-running .toilet-door, .toilet-scene.is-review .toilet-door, .toilet-scene.is-off .toilet-door { transform: none; }
+.toilet-sign { transform-box: fill-box; transform-origin: center top; }
+.toilet-scene.is-running:not(.is-decor) .toilet-sign { animation: toilet-sign-flip 500ms ease-out; }
+.toilet-hooves { opacity: 0; transition: opacity 300ms ease 300ms; }
+.toilet-scene.is-running .toilet-hooves { opacity: 1; animation: toilet-hooves 2.6s ease-in-out infinite; }
+.toilet-roll circle:first-of-type { transition: r 900ms ease; }
+.toilet-flush-poop { opacity: 0; }
+.is-flushing .toilet-flush-poop { animation: toilet-flush 900ms ease-in; }
+.toilet-coin { opacity: 0; animation: toilet-coin var(--coin-every, 2.4s) ease-in infinite; }
+.toilet-flush-poop, .toilet-coin { transform-box: fill-box; transform-origin: center; }
+.toilet-timer { font-variant-numeric: tabular-nums; font-size: clamp(20px, 13cqw, 34px); line-height: 1.1; letter-spacing: -.03em; }
+.toilet-amount, .toilet-error { font-size: 12px; font-variant-numeric: tabular-nums; }
+.toilet-error { color: var(--c-danger, #c62828); }
+.toilet-today { font-size: 11px; opacity: .75; }
+.toilet-copy { font-size: 11px; opacity: .65; }
+.toilet-actions { display: flex; gap: 6px; align-items: center; }
+.toilet-reason { font-size: 12px; opacity: .6; }
+.toilet-chip { align-self: flex-start; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--toilet-room); }
+.is-running .toilet-chip { background: color-mix(in srgb, #c98a3a 22%, transparent); }
+
+/* ── The poop button ── */
+.toilet-poop { --poop: 40px; width: var(--poop); height: var(--poop); flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+  font-size: calc(var(--poop) * .7); line-height: 1; background: color-mix(in srgb, #e9b86a 16%, transparent);
+  box-shadow: 0 2px 6px color-mix(in srgb, #8a5a22 18%, transparent); transition: transform 160ms ease, box-shadow 160ms ease; }
+.toilet-poop > span { display: block; animation: poop-bob 2.4s ease-in-out infinite; transform-origin: 50% 90%; }
+.toilet-poop:hover > span { animation: poop-wiggle 450ms ease-in-out infinite; }
+.toilet-poop:hover { transform: translateY(-2px) scale(1.08); }
+.toilet-poop:active { transform: scale(.88); box-shadow: none; }
+.toilet-poop:focus-visible { outline: 2px solid var(--accent, #56865b); outline-offset: 2px; }
+.toilet-poop.is-running { background: color-mix(in srgb, var(--accent, #56865b) 12%, transparent); animation: poop-ring 2s ease-out infinite; }
+.toilet-poop.is-running > span { animation: poop-shake 1.6s ease-in-out infinite; }
+.toilet-poop:disabled { cursor: default; opacity: .5; transform: none; animation: none; }
+.toilet-poop:disabled > span { animation: none; }
+
+/* ── 小 s: sign + timer + button ── */
+.paid-toilet.size-s { grid-template-areas: "content actions"; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 1fr; gap: 6px; }
+.paid-toilet.size-s > .toilet-actions { flex-direction: column; gap: 0; align-self: center; }
+.paid-toilet.size-s .toilet-actions .ui-btn { min-height: 22px; padding: 2px; }
+.paid-toilet.size-s .m-label, .paid-toilet.size-s .toilet-amount, .paid-toilet.size-s .toilet-today, .paid-toilet.size-s .toilet-copy { display: none; }
+.paid-toilet.size-s .toilet-timer { font-size: clamp(18px, 16cqw, 26px); }
+.paid-toilet.size-s .toilet-content { gap: 4px; }
+
+/* ── 中 m: half stall + two rows ── */
+.paid-toilet.size-m .toilet-copy, .paid-toilet.size-m .toilet-today { display: none; }
+
+/* ── 长 wide: three stalls in a row ── */
+.paid-toilet.size-wide { grid-template-areas: "stage content actions"; grid-template-columns: minmax(150px, 30%) minmax(0, 1fr) auto; column-gap: 20px; grid-template-rows: 1fr; }
+.paid-toilet.size-wide .toilet-stage { flex-direction: row; align-items: flex-end; gap: 4px; }
+.paid-toilet.size-wide .toilet-scene { flex: 1.4; }
+.paid-toilet.size-wide .toilet-scene.is-decor { flex: 1; height: 72%; }
+.paid-toilet.size-wide > .toilet-actions { align-self: center; }
+.paid-toilet.size-wide .toilet-actions { --poop: 48px; }
+.paid-toilet.size-wide .toilet-poop { --poop: 48px; }
+
+/* ── 竖 tall: lamp + full stall + centred info ── */
+.paid-toilet.size-tall { grid-template-areas: "stage" "content" "actions"; grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto auto; text-align: center; }
+.paid-toilet.size-tall .toilet-stage { align-items: center; }
+.paid-toilet.size-tall .toilet-scene { max-height: 150px; }
+.paid-toilet.size-tall .toilet-content { align-items: center; }
+.paid-toilet.size-tall .toilet-actions { justify-content: center; }
+.paid-toilet.size-tall .toilet-poop { --poop: 52px; }
+.toilet-lamp { align-self: center; font-size: 12px; font-weight: 700; padding: 3px 12px; border-radius: 0 0 10px 10px; background: var(--toilet-room); }
+.is-running .toilet-lamp { background: color-mix(in srgb, #e0a33f 35%, transparent); box-shadow: 0 6px 16px color-mix(in srgb, #e0a33f 40%, transparent); animation: toilet-lamp 2s ease-in-out infinite; }
+
+/* ── 大 l: full scene + numbers + today strip ── */
+.paid-toilet.size-l { grid-template-areas: "stage content" "stage actions" "strip strip"; grid-template-columns: minmax(0, 45%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto auto; }
+.paid-toilet.size-l .toilet-timer { font-size: clamp(28px, 10cqw, 44px); }
+.paid-toilet.size-l .toilet-poop { --poop: 56px; }
+.paid-toilet.size-l .toilet-stage { justify-content: center; align-items: center; }
+.paid-toilet.size-l .toilet-scene { max-height: 220px; }
+.toilet-strip { grid-area: strip; display: flex; align-items: center; gap: 8px; min-width: 0; padding: 6px 10px; border: 1px dashed var(--c-line, #d8dfd5); border-radius: 10px; background: none; color: inherit; font: inherit; font-size: 12px; cursor: pointer; text-align: left; }
+.toilet-strip:hover { background: var(--toilet-room); }
+.toilet-strip-poops { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; letter-spacing: 2px; }
+
+/* ── Motion ── */
+.has-settled .toilet-timer { animation: toilet-settled 600ms ease-out; }
+@keyframes toilet-settled { 50% { color: #56865b; transform: translateY(-3px) scale(1.04); } }
+@keyframes toilet-sign-flip { 0% { transform: rotateX(90deg); } 100% { transform: none; } }
+@keyframes toilet-hooves { 0%, 80%, 100% { transform: none; } 88% { transform: translateY(-1.5px); } }
+@keyframes toilet-coin { 0% { opacity: 0; transform: translateY(-4px) rotateY(0); } 15%, 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(30px) rotateY(360deg); } }
+@keyframes toilet-flush { 0% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translate(0, 10px) rotate(540deg) scale(.2); } }
+@keyframes toilet-lamp { 50% { filter: brightness(1.12); } }
+@keyframes poop-bob { 0%, 70%, 100% { transform: none; } 78% { transform: translateY(-4px) scaleY(1.06); } 86% { transform: scale(1.08, .9); } 92% { transform: translateY(-1px); } }
+@keyframes poop-wiggle { 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
+@keyframes poop-shake { 0%, 60%, 100% { transform: none; } 66% { transform: rotate(-8deg); } 72% { transform: rotate(8deg); } 78% { transform: rotate(-4deg); } }
+@keyframes poop-ring { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent, #56865b) 28%, transparent); } 100% { box-shadow: 0 0 0 6px transparent; } }
+@media (prefers-reduced-motion: reduce) { .paid-toilet * { transition: none !important; animation: none !important; } }
+
 .toilet-detail-toolbar, .toilet-record-heading, .toilet-pending, .toilet-confirm { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 .toilet-detail-toolbar { margin-bottom: 18px; }
 .toilet-records { display: grid; gap: 14px; }
@@ -37,10 +116,3 @@
 .toilet-pending { margin-bottom: 14px; }
 .toilet-help { margin-top: 18px; font-size: 12px; line-height: 1.6; }
 .toilet-help summary { cursor: pointer; }
-@media (max-width: 650px) { .paid-toilet.size-wide { grid-template-columns: 50px minmax(0,1fr); } .paid-toilet.size-wide > .toilet-actions { grid-column: 1 / -1; grid-row: auto; } }
-@media (prefers-reduced-motion: reduce) { .paid-toilet * { transition: none !important; animation: none !important; } }
-
-.toilet-today { font-size: 11px; opacity: .75; }
-.has-settled .toilet-amount { animation: toilet-settled 500ms ease-out; }
-@keyframes toilet-settled { 50% { color: #56865b; transform: translateY(-2px); } }
-.paid-toilet.size-s .toilet-today { display: none; }
