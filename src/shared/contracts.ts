@@ -134,6 +134,8 @@ export interface IncomeState {
 }
 export type Domain = 'tasks' | 'income' | 'home';
 export interface UpdateState {
+  errorCode?: string;
+  correlationId?: string;
   status: 'idle' | 'checking' | 'downloading' | 'ready' | 'current' | 'error';
   version: string;
   progress: number;

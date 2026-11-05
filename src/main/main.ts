@@ -1,3 +1,4 @@
+import { createUpdateFetch } from './update-transport.js';
 import { WindowStateStore } from './window-state.js';
 import { WindowController } from './window-controller.js';
 import { buildFlexDay } from '../../app/income/src/flex.js';
@@ -864,7 +865,7 @@ async function start() {
   else await win.loadURL('dogcow://app/index.html');
   if (app.isPackaged) {
     releaseUpdater = new ReleaseUpdater({ current: app.getVersion(), platform: process.platform, arch: process.arch,
-      directory: path.join(app.getPath('userData'), 'updates'), fetch: (url, options) => net.fetch(url instanceof URL ? url.href : url, options), changed: broadcast });
+      directory: path.join(app.getPath('userData'), 'updates'), fetch: createUpdateFetch(net), changed: broadcast });
     const startup = setTimeout(() => void releaseUpdater?.check(), 10000);
     const interval = setInterval(() => void releaseUpdater?.check(), 4 * 60 * 60 * 1000);
     startup.unref(); interval.unref();

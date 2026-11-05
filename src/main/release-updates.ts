@@ -1,11 +1,13 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, open, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import type { UpdateState } from '../shared/contracts.js';
 
 export const RELEASE_API = 'https://api.github.com/repos/koxinyu11/Dog-cow/releases/latest';
-class UpdateError extends Error {}
+class UpdateError extends Error {
+  constructor(message: string, readonly code?: string) { super(message); }
+}
 const MAX_PACKAGE = 2 * 1024 ** 3;
 export function versionParts(value: string): number[] | null {
   const match = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.exec(value);
@@ -38,19 +40,24 @@ export function selectRelease(raw: unknown, current: string, platform: string, a
 export class ReleaseUpdater {
   state: UpdateState = { status: 'idle', version: '', progress: 0, message: '自动检查并下载最新正式版，安装需手动完成。' };
   private job: Promise<void> | null = null;
+  private phase: 'check' | 'download' | 'verify' = 'check';
   private downloaded: { file: string; digest: string } | null = null;
   constructor(private options: { current: string; platform: string; arch: string; directory: string; fetch: typeof fetch; changed: () => void }) {}
   private set(patch: Partial<UpdateState>) { this.state = { ...this.state, ...patch }; this.options.changed(); }
   check(): Promise<void> {
     if (this.job) return this.job;
     this.job = this.run().catch((error: unknown) => {
-      console.warn('[updates:check-download]', error instanceof Error ? error.message : 'unknown');
-      this.set({ status: 'error', message: error instanceof UpdateError ? error.message : '检查或下载更新失败，请稍后重试。' });
+      const errorCode = error instanceof UpdateError && error.code ? error.code : `UPDATE_${this.phase.toUpperCase()}_FAILED`;
+      const correlationId = randomUUID();
+      console.warn(JSON.stringify({ operation: 'update', stage: this.phase, errorCode, correlationId, cause: error instanceof Error ? error.name : 'unknown' }));
+      const messages = { check: '检查更新失败，请检查网络后重试。', download: '下载更新失败，请检查网络后重试。', verify: '安装包校验失败，请重新下载。' };
+      this.set({ status: 'error', errorCode, correlationId, message: error instanceof UpdateError ? error.message : messages[this.phase] });
     }).finally(() => { this.job = null; });
     return this.job;
   }
   private async run() {
-    this.set({ status: 'checking', progress: 0, message: '正在检查最新正式版…' });
+    this.phase = 'check';
+    this.set({ status: 'checking', version: '', errorCode: undefined, correlationId: undefined, progress: 0, message: '正在检查最新正式版…' });
     const response = await this.options.fetch(RELEASE_API, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'DogCow-desktop' }, signal: AbortSignal.timeout(15000), redirect: 'error' });
     if (response.status === 404) { this.set({ status: 'current', message: '暂无正式版更新。' }); return; }
     if (!response.ok) throw new UpdateError(response.status === 403 || response.status === 429 ? '检查更新暂时受限，请稍后重试。' : '无法获取最新版本，请重试。');
@@ -76,6 +83,7 @@ export class ReleaseUpdater {
       this.set({ status: 'ready', version: release.version, progress: 100, message: '安装包已就绪，请手动安装。' });
       return;
     } catch { this.downloaded = null; }
+    this.phase = 'download';
     this.set({ status: 'downloading', version: release.version, message: '正在下载更新…' });
     const temporary = `${target}.part`;
     const file = await open(temporary, 'w');
@@ -106,7 +114,8 @@ export class ReleaseUpdater {
         const progress = Math.floor(received / release.asset.size * 100);
         if (progress !== lastProgress) { lastProgress = progress; this.set({ progress }); }
       }
-      if (received !== release.asset.size || hash.digest('hex') !== release.asset.digest.slice(7)) throw new UpdateError('安装包校验失败，请重新下载。');
+      this.phase = 'verify';
+      if (received !== release.asset.size || hash.digest('hex') !== release.asset.digest.slice(7)) throw new UpdateError('安装包校验失败，请重新下载。', 'UPDATE_INTEGRITY_FAILED');
       await file.close();
       await rename(temporary, target);
       this.downloaded = { file: target, digest: release.asset.digest.slice(7) };

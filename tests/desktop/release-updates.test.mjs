@@ -105,3 +105,16 @@ test('interrupted body cleanup still closes the file and removes partial data; r
   await updater.check();
   assert.equal(updater.state.status, 'ready');
 }));
+
+test('native transport failures report the failed phase and a diagnostic reference', async () => fixture(async options => {
+  const updater = new ReleaseUpdater({ ...options, fetch: async url => {
+    if (url.includes('/releases/latest')) return metadata();
+    throw Error('Redirect was cancelled');
+  } });
+  await updater.check();
+  assert.equal(updater.state.status, 'error');
+  assert.equal(updater.state.errorCode, 'UPDATE_DOWNLOAD_FAILED');
+  assert.match(updater.state.message, /下载更新失败/);
+  assert.ok(updater.state.correlationId);
+  assert.deepEqual(await readdir(options.directory), []);
+}));

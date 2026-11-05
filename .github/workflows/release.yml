@@ -67,11 +67,4 @@ jobs:
           path: release-assets
       - name: Publish only complete verified artifacts
         shell: bash
-        run: |
-          set -euo pipefail
-          test "$(find release-assets -type f | wc -l)" -eq 2
-          (cd release-assets && sha256sum * > SHA256SUMS.txt)
-          gh release create "v$VERSION" --target "$GITHUB_SHA" --title "狗牛 v$VERSION" --generate-notes --draft
-          gh release upload "v$VERSION" release-assets/*
-          gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$VERSION" --jq '[.assets[] | select(.state == "uploaded" and (.digest | startswith("sha256:")))] | length == 3' | grep -qx true
-          gh release edit "v$VERSION" --draft=false --latest
+        run: node scripts/publish-release.mjs

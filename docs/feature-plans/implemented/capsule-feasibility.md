@@ -13,7 +13,7 @@
 - macOS 26.5（25F5058e），arm64，项目锁定 Electron 45.2.2。
 - 单个 2× 显示器，工作区 2560×1335 DIP（原生最大化返回高度 1336，说明系统边界须允许像素级差异）。
 - main/origin/main 均为 77f94f7，fetch 后无更新；已有方案文档改动、本地 AGENTS.md 均保留。
-- 探针：[scripts/probes/capsule.cjs](../../scripts/probes/capsule.cjs)。独立临时 userData，不读取薪资、任务或正式配置，不加载正式应用代码。
+- 探针：[scripts/probes/capsule.cjs](../../../scripts/probes/capsule.cjs)。独立临时 userData，不读取薪资、任务或正式配置，不加载正式应用代码。
 - 原始原生状态：[capsule-probe-macos-results.json](capsule-probe-macos-results.json)。数据仅记录验证窗口和平台状态。
 - 窗口外观及一次边角点击通过 CUA 观察，不批量截图或遍历正式业务。
 
