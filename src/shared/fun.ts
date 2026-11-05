@@ -19,12 +19,71 @@ export interface FunState {
     /** User-adjusted total kcal. Missing means use the automatic estimate. */
     calories?: number;
   };
-  hopes: { id: string; name: string; date: string }[];
+  hopes: Hope[];
   pinned: string;
+  /** Built-in hopes were offered once; removing them later must not bring them back. */
+  hopesSeeded?: boolean;
   rewarded: string[];
   products: { name: string; price: number }[];
   product: number;
 }
+/** week/month/year repeat from `date`; holiday/spring follow the official holiday data. */
+export type HopeRepeat = 'week' | 'month' | 'year' | 'holiday' | 'spring';
+export interface Hope { id: string; name: string; date: string; repeat?: HopeRepeat; emoji?: string }
+export interface HolidayStart { name: string; date: string }
+export const HOPE_REPEATS: HopeRepeat[] = ['week', 'month', 'year', 'holiday', 'spring'];
+
+/** Shown on first run and re-addable from the manager. Ids are stable so they are never duplicated. */
+export const HOPE_PRESETS: Omit<Hope, 'date'>[] = [
+  { id: 'preset-friday', name: '周五', emoji: '🍻', repeat: 'week' },
+  { id: 'preset-holiday', name: '法定假期', emoji: '🏖️', repeat: 'holiday' },
+  { id: 'preset-spring', name: '过年', emoji: '🧧', repeat: 'spring' },
+];
+/** One-tap starting points for hopes whose date only the user knows. */
+export const HOPE_TEMPLATES: Omit<Hope, 'id' | 'date'>[] = [
+  { name: '发薪日', emoji: '💰', repeat: 'month' },
+  { name: '年终奖', emoji: '🎁' },
+];
+export const presetDate = (id: string, today: string) => id === 'preset-friday' ? addDays(today, (5 - new Date(`${today}T12:00:00`).getDay() + 7) % 7) : today;
+export function seedHopes(fun: FunState, today: string): FunState {
+  if (fun.hopesSeeded || fun.hopes.length) return fun;
+  const hopes = HOPE_PRESETS.map(h => ({ ...h, date: presetDate(h.id, today) }));
+  return { ...fun, hopes, pinned: hopes[0].id, hopesSeeded: true };
+}
+
+/** First off-day of each consecutive official holiday block, from the stored yearly holiday files. */
+export function holidayStarts(raws: string[]): HolidayStart[] {
+  const days: { date: string; name: string }[] = [];
+  for (const raw of raws) {
+    try {
+      const value = JSON.parse(raw) as { data?: { days?: unknown } };
+      const list = Array.isArray(value?.data?.days) ? value.data.days : [];
+      for (const d of list) if (record(d) && d.isOffDay === true && validDate(d.date) && typeof d.name === 'string') days.push({ date: d.date as string, name: d.name });
+    } catch { /* a broken year only hides that year's holidays */ }
+  }
+  days.sort((a, b) => a.date.localeCompare(b.date));
+  return days.filter((d, i) => i === 0 || days[i - 1].name !== d.name || addDays(days[i - 1].date, 1) !== d.date);
+}
+
+const ymd = (y: number, m: number, d: number) => {
+  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(Math.min(d, last)).padStart(2, '0')}`;
+};
+/** Next date a hope happens on or after `today`. Null means holiday data has no upcoming entry yet. */
+export function hopeDate(hope: Hope, today: string, holidays: HolidayStart[]): { date: string; days: number; label?: string } | null {
+  const at = (date: string, label?: string) => ({ date, days: daysUntil(today, date), label });
+  const [ty, tm] = parts(today);
+  const [, am, ad] = parts(hope.date);
+  switch (hope.repeat) {
+    case 'week': return at(addDays(today, ((new Date(`${hope.date}T12:00:00`).getDay() - new Date(`${today}T12:00:00`).getDay()) + 7) % 7));
+    case 'month': { const here = ymd(ty, tm, ad); return at(here >= today ? here : ymd(ty, tm + 1, ad)); }
+    case 'year': { const here = ymd(ty, am, ad); return at(here >= today ? here : ymd(ty + 1, am, ad)); }
+    case 'holiday': { const next = holidays.find(h => h.date >= today); return next ? at(next.date, next.name) : null; }
+    case 'spring': { const next = holidays.find(h => h.date >= today && h.name === '春节'); return next ? at(next.date) : null; }
+    default: return at(hope.date);
+  }
+}
+
 export const defaultFun = (): FunState => ({
   mood: null, meals: ['牛肉面', '盖浇饭', '饺子', '麻辣烫', '轻食'], noRepeat: true,
   lunch: { week: '', used: [], date: '', chosen: '' }, hopes: [], pinned: '', rewarded: [],
@@ -47,7 +106,9 @@ export function validFun(v: unknown): v is FunState {
     && (v.lunch.date === '' || validDate(v.lunch.date)) && typeof v.lunch.chosen === 'string' && v.lunch.chosen.length <= 100
     && (v.lunch.servings === undefined || (typeof v.lunch.servings === 'number' && Number.isFinite(v.lunch.servings) && v.lunch.servings >= 0.1 && v.lunch.servings <= 20))
     && (v.lunch.calories === undefined || (typeof v.lunch.calories === 'number' && Number.isInteger(v.lunch.calories) && v.lunch.calories >= 0 && v.lunch.calories <= 10000))
-    && Array.isArray(v.hopes) && v.hopes.length <= 30 && v.hopes.every(h => record(h) && text(h.id, 100) && text(h.name) && validDate(h.date))
+    && Array.isArray(v.hopes) && v.hopes.length <= 30 && v.hopes.every(h => record(h) && text(h.id, 100) && text(h.name) && validDate(h.date)
+      && (h.repeat === undefined || HOPE_REPEATS.includes(h.repeat as HopeRepeat)) && (h.emoji === undefined || text(h.emoji, 16)))
+    && (v.hopesSeeded === undefined || typeof v.hopesSeeded === 'boolean')
     && new Set(v.hopes.map(h => h.id)).size === v.hopes.length && typeof v.pinned === 'string' && (v.pinned === '' || v.hopes.some(h => h.id === v.pinned))
     && strings(v.rewarded, 100000) && Array.isArray(v.products) && v.products.length <= 30
     && v.products.every(p => record(p) && text(p.name) && typeof p.price === 'number' && Number.isFinite(p.price) && p.price > 0 && p.price <= 100000000)
@@ -140,7 +201,12 @@ export function updateFun(previous: FunState, p: Fields, now: Date): FunState {
       break;
     }
     case 'reset-lunch': next.lunch = { week: weekKey(today), used: [], date: '', chosen: '' }; break;
-    case 'hope': next.hopes.push({ id: String(p.id), name: String(p.name || '').trim(), date: String(p.date) }); if (!next.pinned) next.pinned = String(p.id); break;
+    case 'hope': {
+      const hope: Hope = { id: String(p.id), name: String(p.name || '').trim(), date: String(p.date) };
+      if (p.repeat) hope.repeat = p.repeat as HopeRepeat;
+      if (p.emoji) hope.emoji = String(p.emoji);
+      next.hopes.push(hope); if (!next.pinned) next.pinned = hope.id; break;
+    }
     case 'pin': next.pinned = String(p.id); break;
     case 'remove-hope': next.hopes = next.hopes.filter(h => h.id !== p.id); if (next.pinned === p.id) next.pinned = next.hopes[0]?.id || ''; break;
     case 'products':

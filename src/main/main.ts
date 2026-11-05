@@ -5,7 +5,7 @@ import { WindowStateStore } from './window-state.js';
 import { WindowController } from './window-controller.js';
 import { buildFlexDay } from '../../app/income/src/flex.js';
 import { moodData, MOOD_REWARDS } from '../shared/mood.js';
-import { defaultFun, rewardTask, updateFun } from '../shared/fun.js';
+import { defaultFun, holidayStarts, rewardTask, seedHopes, updateFun, type HolidayStart } from '../shared/fun.js';
 import { ReleaseUpdater } from './release-updates.js';
 import { boundedCalendarFetch } from './calendar-network.js';
 import { loadHolidayYear } from '../../app/income/src/calendar.js';
@@ -142,6 +142,15 @@ const toastResult = (message: string): Result => ({
   persisted: false,
   message,
 });
+let holidayCache: { raw: string; list: HolidayStart[] } = { raw: '', list: [] };
+/** Hope countdowns read official holidays for this year and next; parsed only when the stored files change. */
+function hopeHolidays() {
+  const year = new Date().getFullYear();
+  const raws = [year, year + 1].map(y => repo.storage.getItem(`niuma-calculator.holidays.v1.${y}`) ?? '');
+  const raw = raws.join('\n');
+  if (raw !== holidayCache.raw) holidayCache = { raw, list: holidayStarts(raws.filter(Boolean)) };
+  return holidayCache.list;
+}
 function snapshot(): Snapshot {
   const windowState = windows?.snapshot() ?? { ...windowStore.value, phase: 'idle' as const, dirty: windowStore.dirty, warning: windowStore.warning };
   return {
@@ -154,6 +163,7 @@ function snapshot(): Snapshot {
     layout: structuredClone(layout),
     layoutWarning,
     board: structuredClone(board),
+    hopeHolidays: hopeHolidays(),
     titles: titles?.view(),
     income: { ...structuredClone(income), ...(income.toilet ? { toilet: { ...structuredClone(income.toilet), pendingSave: toiletPendingSave, pendingRecordId: toiletPendingRecordId } } : {}) },
     save: { dirty: repo.dirty, error: repo.error, readError: repo.readError },
@@ -199,6 +209,8 @@ function restoreModels() {
   } catch {
     layoutWarning = '首页看板数据无效，暂用默认看板；调整后才保存，原始内容保留于备份。';
   }
+  // Built-in hopes live in memory until the next board write persists them.
+  board = { ...board, fun: seedHopes(board.fun ?? defaultFun(), localDate(new Date())) };
   unsubscribe?.();
   controller?.destroy();
   const store = {

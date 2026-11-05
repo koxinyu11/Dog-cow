@@ -94,3 +94,108 @@
 .fun-card[data-size='tall'] .fun-timeline { border-left:2px solid var(--c-brand); border-top:0; padding:0 0 0 10px; }
 
 .mood-unlock-notice { padding:12px 14px; margin-bottom:14px; border:1px solid var(--c-brand); border-radius:var(--r-md); background:var(--c-brand-2); color:var(--c-ink); font-weight:600; overflow-wrap:anywhere; }
+
+/* ── 盼头 · countdown card. Shared pieces first, then one block per size. ── */
+.fun-card.fun-hopes[data-size] { display:block; gap:0; height:100%; }
+.hope-card { --hope: var(--module-accent, #46a898); --tile:92px; --num:34px; position:relative; height:100%; min-height:0; }
+.hope-tile { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:none; width:var(--tile); height:var(--tile); padding:0; border:0; border-radius:14px; cursor:pointer; color:var(--c-ink);
+  background:linear-gradient(var(--hope) 0 22%, var(--c-surface-solid, #fff) 22%); box-shadow:0 1px 0 var(--c-line), 0 4px 10px color-mix(in srgb,var(--hope) 22%,transparent); position:relative; overflow:hidden; transition:transform 160ms ease; }
+.hope-tile:hover { transform:translateY(-2px) rotate(-1.5deg); }
+.hope-tile::before { content:''; position:absolute; top:22%; left:0; right:0; border-top:2px dashed color-mix(in srgb,var(--hope) 45%,transparent); }
+.hope-tile-top { position:absolute; top:3px; font-size:10px; font-weight:700; color:#fff; }
+.hope-tile-num { margin-top:14px; font-family:var(--f-num); font-size:var(--num); font-weight:800; line-height:1; letter-spacing:-.04em; font-variant-numeric:tabular-nums; }
+.hope-tile-unit { font-size:11px; color:var(--c-muted); }
+.hope-tile.is-today { animation:hope-party 1.6s ease-in-out infinite; }
+.hope-tile.is-today .hope-tile-num { font-size:calc(var(--num) * .7); color:var(--hope); }
+.hope-tile.is-past { filter:grayscale(1); opacity:.6; }
+.hope-side { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.hope-side > * { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hope-name { font-size:16px; }
+.hope-name small { font-size:11px; font-weight:400; color:var(--c-muted); }
+.hope-quip { font-size:12px; color:var(--hope); font-weight:600; }
+.hope-date { font-size:11px; color:var(--c-muted); font-variant-numeric:tabular-nums; }
+.hope-nav { display:flex; align-items:center; gap:4px; margin-top:4px; font-size:11px; color:var(--c-muted); }
+.hope-nav button, .hope-add { display:grid; place-items:center; width:24px; height:24px; padding:0; border:1px solid var(--c-line); border-radius:50%; background:none; color:var(--c-ink); cursor:pointer; flex:none; }
+.hope-nav button:hover:not(:disabled), .hope-add:hover { border-color:var(--hope); color:var(--hope); }
+.hope-add { border-style:dashed; }
+.hope-nav .hope-add { margin-left:auto; }
+.hope-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; height:100%; color:var(--c-muted); font-size:12px; }
+
+/* 小 · sticky note */
+.hope-s { display:grid; place-items:center; }
+.hope-sticky { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; width:min(100%,128px); height:min(100%,96px); padding:6px 8px; border:0; cursor:pointer; color:#4a3b12;
+  background:linear-gradient(170deg,#fff3a8,#ffe372); box-shadow:0 6px 12px -6px rgba(90,70,0,.45); transform:rotate(-3deg); animation:hope-peel 420ms ease-out; clip-path:polygon(0 0,100% 0,100% 82%,86% 100%,0 100%); }
+.hope-sticky:hover { transform:rotate(-1deg) translateY(-2px); }
+.hope-sticky b { font-family:var(--f-num); font-size:32px; line-height:1; font-variant-numeric:tabular-nums; }
+.hope-sticky b small { font-size:12px; margin-left:2px; }
+.hope-sticky > span { max-width:100%; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hope-sticky.is-today { background:linear-gradient(170deg,#ffd7e6,#ffb3cf); }
+.hope-sticky.is-past { filter:grayscale(1); opacity:.6; }
+.hope-s > .hope-add { position:absolute; right:0; bottom:0; }
+
+/* 中 · tear-off calendar + progress strip */
+.hope-m { display:grid; grid-template-areas:"tile side" "tile strip"; grid-template-columns:auto minmax(0,1fr); grid-template-rows:1fr auto; gap:6px 14px; align-items:center; }
+.hope-m > .hope-tile { grid-area:tile; }
+.hope-m > .hope-side { grid-area:side; }
+.hope-week, .hope-progress { grid-area:strip; }
+.hope-week { display:grid; grid-template-columns:repeat(5,1fr); gap:3px; }
+.hope-week span { padding:2px 0; border-radius:5px; text-align:center; font-size:10px; color:var(--c-muted); background:color-mix(in srgb,var(--hope) 8%,transparent); }
+.hope-week .is-done { background:color-mix(in srgb,var(--hope) 45%,transparent); color:#fff; }
+.hope-week .is-now { background:var(--hope); color:#fff; animation:hope-beat 1.4s ease-in-out infinite; }
+.hope-progress { height:6px; border-radius:6px; background:color-mix(in srgb,var(--hope) 12%,transparent); overflow:hidden; }
+.hope-progress i { display:block; height:100%; border-radius:inherit; background:var(--hope); transition:width 400ms ease; }
+
+/* 长 · departure board */
+.hope-board { display:grid; grid-auto-rows:minmax(0,1fr); gap:2px; height:100%; padding:6px 10px; border-radius:10px; background:#1f2a26; color:#f4e9c8; font-family:var(--f-num), ui-monospace, monospace; }
+.hope-board-head, .hope-board > button { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) 24px; align-items:center; gap:10px; }
+.hope-board-head { font-size:10px; letter-spacing:.08em; color:#a9b9ad; }
+.hope-board-head .hope-add { width:20px; height:20px; border-color:#55665c; color:#f4e9c8; }
+.hope-board > button { grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr); padding:0 26px 0 0; border:0; border-top:1px dashed #3a4a42; background:none; color:inherit; font:inherit; font-size:13px; text-align:left; cursor:pointer; }
+.hope-board > button > * { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hope-board > button b { color:#ffcf5c; font-variant-numeric:tabular-nums; }
+.hope-board > button[aria-pressed='true'] > span:first-child { color:#fff; font-weight:700; }
+.hope-board > button.is-next b::before { content:'●'; margin-right:5px; color:#7ee08f; animation:hope-blink 1.2s steps(2) infinite; }
+.hope-board > button.is-today b { color:#7ee08f; }
+.hope-board > button.is-past { opacity:.45; }
+
+/* 竖 · a pad of pages */
+.hope-tall { --tile:116px; --num:42px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; }
+.hope-pad { position:relative; width:var(--tile); height:var(--tile); margin-bottom:8px; }
+.hope-pad-page { position:absolute; inset:0; display:grid; place-items:end center; padding-bottom:4px; border-radius:14px; font-size:12px; background:var(--c-surface-solid,#fff); box-shadow:0 1px 0 var(--c-line), 0 2px 6px rgba(0,0,0,.08);
+  transform:translate(calc(var(--n) * 5px), calc(var(--n) * 6px)) rotate(calc(var(--n) * 2.5deg)); opacity:calc(1 - var(--n) * .2); }
+.hope-pad-top { position:relative; transform-origin:top left; }
+.hope-pad-top.is-tearing { animation:hope-tear 420ms ease-in forwards; }
+.hope-tall .hope-side { align-items:center; width:100%; }
+.hope-stack-actions { display:flex; align-items:center; gap:8px; }
+
+/* 大 · road map */
+.hope-l { --tile:120px; --num:44px; display:grid; grid-template-rows:auto minmax(0,1fr); gap:10px; }
+.hope-feature { display:flex; align-items:center; gap:16px; min-width:0; }
+.hope-feature .hope-side { flex:1; }
+.hope-l .hope-name { font-size:20px; }
+.hope-road { position:relative; min-height:86px; margin:0 6px; }
+.hope-road::before { content:''; position:absolute; left:0; right:0; top:50%; height:10px; transform:translateY(-50%); border-radius:10px;
+  background:repeating-linear-gradient(90deg, color-mix(in srgb,var(--hope) 55%,transparent) 0 14px, transparent 14px 22px) center / 100% 2px no-repeat, color-mix(in srgb,var(--hope) 14%,transparent); }
+.hope-road-start { position:absolute; left:0; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; align-items:center; font-size:22px; line-height:1; }
+.hope-road-start small { font-size:10px; color:var(--c-muted); }
+.hope-road > button { position:absolute; bottom:50%; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:1px; padding:0; border:0; background:none; color:var(--c-ink); cursor:pointer; font:inherit; }
+.hope-road > button.is-low { bottom:auto; top:50%; flex-direction:column-reverse; }
+.hope-road > button span { font-size:calc(16px + 14px * var(--near)); line-height:1.1; transition:transform 160ms ease; }
+.hope-road > button:hover span { transform:translateY(-3px); }
+.hope-road > button small { max-width:90px; font-size:10px; color:var(--c-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.hope-road > button[aria-pressed='true'] small { color:var(--hope); font-weight:700; }
+
+.hope-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+.hope-chips button, .hope-repeat button { padding:5px 10px; border:1px solid var(--c-line); border-radius:999px; background:none; color:var(--c-ink); cursor:pointer; font:inherit; font-size:12px; }
+.hope-chips button[aria-pressed='true'], .hope-repeat button[aria-pressed='true'] { background:var(--c-brand); color:var(--c-brand-ink); border-color:var(--c-brand); }
+.hope-repeat { display:flex; gap:6px; margin:10px 0 4px; }
+.hope-rows { display:grid; gap:4px; max-height:220px; overflow:auto; margin-top:16px; border-top:1px solid var(--c-line); padding-top:12px; }
+.hope-rows > div { display:flex; align-items:center; gap:6px; }
+.hope-rows > div > span { flex:1; min-width:0; font-size:13px; overflow-wrap:anywhere; }
+.hope-rows small { display:block; font-size:11px; color:var(--c-muted); }
+@keyframes hope-peel { 0% { transform:rotate(6deg) translateY(-6px); opacity:.4; } 100% { transform:rotate(-3deg); opacity:1; } }
+@keyframes hope-beat { 50% { transform:scale(1.08); } }
+@keyframes hope-blink { 50% { opacity:0; } }
+@keyframes hope-tear { 100% { transform:rotate(-24deg) translate(-30px, 60px); opacity:0; } }
+@keyframes hope-party { 0%,100% { transform:none; } 25% { transform:rotate(-3deg) scale(1.03); } 75% { transform:rotate(3deg) scale(1.03); } }
+@media (prefers-reduced-motion: reduce) { .hope-card * { animation-duration:1ms !important; animation-iteration-count:1 !important; transition:none !important; } }

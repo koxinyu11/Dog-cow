@@ -169,6 +169,8 @@ export interface Snapshot {
   layout: Layout;
   layoutWarning: string;
   board: Board;
+  /** First day of each upcoming official holiday, for hope countdowns. */
+  hopeHolidays?: { name: string; date: string }[];
   income: IncomeState;
   titles?: TitlesView;
   save: { dirty: boolean; error: string; readError: string };

@@ -104,3 +104,30 @@ test('retired receipt card is removed while board choices and fun data survive',
   assert.deepEqual(restored.fun,board.fun);
   assert.equal(MODULE_IDS.includes('receipt'),false);
 });
+
+test('repeating hopes resolve to the next occurrence; presets seed once', async () => {
+  const { hopeDate, holidayStarts, seedHopes } = await import('../../dist-electron/src/shared/fun.js');
+  const today = '2026-11-05'; // Thursday
+  assert.equal(hopeDate({ id: 'w', name: '周五', date: '2026-01-02', repeat: 'week' }, today, []).days, 1);
+  assert.equal(hopeDate({ id: 'w', name: '周四', date: '2026-01-01', repeat: 'week' }, today, []).days, 0);
+  assert.equal(hopeDate({ id: 'm', name: '发薪', date: '2026-01-03', repeat: 'month' }, today, []).date, '2026-12-03');
+  assert.equal(hopeDate({ id: 'm', name: '月底', date: '2026-01-31', repeat: 'month' }, '2026-02-10', []).date, '2026-02-28');
+  assert.equal(hopeDate({ id: 'y', name: '生日', date: '2020-03-01', repeat: 'year' }, today, []).date, '2027-03-01');
+  assert.equal(hopeDate({ id: 'o', name: '旅行', date: '2026-11-01' }, today, []).days, -4);
+  const raw = y => JSON.stringify({ data: { days: [
+    { date: `${y}-01-01`, name: '元旦', isOffDay: true }, { date: `${y}-01-02`, name: '元旦', isOffDay: true },
+    { date: `${y}-02-15`, name: '春节', isOffDay: true }, { date: `${y}-02-16`, name: '春节', isOffDay: true }, { date: `${y}-02-14`, name: '春节', isOffDay: false } ] } });
+  const holidays = holidayStarts([raw(2026), raw(2027), '{broken']);
+  assert.deepEqual(holidays.map(h => h.date), ['2026-01-01', '2026-02-15', '2027-01-01', '2027-02-15']);
+  assert.deepEqual(hopeDate({ id: 'h', name: '法定假期', date: today, repeat: 'holiday' }, today, holidays), { date: '2027-01-01', days: 57, label: '元旦' });
+  assert.equal(hopeDate({ id: 's', name: '过年', date: today, repeat: 'spring' }, today, holidays).date, '2027-02-15');
+  assert.equal(hopeDate({ id: 's', name: '过年', date: today, repeat: 'spring' }, today, []), null);
+  const seeded = seedHopes(defaultFun(), today);
+  assert.ok(validFun(seeded));
+  assert.deepEqual(seeded.hopes.map(h => h.id), ['preset-friday', 'preset-holiday', 'preset-spring']);
+  assert.equal(seeded.pinned, 'preset-friday');
+  const cleared = act(act(act(seeded, { action: 'remove-hope', id: 'preset-friday' }), { action: 'remove-hope', id: 'preset-holiday' }), { action: 'remove-hope', id: 'preset-spring' });
+  assert.equal(seedHopes(cleared, today).hopes.length, 0);
+  assert.throws(() => act(defaultFun(), { action: 'hope', id: 'x', name: '坏', date: today, repeat: 'daily' }));
+  assert.equal(act(defaultFun(), { action: 'hope', id: 'p', name: '发薪日', date: today, repeat: 'month', emoji: '💰' }).hopes[0].repeat, 'month');
+});
