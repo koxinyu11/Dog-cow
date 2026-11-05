@@ -30,6 +30,7 @@ const allowed = new Set([
   'capsuleMenu',
   'checkUpdates',
   'openUpdate',
+  'copyUpdateDiagnostics',
   'openSource',
   'quit',
 ]);

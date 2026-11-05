@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { createUpdateFetch } from '../../dist-electron/src/main/update-transport.js';
 
-function fixture(start) {
+function fixture(start, finalFetch = async () => { throw Error('Redirect was cancelled'); }) {
   const request = new EventEmitter();
   request.setHeader = () => {};
   request.abort = () => { request.aborted = true; request.emit('close'); };
   request.end = () => queueMicrotask(() => start(request));
-  const network = { fetch: async () => { throw Error('Redirect was cancelled'); }, request: () => request };
+  const network = { fetch: finalFetch, request: () => request };
   return { request, fetch: createUpdateFetch(network) };
 }
 test('Electron manual redirects become inspectable responses without following them', async () => {
@@ -18,40 +18,35 @@ test('Electron manual redirects become inspectable responses without following t
   assert.equal(response.headers.get('location'), 'https://release-assets.githubusercontent.com/file');
   assert.equal(f.request.aborted, true);
 });
-test('native response events stream into a readable body and retain status', async () => {
+test('final response is read by Chromium fetch with redirects forbidden, including slow consumers', async () => {
+  let finalInit;
+  const content = Buffer.alloc(9 * 1024 * 1024, 7);
   const f = fixture(request => {
-    const response = Object.assign(new EventEmitter(), { statusCode: 200, headers: { 'content-type': 'application/octet-stream' } });
-    request.emit('response', response);
-    response.emit('data', Buffer.from('first'));
-    response.emit('data', Buffer.from('second'));
-    response.emit('end');
-    request.emit('close');
-  });
+    request.emit('response', Object.assign(new EventEmitter(), { statusCode: 200, headers: {} }));
+  }, async (url, init) => { finalInit = init; return new Response(content); });
   const response = await f.fetch('https://release-assets.githubusercontent.com/file', { redirect: 'manual' });
-  assert.equal(await response.text(), 'firstsecond');
-  assert.equal(response.headers.get('content-type'), 'application/octet-stream');
+  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.deepEqual(Buffer.from(await response.arrayBuffer()), content);
+  assert.equal(finalInit.redirect, 'error');
+  assert.equal(f.request.aborted, true);
 });
-test('abort, cancellation and pre-response errors terminate the native request', async () => {
+test('abort and pre-response errors terminate the native probe', async () => {
   const abort = new AbortController();
   const f = fixture(() => {});
   const response = f.fetch('https://github.com/file', { redirect: 'manual', signal: abort.signal });
   abort.abort(); await assert.rejects(response); assert.equal(f.request.aborted, true);
-  const closed = fixture(request => request.emit('error', Error('connection failed')));
-  await assert.rejects(closed.fetch('https://github.com/file', { redirect: 'manual' }), /connection failed/);
-  const cancelled = fixture(request => request.emit('response', Object.assign(new EventEmitter(), { statusCode: 200, headers: {} })));
-  await (await cancelled.fetch('https://github.com/file', { redirect: 'manual' })).body.cancel();
-  assert.equal(cancelled.request.aborted, true);
+  const failed = fixture(request => request.emit('error', Error('connection failed')));
+  await assert.rejects(failed.fetch('https://github.com/file', { redirect: 'manual' }), /connection failed/);
 });
-test('native response errors propagate and buffered data stays bounded', async () => {
-  for (const event of ['error', 'aborted', 'overflow']) {
-    const f = fixture(request => {
-      const response = Object.assign(new EventEmitter(), { statusCode: 200, headers: {} });
-      request.emit('response', response);
-      if (event === 'overflow') response.emit('data', Buffer.alloc(9 * 1024 * 1024));
-      else response.emit(event, Error('connection failed'));
-    });
-    const response = await f.fetch('https://github.com/file', { redirect: 'manual' });
-    await assert.rejects(response.arrayBuffer());
-    assert.equal(f.request.aborted, true);
-  }
+test('final fetch keeps caller cancellation and propagates body errors', async () => {
+  const abort = new AbortController();
+  const f = fixture(request => request.emit('response', new EventEmitter()), async (_url, init) => {
+    assert.equal(init.signal, abort.signal);
+    return new Response(new ReadableStream({ start(controller) {
+      init.signal.addEventListener('abort', () => controller.error(init.signal.reason));
+    } }));
+  });
+  const response = await f.fetch('https://github.com/file', { redirect: 'manual', signal: abort.signal });
+  abort.abort();
+  await assert.rejects(response.arrayBuffer());
 });

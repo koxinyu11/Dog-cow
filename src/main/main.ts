@@ -12,6 +12,7 @@ import { loadHolidayYear } from '../../app/income/src/calendar.js';
 import { clockCommandError } from '../shared/clock-command.js';
 import {
   app,
+  clipboard,
   BrowserWindow,
   nativeTheme,
   nativeImage,
@@ -358,11 +359,15 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     return toastResult('已打开系统浏览器。');
   }
   if (method === 'checkUpdates') return checkUpdates();
+  if (method === 'copyUpdateDiagnostics') {
+    const state = releaseUpdater?.state;
+    if (!state?.errorCode) return toastResult('暂无更新错误信息。');
+    clipboard.writeText(`狗牛 ${app.getVersion()} · ${process.platform}/${process.arch}\n${state.errorCode}\n${state.correlationId ?? ''}\n${state.message}`);
+    return toastResult('已复制更新诊断信息。');
+  }
   if (method === 'openUpdate') {
     if (!releaseUpdater || releaseUpdater.state.status !== 'ready') return toastResult('请先下载最新安装包。');
-    const file = await releaseUpdater.installer();
-    const error = await shell.openPath(file);
-    if (error) throw Error('无法打开安装包，请重试或从官方下载页获取。');
+    await releaseUpdater.openInstaller(file => shell.openPath(file));
     return toastResult('安装包已打开，请手动完成安装。');
   }
   if (method === 'exportBackup') {

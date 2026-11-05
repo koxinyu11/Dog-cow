@@ -11,7 +11,6 @@ export function createUpdateFetch(network: Pick<typeof ElectronNet, 'fetch' | 'r
     if (init.method && init.method !== 'GET') throw Error('Update transport only accepts GET');
     return new Promise<Response>((resolve, reject) => {
       const request = network.request({ url, method: 'GET', redirect: 'manual' });
-      let body: ReadableStreamDefaultController<Uint8Array> | undefined;
       let settled = false;
       let finished = false;
       const cleanup = () => init.signal?.removeEventListener('abort', aborted);
@@ -21,7 +20,6 @@ export function createUpdateFetch(network: Pick<typeof ElectronNet, 'fetch' | 'r
         cleanup();
         if (error) {
           if (!settled) reject(error);
-          else body?.error(error);
         }
         request.abort();
       };
@@ -39,32 +37,14 @@ export function createUpdateFetch(network: Pick<typeof ElectronNet, 'fetch' | 'r
       });
       request.on('response', response => {
         if (finished) return;
-        const headers = new Headers();
-        for (const [name, values] of Object.entries(response.headers)) {
-          for (const value of Array.isArray(values) ? values : [values]) headers.append(name, value);
-        }
-        const stream = new ReadableStream<Uint8Array>({
-          start(controller) {
-            body = controller;
-            response.on('end', () => {
-              if (finished) return;
-              finished = true;
-              cleanup();
-              controller.close();
-            });
-            response.on('error', error => stop(error));
-            response.on('aborted', () => stop(Error('Update response interrupted')));
-            response.on('data', chunk => {
-              if (finished) return;
-              // IncomingMessage has no public pause API. Bound disk-backlog memory explicitly.
-              if ((controller.desiredSize ?? 0) < chunk.byteLength) { stop(Error('Update download buffer limit exceeded')); return; }
-              controller.enqueue(new Uint8Array(chunk));
-            });
-          },
-          cancel() { stop(); },
-        }, { highWaterMark: 8 * 1024 * 1024, size: chunk => chunk.byteLength });
+        // The native response is only a redirect probe. Read the final URL through
+        // Chromium fetch, which owns streaming and cancellation rather than an
+        // event-to-stream bridge with an arbitrary disk-backlog failure threshold.
+        // A changed redirect on the second request is rejected, never followed.
+        response.on('error', error => stop(error));
         settled = true;
-        resolve(new Response(stream, { status: response.statusCode, headers }));
+        stop();
+        resolve(network.fetch(url, { ...init, redirect: 'error' }));
       });
       const headers = new Headers(init.headers);
       headers.forEach((value, name) => request.setHeader(name, value));

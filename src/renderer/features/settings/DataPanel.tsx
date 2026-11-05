@@ -47,6 +47,15 @@ export function DataPanel({ notify }: { notify: (message: string) => void }) {
       <h3>版本与更新</h3>
       <p role="status">{update?.version ? `v${update.version} · ` : ''}{update?.message || '自动检查并下载最新正式版，安装需手动完成。'}</p>
       {update?.status === 'downloading' && <progress aria-label="更新下载进度" max={100} value={update.progress}>{update.progress}%</progress>}
+      {update?.errorCode && (
+        <details>
+          <summary>错误详情</summary>
+          <p>{update.errorCode} · {update.correlationId}</p>
+          <Button variant="ghost" onClick={() => void command('copyUpdateDiagnostics').then(r => notify(r.message))}>
+            复制诊断信息
+          </Button>
+        </details>
+      )}
       <div className="actions">
         <Button disabled={busy} onClick={() => void command('checkUpdates').then((r) => notify(r.message))}>{busy ? '正在处理…' : update?.status === 'error' ? '重试更新' : '检查更新'}</Button>
         {update?.status === 'ready' && <Button variant="primary" onClick={() => void flushDrafts().then((ok) => ok ? command('openUpdate').then((r) => notify(r.message)) : notify('请先完成并保存当前输入。'))}>打开安装包</Button>}

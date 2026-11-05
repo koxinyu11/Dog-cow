@@ -216,6 +216,7 @@ export const methods = [
   'capsuleMenu',
   'checkUpdates',
   'openUpdate',
+  'copyUpdateDiagnostics',
   'openSource',
   'quit',
 ] as const;
