@@ -24,7 +24,7 @@ export const copyDefaults = {
   stolenTitle: '偷出金额',
   toiletTitle: '带薪拉屎',
   moodTitle: '今日精神状态', receiptTitle: '下班小票', lunchTitle: '今天吃什么',
-  hopesTitle: '盼头清单', pastureTitle: '工位小牧场', converterTitle: '工资换算器',
+  hopesTitle: '盼头清单', pastureTitle: '工位小牧场', converterTitle: '工资能买啥',
 };
 export const emptyTasks = (): TaskState => ({
   tasks: [],

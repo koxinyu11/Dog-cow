@@ -1,18 +1,18 @@
 import { MoodCard } from './MoodCard';
 import { HopesCard } from './HopesCard';
+import { ConverterCard } from './ConverterCard';
 import { useState } from 'react';
 import type { ModuleCtx } from '../../board/modules';
 import { defaultFun, lunchOptions, weekKey } from '../../../shared/fun';
 import { command } from '../../state';
 import { Button, Emoji } from '../../ui';
 import { Modal, Field } from '../../components/Modal';
-import { money } from '../../format';
 import type { Fields } from '../../../shared/contracts';
 import './fun.css';
 
 type Kind = 'mood' | 'lunch' | 'hopes' | 'pasture' | 'converter';
 export function FunModule({ kind, ...ctx }: ModuleCtx & { kind: Kind }) {
-  const { state, today, notify, openSettings } = ctx;
+  const { state, today, notify } = ctx;
   const fun = state.board.fun ?? defaultFun();
   const [editor, setEditor] = useState(false);
   const [draft, setDraft] = useState('');
@@ -36,15 +36,13 @@ export function FunModule({ kind, ...ctx }: ModuleCtx & { kind: Kind }) {
   };
   const edit = () => {
     setError(''); setNoRepeat(fun.noRepeat);
-    setDraft(kind === 'lunch' ? fun.meals.join('\n') : kind === 'converter' ? fun.products.map(p => `${p.name} | ${p.price}`).join('\n') : '');
+    setDraft(fun.meals.join('\n'));
     setEditor(true);
   };
   const small = ctx.size === 's';
   const expanded = ctx.size === 'l' || ctx.size === 'tall' || ctx.size === 'wide';
   const options = lunchOptions(fun, today);
   const choice = draw && options.includes(draw) ? draw : '';
-  const product = fun.products[fun.product];
-  const earned = state.income.snapshot?.earnedToday;
   const count = fun.rewarded.length;
   const unlocks = [[5, '围栏'], [15, '树'], [30, '小牛配饰']] as const;
   const drawMeal = () => { const pool = options.length > 1 ? options.filter(o=>o!==choice) : options; setDraw(pool[Math.floor(Math.random()*pool.length)] || ''); };
@@ -58,7 +56,6 @@ export function FunModule({ kind, ...ctx }: ModuleCtx & { kind: Kind }) {
   };
   const meal = choice || (fun.lunch.date===today ? fun.lunch.chosen : '今天吃什么？');
   const mealServings = fun.lunch.date === today ? fun.lunch.servings ?? 1 : 0;
-  const amount = product && typeof earned==='number' && Number.isFinite(earned) ? `${(earned/product.price).toLocaleString('zh-CN',{maximumFractionDigits:1})} 份${product.name}` : '设置一个小目标';
   return <div className={`fun-card fun-${kind}`} data-size={ctx.size}>
     {kind==='mood' && <MoodCard ctx={ctx} busy={busy} run={run} />}
     {kind==='lunch' && <>
@@ -72,14 +69,8 @@ export function FunModule({ kind, ...ctx }: ModuleCtx & { kind: Kind }) {
       {!small&&<div className="fun-secondary fun-pasture-scene"><span>{count>=30?'👑':''}🐮 {count>=15?'🌳':''}</span><div>{Array.from({length:Math.min(count,24)},(_,i)=><span key={i}>🌱</span>)}</div>{count>=5&&<span className="fun-fence">▥ ▥ ▥ ▥ ▥ ▥</span>}</div>}
       {expanded&&<div className="fun-detail fun-unlocks">{unlocks.map(([goal,name])=><div key={goal} className={count>=goal?'is-unlocked':''}><span>{count>=goal?'✓':`${goal} 件`} {name}</span><progress max={goal} value={Math.min(goal,count)} aria-label={`${name}解锁进度`} /></div>)}</div>}
     </>}
-    {kind==='converter'&&<>
-      {!state.income.settings?<Button onClick={()=>openSettings('income')}>先设置工资</Button>:<>
-        <div className="fun-main"><span className="fun-symbol">🧋</span><div><strong>{amount}</strong>{!small&&<small>今日已赚 ¥{money(earned)}</small>}</div></div>
-        <div className="fun-actions">{fun.products.length>0&&<select aria-label="换算商品" disabled={busy} value={fun.product} onChange={e=>void run({action:'product',value:Number(e.target.value)})}>{fun.products.map((p,value)=><option key={value} value={value}>{p.name}</option>)}</select>}<Button size="sm" variant="ghost" onClick={edit}>{small?'设置':'商品与单价'}</Button></div>
-        {expanded&&<div className="fun-detail fun-conversions"><h3>也相当于</h3>{fun.products.map((p,i)=><button key={i} aria-pressed={i===fun.product} disabled={busy} onClick={()=>void run({action:'product',value:i})}><span>{p.name}<small>¥{money(p.price)} / 份</small></span><b>{typeof earned==='number'&&Number.isFinite(earned)?(earned/p.price).toLocaleString('zh-CN',{maximumFractionDigits:1}):'—'} 份</b></button>)}</div>}
-      </>}
-    </>}
-    {!editor && error && <p className="error" role="alert">{error}</p>}
+    {kind==='converter'&&<ConverterCard ctx={ctx} busy={busy} error={error} run={run} />}
+    {kind !== 'converter' && !editor && error && <p className="error" role="alert">{error}</p>}
     <Modal open={lunchEditor} title="记录今天吃了什么" onClose={() => { if (!busy) setLunchEditor(false); }}>
       <form onSubmit={async e => {
         e.preventDefault();
@@ -96,14 +87,13 @@ export function FunModule({ kind, ...ctx }: ModuleCtx & { kind: Kind }) {
         <div className="dialog-actions"><Button disabled={busy} onClick={() => setLunchEditor(false)}>取消</Button><Button type="submit" variant="primary" disabled={busy}>保存这顿</Button></div>
       </form>
     </Modal>
-    <Modal open={editor} title={kind === 'lunch' ? '午餐菜单' : '商品与单价'} onClose={() => { if (!busy) setEditor(false); }}>
+    <Modal open={editor} title="午餐菜单" onClose={() => { if (!busy) setEditor(false); }}>
       <form onSubmit={async e => {
         e.preventDefault();
-        const payload = kind === 'lunch' ? { action: 'meals', value: draft, noRepeat } : { action: 'products', value: draft.split('\n').filter(x => x.trim()).map(line => { const [name, price] = line.split('|'); return { name: name.trim(), price: Number(price?.trim()) }; }) };
-        if (await run(payload)) setEditor(false);
+        if (await run({ action: 'meals', value: draft, noRepeat })) setEditor(false);
       }}>
-        <Field label={kind === 'lunch' ? '每行一道，最多 50 道' : '每行：商品 | 单价（元）'}><textarea rows={7} value={draft} onChange={e => setDraft(e.target.value)} /></Field>
-        {kind === 'lunch' && <label className="fun-checkbox"><input type="checkbox" checked={noRepeat} onChange={e => setNoRepeat(e.target.checked)} />本周不重复</label>}
+        <Field label="每行一道，最多 50 道"><textarea rows={7} value={draft} onChange={e => setDraft(e.target.value)} /></Field>
+        <label className="fun-checkbox"><input type="checkbox" checked={noRepeat} onChange={e => setNoRepeat(e.target.checked)} />本周不重复</label>
         <p className="error" role="alert">{error}</p><div className="dialog-actions"><Button disabled={busy} onClick={() => setEditor(false)}>取消</Button><Button type="submit" variant="primary" disabled={busy}>保存</Button></div>
       </form>
     </Modal>

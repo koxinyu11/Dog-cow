@@ -24,9 +24,29 @@ export interface FunState {
   /** Built-in hopes were offered once; removing them later must not bring them back. */
   hopesSeeded?: boolean;
   rewarded: string[];
-  products: { name: string; price: number }[];
+  products: Product[];
   product: number;
 }
+/** Treats are counted against today's pay; goals against months of this month's expected take-home. Missing type means treat. */
+export type ProductType = 'treat' | 'goal';
+export interface Product { name: string; price: number; unit?: string; emoji?: string; type?: ProductType }
+export const PRODUCT_PRESETS: Required<Product>[] = [
+  { name: '奶茶', unit: '杯', price: 18, emoji: '🧋', type: 'treat' },
+  { name: '咖啡', unit: '杯', price: 30, emoji: '☕', type: 'treat' },
+  { name: '电影票', unit: '张', price: 50, emoji: '🎬', type: 'treat' },
+  { name: '火锅', unit: '顿', price: 120, emoji: '🍲', type: 'treat' },
+  { name: '手机', unit: '部', price: 6000, emoji: '📱', type: 'goal' },
+  { name: '旅行', unit: '次', price: 10000, emoji: '✈️', type: 'goal' },
+  { name: '车子', unit: '辆', price: 200000, emoji: '🚗', type: 'goal' },
+  { name: '房子首付', unit: '笔', price: 1000000, emoji: '🏠', type: 'goal' },
+];
+const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+/** Servings of a treat today, floored to two decimals so the card never overclaims. */
+export const treatCount = (price: number, earnedToday: unknown) =>
+  finite(earnedToday) && price > 0 ? Math.floor(Math.max(0, earnedToday) / price * 100) / 100 : null;
+/** Whole months needed if every yuan of this month's expected take-home were kept; null when it cannot be estimated. */
+export const goalMonths = (price: number, monthIncome: unknown) =>
+  finite(monthIncome) && monthIncome > 0 && price > 0 ? Math.ceil(price / monthIncome) : null;
 /** week/month/year repeat from `date`; holiday/spring follow the official holiday data. */
 export type HopeRepeat = 'week' | 'month' | 'year' | 'holiday' | 'spring';
 export interface Hope { id: string; name: string; date: string; repeat?: HopeRepeat; emoji?: string }
@@ -87,7 +107,7 @@ export function hopeDate(hope: Hope, today: string, holidays: HolidayStart[]): {
 export const defaultFun = (): FunState => ({
   mood: null, meals: ['牛肉面', '盖浇饭', '饺子', '麻辣烫', '轻食'], noRepeat: true,
   lunch: { week: '', used: [], date: '', chosen: '' }, hopes: [], pinned: '', rewarded: [],
-  products: [{ name: '奶茶', price: 18 }, { name: '火锅', price: 120 }], product: 0,
+  products: [PRODUCT_PRESETS[0], PRODUCT_PRESETS[3], PRODUCT_PRESETS[6]].map(p => ({ ...p })), product: 0,
 });
 export const weekKey = (date: string) => addDays(date, -((new Date(`${date}T12:00:00`).getDay() + 6) % 7));
 export const weekendDays = (date: string) => {
@@ -111,7 +131,8 @@ export function validFun(v: unknown): v is FunState {
     && (v.hopesSeeded === undefined || typeof v.hopesSeeded === 'boolean')
     && new Set(v.hopes.map(h => h.id)).size === v.hopes.length && typeof v.pinned === 'string' && (v.pinned === '' || v.hopes.some(h => h.id === v.pinned))
     && strings(v.rewarded, 100000) && Array.isArray(v.products) && v.products.length <= 30
-    && v.products.every(p => record(p) && text(p.name) && typeof p.price === 'number' && Number.isFinite(p.price) && p.price > 0 && p.price <= 100000000)
+    && v.products.every(p => record(p) && text(p.name) && typeof p.price === 'number' && Number.isFinite(p.price) && p.price > 0 && p.price <= 100000000
+      && (p.unit === undefined || text(p.unit, 8)) && (p.emoji === undefined || text(p.emoji, 16)) && (p.type === undefined || p.type === 'treat' || p.type === 'goal'))
     && Number.isInteger(v.product) && Number(v.product) >= 0 && (v.products.length === 0 ? v.product === 0 : Number(v.product) < v.products.length);
 }
 export function lunchOptions(fun: FunState, date: string) {
@@ -211,7 +232,9 @@ export function updateFun(previous: FunState, p: Fields, now: Date): FunState {
     case 'remove-hope': next.hopes = next.hopes.filter(h => h.id !== p.id); if (next.pinned === p.id) next.pinned = next.hopes[0]?.id || ''; break;
     case 'products':
       if (!Array.isArray(p.value)) throw Error('商品清单无效。');
-      next.products = p.value as FunState['products']; next.product = 0; break;
+      next.products = p.value as FunState['products'];
+      next.product = Number.isInteger(p.selected) ? Number(p.selected) : Math.max(0, next.products.findIndex(item => item.name === previous.products[previous.product]?.name));
+      break;
     case 'product': next.product = Number(p.value); break;
     default: throw Error('趣味卡片操作无效。');
   }

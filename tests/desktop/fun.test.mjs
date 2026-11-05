@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultFun, daysUntil, estimateMealCalories, lunchOptions, rewardTask, updateFun, validFun, weekendDays, weekKey } from '../../dist-electron/src/shared/fun.js';
+import { defaultFun, daysUntil, estimateMealCalories, goalMonths, lunchOptions, rewardTask, treatCount, updateFun, validFun, weekendDays, weekKey } from '../../dist-electron/src/shared/fun.js';
 import { defaultBoard, validBoard, MODULE_IDS, retireReceiptModule } from '../../dist-electron/src/shared/board.js';
 import { copyDefaults } from '../../dist-electron/src/domain/tasks/model.js';
 import { createTransfer, parseTransfer } from '../../src/migration/transfer.js';
@@ -130,4 +130,39 @@ test('repeating hopes resolve to the next occurrence; presets seed once', async 
   assert.equal(seedHopes(cleared, today).hopes.length, 0);
   assert.throws(() => act(defaultFun(), { action: 'hope', id: 'x', name: '坏', date: today, repeat: 'daily' }));
   assert.equal(act(defaultFun(), { action: 'hope', id: 'p', name: '发薪日', date: today, repeat: 'month', emoji: '💰' }).hopes[0].repeat, 'month');
+});
+
+test('converter treats count today with two decimals and goals count whole months', () => {
+  assert.equal(treatCount(18, 61.6), 3.42);
+  assert.equal(treatCount(3, 10), 3.33);
+  assert.equal(treatCount(18, 0), 0);
+  assert.equal(treatCount(18, -5), 0);
+  assert.equal(treatCount(18, undefined), null);
+  assert.equal(treatCount(18, NaN), null);
+  assert.equal(goalMonths(200000, 10000), 20);
+  assert.equal(goalMonths(200001, 10000), 21);
+  assert.equal(goalMonths(500, 10000), 1);
+  for (const income of [0, -1, NaN, undefined, '10000']) assert.equal(goalMonths(6000, income), null);
+});
+test('converter products accept optional emoji and type while older saves stay valid', () => {
+  const legacy = { ...defaultFun(), products: [{ name: '奶茶', price: 18 }], product: 0 };
+  assert.equal(validFun(legacy), true);
+  assert.equal(validFun(JSON.parse(JSON.stringify(defaultFun()))), true);
+  const fun = act(defaultFun(), { action: 'products', value: [{ name: '车子', price: 200000, emoji: '🚗', type: 'goal' }, { name: '咖啡', price: 30 }] });
+  assert.equal(fun.products[0].type, 'goal');
+  for (const bad of [{ name: '车', price: 1, type: 'car' }, { name: '车', price: 1, emoji: '' }, { name: '车', price: 1, emoji: 'x'.repeat(17) }])
+    assert.throws(() => act(defaultFun(), { action: 'products', value: [bad] }));
+});
+
+test('converter units are optional and selection survives edits and removal', () => {
+  let fun = act(defaultFun(), { action: 'product', value: 1 });
+  const selected = fun.products[1];
+  fun = act(fun, { action: 'products', value: [{ name: '咖啡', price: 30, unit: '杯' }, { ...selected, price: 125 }], selected: 1 });
+  assert.equal(fun.product, 1);
+  assert.equal(fun.products[0].unit, '杯');
+  fun = act(fun, { action: 'products', value: [fun.products[1], fun.products[0]] });
+  assert.equal(fun.product, 0);
+  fun = act(fun, { action: 'products', value: [] });
+  assert.equal(fun.product, 0);
+  for (const unit of ['', '123456789', 7]) assert.throws(() => act(defaultFun(), { action: 'products', value: [{ name: '咖啡', price: 30, unit }] }));
 });

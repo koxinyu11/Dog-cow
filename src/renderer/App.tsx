@@ -49,7 +49,7 @@ const COPY_LABELS: Record<string, string> = {
   toiletTitle: '带薪拉屎',
   moodTitle: '今日精神状态', receiptTitle: '下班小票', lunchTitle: '今天吃什么',
   caloriesTitle: '热量爆表',
-  hopesTitle: '盼头清单', pastureTitle: '工位小牧场', converterTitle: '工资换算器',
+  hopesTitle: '盼头清单', pastureTitle: '工位小牧场', converterTitle: '工资能买啥',
 };
 type Tab = 'look' | 'income' | 'records' | 'data' | 'titles';
 const taskNode = (id: string) => document.querySelector(`[data-task-id="${CSS.escape(id)}"]`);
