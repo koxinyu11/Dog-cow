@@ -1,3 +1,4 @@
+import { TOILET_KEY, loadToilet, reviewToilet, validateToilet } from './paid-toilet.js';
 import { validateSettings, calculateSnapshot } from './calculator.js';
 import { createCalendarContext, loadHolidayYear } from './calendar.js';
 import { validateLeaveRecord } from './leave.js';
@@ -27,6 +28,7 @@ export function createIncomeController({
   const readNow = () => new Date(now().getTime());
   const initialNow = readNow();
   const restored = loadSettings(storage, initialNow);
+  const toiletRestored = loadToilet(storage);
   const listeners = new Set();
   const calendarData = new Map();
   let destroyed = false;
@@ -37,7 +39,11 @@ export function createIncomeController({
   let lastCalendarAttemptTime = 0;
   let lastObservedDate = dateKey(initialNow);
   let interval = null;
+  let toiletHistoryCache = null;
+  let persistedToilet = JSON.stringify(toiletRestored.data);
+  let toiletNeedsWrite = toiletRestored.changed;
   const state = {
+    toilet: { ...toiletRestored.data, error: toiletRestored.error },
     settings: restored.settings ?? null,
     leaves: restored.leaves ?? [],
     attendance: restored.attendance ?? createAttendance(initialNow),
@@ -90,7 +96,29 @@ export function createIncomeController({
     state.calculationError = null;
     if (!state.settings) return;
     try {
-      state.snapshot = calculateSnapshot(state.settings, at, state.calendarContext, state.leaves, state.attendance);
+      state.snapshot = calculateSnapshot(state.settings, at, state.calendarContext, state.leaves, state.attendance, state.toilet.records);
+      if (toiletHistoryCache === null) {
+        const months = new Map();
+        for (const item of state.toilet.records) {
+          if (item.status !== 'completed') continue;
+          const cursor = new Date(item.startAt); cursor.setDate(1); cursor.setHours(0, 0, 0, 0);
+          while (cursor.getTime() <= item.endAt) {
+            const key = `${cursor.getFullYear()}-${cursor.getMonth()}`;
+            if (cursor.getFullYear() !== at.getFullYear() || cursor.getMonth() !== at.getMonth()) months.set(key, new Date(cursor));
+            cursor.setMonth(cursor.getMonth() + 1);
+          }
+        }
+        toiletHistoryCache = { month: `${at.getFullYear()}-${at.getMonth()}`, details: [], errors: [] };
+        for (const month of months.values()) {
+          try {
+            const end = new Date(month.getFullYear(), month.getMonth() + 1, 1); end.setMilliseconds(-1);
+            const history = calculateSnapshot(state.settings, end, state.calendarContext, state.leaves, state.attendance, state.toilet.records);
+            toiletHistoryCache.details.push(...history.toiletHistory);
+          } catch { toiletHistoryCache.errors.push(dateKey(month).slice(0, 7)); }
+        }
+      }
+      state.snapshot.toiletHistory.push(...toiletHistoryCache.details);
+      state.snapshot.toiletHistoryUnavailable = toiletHistoryCache.errors;
       state.payrollResult = state.snapshot.payrollResult;
     } catch (error) {
       state.payrollResult = state.settings.payBasis === 'daily' ? null : calculatePayroll(state.settings, at);
@@ -119,7 +147,20 @@ export function createIncomeController({
   }
 
   function persist() {
-    const saved = saveSettings(state.settings, state.leaves, state.attendance, storage);
+    let toiletSaved = true;
+    try {
+      const raw = JSON.stringify({ version: 1, records: state.toilet.records });
+      if (!state.toilet.error && storage && (toiletNeedsWrite || raw !== persistedToilet)) {
+        storage.setItem(TOILET_KEY, raw);
+        persistedToilet = raw;
+        toiletNeedsWrite = false;
+      }
+    } catch { toiletSaved = false; }
+    let saved;
+    try {
+      saved = saveSettings(state.settings, state.leaves, state.attendance, storage);
+    } catch { saved = { ok: false }; }
+    saved.ok = saved.ok && toiletSaved;
     state.storageStatus.writeStatus = saved.ok ? 'saved' : 'failed';
     state.storageStatus.canRetry = !saved.ok;
     state.storageStatus.message = saved.ok ? ''
@@ -127,14 +168,20 @@ export function createIncomeController({
     return saved.ok;
   }
 
-  function apply(settings, leaves, attendance, message) {
+  function apply(settings, leaves, attendance, message, toilet = null) {
     if (destroyed) return stopped();
     const at = readNow();
     const modes = withTodayMode(attendance, settings, at);
     if (!modes.ok) return command(false, false, { general: modes.message }, modes.message);
+    toiletHistoryCache = null;
     state.settings = settings;
     state.leaves = leaves;
     state.attendance = modes.attendance;
+    if (toilet) state.toilet = { ...validateToilet(toilet), error: '' };
+    recompute(at);
+    if (!toilet && state.toilet.records.some(item => item.status === 'running') && state.snapshot?.toiletAvailableReason) {
+      state.toilet = { ...reviewToilet(state.toilet, 'clock-change').data, error: state.toilet.error };
+    }
     const persisted = persist();
     recompute(at);
     emit();
@@ -174,12 +221,25 @@ export function createIncomeController({
     return apply(state.settings, state.leaves.filter((entry) => entry.id !== id), state.attendance, '请假记录已删除，金额已重算。');
   }
 
-  function commitAttendance(rawAttendance) {
+  function commitAttendance(rawAttendance, toilet = null) {
     if (destroyed) return stopped();
     if (!state.settings) return command(false, false, { general: '请先填写有效工资与排班。' }, '请先填写工资与排班。');
     const checked = validateAttendance(rawAttendance);
     if (!checked.valid) return command(false, false, checked.errors, '打卡事实无效，原记录保持不变。');
-    return apply(state.settings, state.leaves, checked.attendance, '实际时间已保存，今日与本月金额已重算。');
+    return apply(state.settings, state.leaves, checked.attendance, '实际时间已保存，今日与本月金额已重算。', toilet);
+  }
+
+  function commitToilet(data) {
+    if (state.toilet.error) return { ...command(false, false, {}, state.toilet.error), errorCode: 'TOILET_DATA_INVALID' };
+    toiletHistoryCache = null;
+    state.toilet = { ...validateToilet(data), error: '' };
+    const raw = JSON.stringify(data);
+    storage?.setItem(TOILET_KEY, raw);
+    persistedToilet = raw;
+    toiletNeedsWrite = false;
+    recompute(readNow());
+    emit();
+    return command(true, true, {}, '带薪拉屎记录已更新。');
   }
 
   function retrySave() {
@@ -224,6 +284,7 @@ export function createIncomeController({
           state.calendar.results[value] = result;
         }
       }
+      toiletHistoryCache = null;
       state.calendarContext = createCalendarContext([...calendarData.entries()]
         .sort(([left], [right]) => left - right).map(([, data]) => data));
       const ready = state.calendarContext.readyYears.includes(year);
@@ -246,6 +307,7 @@ export function createIncomeController({
     const today = dateKey(at);
     if (today !== lastObservedDate) {
       lastObservedDate = today;
+      toiletHistoryCache = null;
       if (state.settings) {
         const modes = withTodayMode(state.attendance, state.settings, at);
         if (modes.ok && modes.changed) {
@@ -282,6 +344,10 @@ export function createIncomeController({
     if (modes.ok) state.attendance = modes.attendance;
     if (restored.status === 'migration' || modes.changed) persist();
   }
+  if (toiletRestored.changed && !state.toilet.error) {
+    try { storage?.setItem(TOILET_KEY, persistedToilet); toiletNeedsWrite = false; }
+    catch { state.storageStatus.canRetry = true; state.storageStatus.writeStatus = 'failed'; }
+  }
   recompute(initialNow);
   interval = setIntervalImpl(tick, 1000);
   document?.addEventListener('visibilitychange', onVisibility);
@@ -290,7 +356,7 @@ export function createIncomeController({
   if (state.settings?.calendarMode === 'cn') void refreshCalendar();
 
   return {
-    getState, subscribe, updateSettings, saveLeave, removeLeave, commitAttendance,
+    getState, subscribe, updateSettings, saveLeave, removeLeave, commitAttendance, commitToilet,
     refreshCalendar, tick, retrySave, destroy,
   };
 }

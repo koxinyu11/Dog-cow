@@ -1,3 +1,4 @@
+import { PaidToilet } from '../features/toilet/PaidToilet';
 import { FunModule } from '../features/fun/FunModules';
 import { defaultFun, estimateMealCalories } from '../../shared/fun';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
@@ -500,6 +501,7 @@ function StolenModule({ state, size, openSettings }: ModuleCtx) {
     ['lunchStolenAmount', '午休', UtensilsCrossed],
     ['lateAmount', '上班晚', Turtle],
     ['earlyAmount', '下班早', Rabbit],
+    ['toiletStolenAmount', '带薪拉屎', Briefcase],
   ];
   const compact = size === 's' || size === 'm';
   const amount = `¥${money(s?.stolenAmount)}`;
@@ -604,5 +606,6 @@ export const MODULES: Record<ModuleId, ModuleDef> = {
   'next-task': { id: 'next-task', name: '下一项任务', icon: Target, accent: '#d2493a', titleKey: 'nextTaskTitle', blurb: '只看眼前这一件', defaultSize: 'm', render: (c) => <NextTaskModule {...c} /> },
   tasks: { id: 'tasks', name: '任务列表', icon: ListTodo, accent: '#3c8fd6', titleKey: 'tasksTitle', blurb: '完整编辑每项任务', defaultSize: 'wide', render: (c) => <TasksModule {...c} /> },
   calendar: { id: 'calendar', name: '月历', icon: CalendarDays, accent: '#c4569a', titleKey: 'calendarTitle', blurb: '周条 · 月格 · 今日签', defaultSize: 'l', render: (c) => <CalendarModule {...c} /> },
+  'paid-toilet': { id: 'paid-toilet', name: '带薪拉屎', icon: Briefcase, accent: '#56865b', titleKey: 'toiletTitle', blurb: '换个工位，继续领薪', defaultSize: 'm', render: c => <PaidToilet {...c} /> },
   stolen: { id: 'stolen', name: '偷出金额', icon: Drama, accent: '#7a5bc4', titleKey: 'stolenTitle', blurb: '摸鱼的时间值多少', defaultSize: 'm', render: (c) => <StolenModule {...c} /> },
 };

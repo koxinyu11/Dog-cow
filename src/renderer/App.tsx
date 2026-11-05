@@ -1,10 +1,11 @@
+import { ToiletStatus } from './features/toilet/PaidToilet';
 import { capsuleTheme } from './features/capsule/capsule-theme';
 import { useTheme } from './theme';
 import { installWindowTransition } from './features/capsule/window-transition';
 import { WINDOW_ERRORS } from '../shared/capsule';
 import { Capsule, CapsuleSettings } from './features/capsule/Capsule';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { localDate } from '../domain/tasks/model';
+import { localDate, matchesDate } from '../domain/tasks/model';
 import { type Fields, type Result } from '../shared/contracts';
 import { defaultBoard, type Board as BoardModel, type BoardItem, type MetricId } from '../shared/board';
 import { command, useAppState, flushDrafts } from './state';
@@ -41,6 +42,7 @@ const COPY_LABELS: Record<string, string> = {
   workTimeTitle: '下班倒计时',
   clockTitle: '打卡',
   stolenTitle: '偷出金额',
+  toiletTitle: '带薪拉屎',
   moodTitle: '今日精神状态', receiptTitle: '下班小票', lunchTitle: '今天吃什么',
   caloriesTitle: '热量爆表',
   hopesTitle: '盼头清单', pastureTitle: '工位小牧场', converterTitle: '工资换算器',
@@ -87,6 +89,15 @@ export function App() {
     window.addEventListener('dogcow:prepare-capsule', prepare);
     return () => window.removeEventListener('dogcow:prepare-capsule', prepare);
   }, [newTask, weekly, clock, receipt]);
+  useEffect(() => {
+    const saved = (event: Event) => {
+      const detail = (event as CustomEvent<NonNullable<Result['offwork']>>).detail;
+      setClock(null);
+      setReceipt({ ...detail, completedTasks: state?.tasks.tasks.filter(task => task.done && matchesDate(task, detail.date)).length ?? 0 });
+    };
+    window.addEventListener('dogcow:offwork-saved', saved);
+    return () => window.removeEventListener('dogcow:offwork-saved', saved);
+  }, [state?.tasks.tasks]);
   useEffect(() => window.dogcow.openCapsuleSettings(() => {
     setSettings(true); setTab('look');
     requestAnimationFrame(() => document.getElementById('capsule-settings')?.focus());
@@ -227,6 +238,7 @@ export function App() {
               </div>
             </div>
             <div className="header-actions">
+              <ToiletStatus state={state} />
               <span className="header-add-wrap">
                 <Button className="header-add" variant="primary" icon={<Plus size={16} strokeWidth={2.4} />} disabled={!!state.taskError} onClick={() => setNew(true)}>
                   {state.tasks.settings.addButtonLabel || '新增任务'}

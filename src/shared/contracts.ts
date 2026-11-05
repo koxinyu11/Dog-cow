@@ -121,7 +121,23 @@ export interface IncomeSettings {
   salaryMode: string;
   payroll: Payroll;
 }
+export interface ToiletRecord {
+  id: string;
+  startAt: number;
+  endAt: number | null;
+  status: 'running' | 'needs-review' | 'completed';
+  endReason?: 'manual' | 'lunch' | 'offwork' | 'schedule-end' | 'review';
+  interruption?: 'sleep' | 'restart' | 'cross-day' | 'clock-change';
+}
+export interface ToiletState {
+  version: 1;
+  records: ToiletRecord[];
+  error: string;
+  pendingSave?: boolean;
+  pendingRecordId?: string;
+}
 export interface IncomeState {
+  toilet?: ToiletState;
   settings: IncomeSettings | null;
   leaves: Leave[];
   attendance: Attendance;
@@ -157,6 +173,8 @@ export interface Snapshot {
   version: string;
 }
 export interface Result {
+  offwork?: { income: IncomeState; date: string };
+
   applied: boolean;
   persisted: boolean;
   message: string;
@@ -179,6 +197,7 @@ export const methods = [
   'settings',
   'leave',
   'removeLeave',
+  'toilet',
   'prepareClock',
   'clock',
   'refreshCalendar',

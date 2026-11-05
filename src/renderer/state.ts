@@ -51,6 +51,7 @@ export function command(method: Method, payload: Fields = {}, domain?: Domain): 
       ...(domain && current ? { expectedRevision: current.revisions[domain] } : {}),
     });
     if (result.snapshot) receive(result.snapshot);
+    if (result.offwork) window.dispatchEvent(new CustomEvent('dogcow:offwork-saved', { detail: result.offwork }));
     return result;
   };
   if (domain) {

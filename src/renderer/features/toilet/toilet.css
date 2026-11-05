@@ -1,0 +1,46 @@
+.paid-toilet {
+  --toilet-room: color-mix(in srgb, var(--accent, #56865b) 15%, transparent);
+  --toilet-door: color-mix(in srgb, #56865b 28%, var(--c-surface-solid, #f5f1e8));
+  --toilet-porcelain: var(--c-surface-solid, #fffaf1);
+  display: grid; grid-template-columns: minmax(60px, .8fr) minmax(0, 1fr); gap: 6px 10px; height: 100%; align-content: center; position: relative;
+}
+.toilet-scene { width: 100%; max-height: 116px; align-self: center; color: var(--c-ink, #32473a); }
+.toilet-door { transform-origin: 33px 60px; transform: scaleX(.16); transition: transform 650ms cubic-bezier(.2,.7,.3,1); }
+.is-occupied .toilet-door { transform: scaleX(1); }
+.toilet-cow { transition: transform 600ms ease; }
+.is-occupied .toilet-cow { transform: translateX(8px); }
+.toilet-content { display: flex; flex-direction: column; justify-content: center; min-width: 0; gap: 3px; }
+.toilet-timer { font-variant-numeric: tabular-nums; font-size: clamp(20px, 6cqw, 38px); letter-spacing: -.035em; white-space: nowrap; }
+.toilet-amount { font-size: 12px; font-variant-numeric: tabular-nums; }
+.toilet-copy { font-size: 11px; opacity: .65; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toilet-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.paid-toilet > .toilet-actions, .paid-toilet > .toilet-error { grid-column: 1 / -1; }
+.toilet-error { font-size: 11px; line-height: 1.4; }
+.paid-toilet.size-s { grid-template-columns: 1fr; gap: 4px; }
+.paid-toilet.size-s .toilet-scene, .paid-toilet.size-s .toilet-copy, .paid-toilet.size-s .toilet-amount { display: none; }
+.paid-toilet.size-s .toilet-timer { font-size: 24px; }
+.paid-toilet.size-m .toilet-copy { display: none; }
+.paid-toilet.size-wide { grid-template-columns: 70px minmax(0, 1fr) auto; }
+.paid-toilet.size-wide > .toilet-actions { grid-column: 3; grid-row: 1; }
+.paid-toilet.size-wide > .toilet-error { grid-column: 1 / -1; }
+.toilet-detail-toolbar, .toilet-record-heading, .toilet-pending, .toilet-confirm { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.toilet-detail-toolbar { margin-bottom: 18px; }
+.toilet-records { display: grid; gap: 14px; }
+.toilet-record { padding: 16px; border: 1px solid var(--c-line, #d8dfd5); border-radius: 14px; }
+.toilet-record-heading { font-size: 13px; margin-bottom: 12px; }
+.toilet-record-heading > span { font-size: 11px; opacity: .7; }
+.toilet-record-values { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; font-size: 12px; }
+.toilet-record-values span { display: flex; flex-direction: column; gap: 3px; }
+.toilet-record-values b { font-variant-numeric: tabular-nums; font-size: 15px; }
+.toilet-editor, .toilet-confirm { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--c-line, #d8dfd5); }
+.toilet-confirm, .toilet-pending { font-size: 12px; }
+.toilet-pending { margin-bottom: 14px; }
+.toilet-help { margin-top: 18px; font-size: 12px; line-height: 1.6; }
+.toilet-help summary { cursor: pointer; }
+@media (max-width: 650px) { .paid-toilet.size-wide { grid-template-columns: 50px minmax(0,1fr); } .paid-toilet.size-wide > .toilet-actions { grid-column: 1 / -1; grid-row: auto; } }
+@media (prefers-reduced-motion: reduce) { .paid-toilet * { transition: none !important; animation: none !important; } }
+
+.toilet-today { font-size: 11px; opacity: .75; }
+.has-settled .toilet-amount { animation: toilet-settled 500ms ease-out; }
+@keyframes toilet-settled { 50% { color: #56865b; transform: translateY(-2px); } }
+.paid-toilet.size-s .toilet-today { display: none; }

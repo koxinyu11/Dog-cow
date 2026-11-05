@@ -1,3 +1,5 @@
+import { TOILET_KEY, changeToilet, reviewToilet, endToilet } from '../../app/income/src/paid-toilet.js';
+import { TOILET_ERRORS } from '../shared/toilet-command.js';
 import { createUpdateFetch } from './update-transport.js';
 import { WindowStateStore } from './window-state.js';
 import { WindowController } from './window-controller.js';
@@ -108,6 +110,13 @@ let quitPending: Promise<void> | null = null;
 let quitNonce = '';
 let acknowledgeFlush: ((ok: boolean) => void) | null = null;
 let commands: Promise<unknown> = Promise.resolve();
+let incomeBatch = false;
+let toiletPendingSave = false;
+let toiletPendingRecordId = '';
+let pendingToiletOffwork: { date: string } | null = null;
+let lastToiletWall = Date.now();
+let lastToiletMono = performance.now();
+let lastToiletZone = new Date().getTimezoneOffset();
 let importDraft: {
   token: string;
   digest: string;
@@ -141,7 +150,7 @@ function snapshot(): Snapshot {
     layout: structuredClone(layout),
     layoutWarning,
     board: structuredClone(board),
-    income: structuredClone(income),
+    income: { ...structuredClone(income), ...(income.toilet ? { toilet: { ...structuredClone(income.toilet), pendingSave: toiletPendingSave, pendingRecordId: toiletPendingRecordId } } : {}) },
     save: { dirty: repo.dirty, error: repo.error, readError: repo.readError },
     version: app.getVersion(),
     updates: releaseUpdater ? { ...releaseUpdater.state } : undefined,
@@ -192,15 +201,23 @@ function restoreModels() {
     setItem: (key: string, value: string) => {
       const prior = repo.storage.getItem(key);
       repo.storage.setItem(key, value);
-      if (key === 'niuma-calculator.settings.v4' && prior !== value) revisions.income++;
+      if (['niuma-calculator.settings.v4', TOILET_KEY].includes(key) && prior !== value) revisions.income++;
     },
   };
-  controller = createController({ storage: store, calendarLoader:(year,options)=>loadHolidayYear(year,{...options,fetchImpl:boundedCalendarFetch()}) });
+  controller = createController({ storage: store,
+    setIntervalImpl: (tick, ms) => setInterval(() => {
+      const job = commands.then(async () => {
+        incomeBatch = true;
+        try { await maintainToilet(); tick(); } finally { incomeBatch = false; }
+      }).catch(error => console.error('[toilet:tick]', error instanceof Error ? error.name : 'unknown'));
+      commands = job;
+    }, ms),
+    calendarLoader:(year,options)=>loadHolidayYear(year,{...options,fetchImpl:boundedCalendarFetch()}) });
   unsubscribe = controller.subscribe((raw) => {
     const data = raw as unknown as Omit<IncomeState, 'now'> & { now: Date };
     income = { ...data, now: data.now.getTime() };
     broadcast();
-    if (repo.dirty) void repo.flush().then(() => broadcast());
+    if (repo.dirty && !incomeBatch && !toiletPendingSave) void repo.flush().then(() => broadcast());
   });
 }
 function validLayout(value: unknown): value is Layout {
@@ -226,8 +243,48 @@ function persistTask() {
   repo.storage.setItem(taskKey, JSON.stringify(tasks));
   revisions.tasks++;
 }
+function toiletFailure(errorCode: keyof typeof TOILET_ERRORS, message: string = TOILET_ERRORS[errorCode]): Result {
+  const correlationId = randomUUID();
+  console.error(JSON.stringify({ operation: 'toilet', stage: 'command', errorCode, correlationId }));
+  return { applied: false, persisted: false, message, errorCode, correlationId };
+}
+
+async function maintainToilet(interruption?: 'sleep' | 'clock-change') {
+  const wall = Date.now();
+  const mono = performance.now();
+  const zone = new Date().getTimezoneOffset();
+  const clockChanged = Math.abs((wall - lastToiletWall) - (mono - lastToiletMono)) > 5000 || zone !== lastToiletZone;
+  lastToiletWall = wall; lastToiletMono = mono; lastToiletZone = zone;
+  const data = income.toilet;
+  const active = data?.records.find(item => item.status === 'running');
+  if (!data || data.error || !active || toiletPendingSave) return;
+  let candidate;
+  if (interruption || clockChanged) candidate = reviewToilet(data, interruption ?? 'clock-change').data;
+  else if (localDate(new Date(active.startAt)) !== localDate(new Date(wall))) candidate = reviewToilet(data, 'cross-day').data;
+  else {
+    const endAt = Number(income.snapshot?.scheduledEndAt);
+    if (Number.isFinite(endAt) && wall >= endAt && endAt > active.startAt) candidate = endToilet(data, endAt, 'schedule-end');
+  }
+  if (!candidate) return;
+  toiletPendingSave = true;
+  toiletPendingRecordId = active.id;
+  controller.commitToilet(candidate);
+  await finish({ applied: true, persisted: false, message: '记录状态已更新。' });
+}
+
 async function finish(result: Result): Promise<Result> {
   result.persisted = result.applied ? await repo.flush() : false;
+  if (result.persisted && toiletPendingSave) { toiletPendingSave = false; toiletPendingRecordId = ''; }
+  if (result.applied && !result.persisted && (toiletPendingSave || income.toilet?.records.some(item => item.status !== 'completed'))) {
+    toiletPendingSave = true;
+    const failure = toiletFailure('TOILET_SAVE_FAILED');
+    result.errorCode = failure.errorCode;
+    result.correlationId = failure.correlationId;
+  }
+  if (result.persisted && pendingToiletOffwork) {
+    result.offwork = { date: pendingToiletOffwork.date, income: structuredClone(income) };
+    pendingToiletOffwork = null;
+  }
   broadcast();
   return {
     ...result,
@@ -387,16 +444,16 @@ async function invoke(method: string, p: Fields): Promise<Result> {
   }
   if (repo.migration?.phase === 'pending')
     throw Error('导入尚未完成校验，业务写入暂停，请重新打开应用。');
-  if (method === 'retrySave')
-    return finish({
-      applied: true,
-      persisted: false,
-      message: '当前修改已保存。',
-    });
+  if (method === 'retrySave') {
+    const result = await finish({ applied: true, persisted: false, message: '当前修改已保存。' });
+    return result;
+  }
+  if (toiletPendingSave && ['toilet', 'clock', 'settings', 'leave', 'removeLeave'].includes(method))
+    return { ...toiletFailure('TOILET_SAVE_FAILED'), snapshot: snapshot() };
   const requestId = typeof p.requestId === 'string' ? p.requestId : '';
   if (!requestId) throw Error('操作编号缺失，请重新提交。');
   if (repo.receipts.includes(requestId))
-    return { ...toastResult('操作已处理。'), snapshot: snapshot() };
+    return { applied: true, persisted: !repo.dirty && !repo.readError, message: repo.dirty ? '操作已处理，请重试保存。' : '操作已处理。', snapshot: snapshot() };
   let result: Result = { applied: true, persisted: false, message: '已保存。' };
   if (method === 'task') {
     expected(p, 'tasks');
@@ -540,6 +597,18 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     layoutWarning = '';
     repo.storage.setItem(BOARD_KEY, JSON.stringify(board));
     revisions.home++;
+  } else if (method === 'toilet') {
+    if (p.expectedRevision !== revisions.income) return { ...toiletFailure('TOILET_CONFLICT'), snapshot: snapshot() };
+    const data = income.toilet;
+    if (!data || data.error || repo.readError) return { ...toiletFailure('TOILET_DATA_INVALID'), snapshot: snapshot() };
+    const reason = !income.settings ? '先设置薪资，再估算时间价值。'
+      : income.calculationError ? income.calculationError.message
+      : String(income.snapshot?.toiletAvailableReason ?? '当前无法计算。');
+    const changed = changeToilet(data, p, Date.now(), reason, randomUUID);
+    if ('errorCode' in changed) return { ...toiletFailure(changed.errorCode as keyof typeof TOILET_ERRORS, changed.message), snapshot: snapshot() };
+    toiletPendingSave = true;
+    toiletPendingRecordId = String(p.recordId || changed.data.records.find((item: { status: string }) => item.status === 'running')?.id || '');
+    result = controller.commitToilet(changed.data);
   } else if (method === 'settings') {
     expected(p, 'income');
     result = controller.updateSettings(p.settings) as Result;
@@ -632,13 +701,28 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     }
     if (!change.ok || !('attendance' in change))
       throw Error('message' in change ? String(change.message) : '实际时间无效。');
-    result = controller.commitAttendance(change.attendance) as Result;
+    const active = income.toilet?.records.find(item => item.status === 'running');
+    let toilet = null;
+    if (active && !income.toilet?.error) {
+      if (p.action === 'pause') toilet = endToilet(income.toilet, now.getTime(), 'lunch');
+      else {
+        const day = change.attendance.days.find((item: { date: string }) => item.date === p.date);
+        if (p.date === localDate(new Date(active.startAt)) && day?.clockOut) toilet = endToilet(income.toilet, day.clockOut.at, 'offwork');
+      }
+    }
+    if (toilet) { toiletPendingSave = true; toiletPendingRecordId = active!.id; }
+    result = controller.commitAttendance(change.attendance, toilet) as Result;
+
   } else throw Error('不允许的操作。');
   if (result.applied) {
     repo.receipts = [...repo.receipts, requestId].slice(-128);
     repo.dirty = true;
   }
-  return finish(result);
+  const completed = await finish(result);
+  if (!completed.persisted && result.applied && method === 'clock' && p.action === 'finish'
+    && p.method === 'recorded' && p.date === localDate() && toiletPendingSave)
+    pendingToiletOffwork = { date: String(p.date) };
+  return completed;
 }
 function requestQuit(): Promise<void> {
   if (quitPending) return quitPending;
@@ -784,18 +868,19 @@ async function start() {
       }
       if (windows.phase === 'applying' || windows.phase === 'restoring') return toastResult('窗口正在切换，请稍后重试。');
       const job = commands
-        .then(() => invoke(method, (payload ?? {}) as Fields))
+        .then(async () => {
+          incomeBatch = true;
+          try { return await invoke(method, (payload ?? {}) as Fields); }
+          finally { incomeBatch = false; }
+        })
         .catch((error) => {
-          console.error(
-            JSON.stringify({
-              operation: method,
-              stage: 'command',
-              cause: error instanceof Error ? error.name : 'unknown',
-              correlationId: randomUUID(),
-            }),
-          );
+          const correlationId = randomUUID();
+          const errorCode = method === 'toilet' ? 'TOILET_INTERNAL' : undefined;
+          console.error(JSON.stringify({ operation: method, stage: 'command', errorCode,
+            cause: error instanceof Error ? error.name : 'unknown', correlationId }));
           return {
-            ...toastResult(error instanceof Error ? error.message : '操作失败，请重试。'),
+            ...toastResult(method === 'toilet' ? TOILET_ERRORS.TOILET_INTERNAL : error instanceof Error ? error.message : '操作失败，请重试。'),
+            ...(errorCode ? { errorCode, correlationId } : {}),
             snapshot: snapshot(),
           };
         });
@@ -837,7 +922,15 @@ async function start() {
     ]),
   );
   win.on('focus', () => controller.tick());
-  powerMonitor.on('resume', () => controller.tick());
+  const interruptToilet = () => {
+    const job = commands.then(async () => {
+      incomeBatch = true;
+      try { await maintainToilet('sleep'); controller.tick(); } finally { incomeBatch = false; }
+    }).catch(() => console.error('[toilet:resume] 状态恢复失败。'));
+    commands = job;
+  };
+  powerMonitor.on('suspend', interruptToilet);
+  powerMonitor.on('resume', interruptToilet);
   win.on('close', (event) => {
     if (!quitting) {
       event.preventDefault();

@@ -1,3 +1,4 @@
+const clockEnabledForToilet = settings => settings.stealMode && settings.clockMode;
 import { DEFAULT_BONUS_CONFIG, validateBonusConfig } from './bonus.js';
 import { getMonthPlan } from './calendar.js';
 import { getLeaveIntervalsForDay } from './leave.js';
@@ -168,7 +169,7 @@ function boundedRatio(seconds, plannedSeconds) {
   return Math.max(0, Math.min(1, seconds / plannedSeconds));
 }
 
-function summarizeDay(day, settings, now, leaves, attendance) {
+function summarizeDay(day, settings, now, leaves, attendance, toiletRecords = []) {
   const current = now.getTime();
   const rawDay = attendance?.days.find((entry) => entry.date === day.date);
   const flex = rawDay?.flex;
@@ -248,6 +249,23 @@ function summarizeDay(day, settings, now, leaves, attendance) {
   ));
   const earlySeconds = canSteal && settled ? forecastSeconds - beforeSettlement : 0;
   const earnedSeconds = settled && day.isWorkday && !fullDayLeave ? forecastSeconds : beforeSettlement;
+  // Activity attribution is incremental; keep the existing early-departure settlement intact.
+  let toiletBounds = subtractIntervals(expectedSoFar, [...breaks, ...late]);
+  if (!canSteal) toiletBounds = [];
+  if (clockEnabled) toiletBounds = hasClockIn
+    ? intersectIntervals(toiletBounds, [{ start: attendanceDay.startedAt, end: Math.min(current, attendanceDay.finishedAt ?? current) }]) : [];
+  const toiletDetails = [];
+  let attributed = [];
+  for (const record of [...toiletRecords].sort((a, b) => a.startAt - b.startAt || a.id.localeCompare(b.id))) {
+    const raw = [{ start: record.startAt, end: record.status === 'completed' ? record.endAt : current }];
+    const effective = record.status === 'needs-review' ? [] : intersectIntervals(raw, toiletBounds);
+    const added = subtractIntervals(effective, attributed);
+    attributed = [...attributed, ...added];
+    if (record.startAt < dayEnd && (record.endAt ?? current) >= midnight) {
+      toiletDetails.push({ id: record.id, effectiveSeconds: intervalSeconds(effective), addedSeconds: intervalSeconds(added) });
+    }
+  }
+  const toiletStolenSeconds = intervalSeconds(attributed);
   const lunchStolenSeconds = intervalSeconds(lunch);
   const standardExpectedSeconds = intervalSeconds(expectedSoFar);
   return {
@@ -263,18 +281,19 @@ function summarizeDay(day, settings, now, leaves, attendance) {
     lateSeconds,
     earlySeconds,
     lunchStolenSeconds,
-    stolenSeconds: lateSeconds + earlySeconds + lunchStolenSeconds,
+    toiletStolenSeconds, toiletDetails,
+    stolenSeconds: lateSeconds + earlySeconds + lunchStolenSeconds + toiletStolenSeconds,
     pendingClockIn: canSteal && clockEnabled && modeDay?.clockMode === true
       && !hasClockIn && standardExpectedSeconds > 0,
     earnedSeconds, forecastSeconds, extraWorkSeconds,
   };
 }
 
-export function calculateSnapshot(settings, now = new Date(), context, leaves = [], attendance) {
+export function calculateSnapshot(settings, now = new Date(), context, leaves = [], attendance, toiletRecords = []) {
   const plan = getMonthPlan(settings, now.getFullYear(), now.getMonth(), context);
   const todayKey = dateKey(now);
   const current = now.getTime();
-  const days = plan.days.map((day) => summarizeDay(day, settings, now, leaves, attendance));
+  const days = plan.days.map((day) => summarizeDay(day, settings, now, leaves, attendance, toiletRecords));
   const today = days.find((day) => day.date === todayKey);
   const plannedMonthSeconds = days.reduce((total, day) => total + day.dailySeconds, 0);
   if (!(plannedMonthSeconds > 0)) {
@@ -342,6 +361,17 @@ export function calculateSnapshot(settings, now = new Date(), context, leaves = 
 
   return {
     status,
+    toiletAvailableReason: !settings.stealMode ? '开启偷时间模式后可记录。'
+      : !activeStandard ? '当前不在有效工作时段。'
+      : activeLeave ? '请假中，暂不能开始。'
+      : activeBreak ? '午休中，暂不能开始。'
+      : today.settled ? '今日已下班。'
+      : clockEnabledForToilet(settings) && !started ? '上班打卡后可开始。' : '',
+    toiletStolenSeconds: today.toiletStolenSeconds,
+    toiletStolenAmount: incomeFor(today.toiletStolenSeconds),
+    toiletMonthAmount: incomeFor(sum('toiletStolenSeconds')),
+    toiletDetails: today.toiletDetails.map(item => ({ ...item, amount: incomeFor(item.addedSeconds) })),
+    toiletHistory: days.flatMap(day => day.toiletDetails.map(item => ({ ...item, date: day.date, amount: incomeFor(item.addedSeconds) }))),
     scheduledStartAt: today.start,
     scheduledEndAt: today.end,
     flexMode: today.attendanceDay && attendance?.days.find(d=>d.date===todayKey)?.flex?.mode || null,

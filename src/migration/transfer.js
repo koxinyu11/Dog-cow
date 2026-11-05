@@ -1,10 +1,11 @@
+import { TOILET_KEY, validateToilet } from '../../app/income/src/paid-toilet.js';
 import { loadSettings } from '../../app/income/src/storage.js';
 import { HOME_MODULES } from '../../app/income/src/home-layout.js';
 
 export const RESTORE_KEY = 'dogcow.migration.restore.v1';
 export const MAX_TRANSFER_BYTES = 20 * 1024 * 1024;
 const fixedKeys = ['work-todolist-generic-v1', 'dogcow.home.v1', ...[1, 2, 3, 4].map(v => `niuma-calculator.settings.v${v}`)];
-export const allowedKey = key => fixedKeys.includes(key) || key === 'dogcow.board.v2' || /^niuma-calculator\.holidays\.v1\.[1-9]\d{3}$/.test(key);
+export const allowedKey = key => fixedKeys.includes(key) || key === TOILET_KEY || key === 'dogcow.board.v2' || /^niuma-calculator\.holidays\.v1\.[1-9]\d{3}$/.test(key);
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const fail = message => { throw new Error(message); };
 const validDate = value => {
@@ -26,6 +27,7 @@ export function collectLegacy(storage) {
 
 export function validateLegacy(values, now = new Date()) {
   if (!record(values) || Object.keys(values).some(key => !allowedKey(key) || (values[key] !== null && typeof values[key] !== 'string'))) fail('迁移键值格式无效。');
+  if (values[TOILET_KEY] != null) validateToilet(JSON.parse(values[TOILET_KEY]));
   for (const key of fixedKeys) if (!Object.hasOwn(values, key)) fail('迁移包缺少必要键。');
   const tasks = values[fixedKeys[0]] === null ? null : JSON.parse(values[fixedKeys[0]]);
   if (tasks !== null) {
@@ -81,6 +83,7 @@ export async function parseTransfer(text, cryptoImpl, now = new Date()) {
 export function beginRestore(storage, values) {
   validateLegacy(values);
   if (storage.getItem(RESTORE_KEY) !== null) fail('存在未完成恢复，请先处理。');
+  values = { ...values, [TOILET_KEY]: values[TOILET_KEY] ?? null };
   const before = Object.fromEntries(Object.keys(values).map(key => [key, storage.getItem(key)]));
   storage.setItem(RESTORE_KEY, JSON.stringify({ version: 1, before, target: values }));
   finishRestore(storage, 'target');

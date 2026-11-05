@@ -45,3 +45,19 @@ test('personalized titles survive save and restart, old settings gain module def
  await reload.load();
  assert.deepEqual(parseTasks(reload.storage.getItem(taskKey), () => 'id').settings, settings);
 });
+
+test('paid toilet and attendance candidate survive failed flush and a single retry together', async t => {
+ const repo = await setup(t);
+ const key = 'dogcow.paid-toilet.v1';
+ const activity = JSON.stringify({version:1,records:[{id:'synthetic',startAt:100,endAt:200,status:'completed',endReason:'lunch'}]});
+ repo.storage.setItem(key,activity);
+ repo.storage.setItem('niuma-calculator.settings.v4','{"candidate":"same-commit"}');
+ await mkdir(repo.file);
+ assert.equal(await repo.flush(),false);
+ assert.equal(repo.storage.getItem(key),activity);
+ await rm(repo.file,{recursive:true});
+ assert.equal(await repo.flush(),true);
+ const reload = new Repository(repo.directory); await reload.load();
+ assert.equal(reload.storage.getItem(key),activity);
+ assert.equal(reload.storage.getItem('niuma-calculator.settings.v4'),'{"candidate":"same-commit"}');
+});

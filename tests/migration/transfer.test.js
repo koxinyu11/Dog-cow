@@ -59,3 +59,18 @@ for (const date of ['2024-02-29', '2026-11-04']) {
     assert.equal(validateLegacy(values).counts.tasks, 1);
   });
 }
+
+test('optional paid toilet domain exports, validates and old restore clears prior activities', async () => {
+  const key = 'dogcow.paid-toilet.v1';
+  const s = storage();
+  const facts = { version: 1, records: [{ id: 'synthetic', startAt: 100, endAt: 200, status: 'completed' }] };
+  s.setItem(key, JSON.stringify(facts));
+  const pack = await createTransfer(s, {}, new Date(), webcrypto);
+  assert.equal((await parseTransfer(JSON.stringify(pack), webcrypto)).pack.values[key], JSON.stringify(facts));
+  const old = collectLegacy(storage());
+  beginRestore(s, old);
+  assert.equal(s.getItem(key), null);
+  const bad = { ...old, [key]: JSON.stringify({ version: 1, records: [{ ...facts.records[0], endAt: 50 }] }) };
+  assert.throws(() => beginRestore(s, bad));
+  assert.equal(s.getItem(key), null);
+});
