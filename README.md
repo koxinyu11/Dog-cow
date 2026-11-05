@@ -66,20 +66,86 @@ npm run dev
 
 ## 最新版更新
 
-### v3.0.8 · 当前正式版
+当前正式版为 **v3.0.8**，提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。以下按已发布标签及对应提交整理；测试和维护版本单独注明，历史平台支持不代表当前安装包范围。
 
-提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。更新下载失败时，可从 [v3.0.8 发布页](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.8) 手动下载；具体改动见发布页的完整变更记录。
+### [v3.0.8](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.8) · 称号与收藏 · 当前正式版
 
-### v3.0.2 · 历史更新
+新增荒诞职场称号、隐藏解锁条件和称号仓库。
 
-这一版让午饭和热量记录更贴近实际：
+<details>
+<summary><strong>历史版本 · v3.0.7 及更早</strong></summary>
 
-- **自己记录吃了什么**：“今天吃什么”除了随机选择，也能直接填写实际餐食和份量。
-- **热量可按实际调整**：“热量爆表”会根据餐食和份量自动估算，也支持直接输入、增减 50 千卡和恢复自动估算。
-- **模块内容完整显示**：统一热量模块的字号、间距和输入框样式，避免餐食、按钮或估算说明被裁切。
-- **旧数据继续可用**：任务、排班、工资、卡片布局和已有趣味模块数据格式保持兼容。
+### [v3.0.7](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.7) · 仓库维护
 
-[查看完整发布说明](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.2)
+将 agent 协作规则保留在本地；没有新增用户功能。
+
+### [v3.0.6](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.6) · 带薪如厕
+
+新增带薪如厕计时；补充正式安装版实例保护规则，避免开发操作影响正式版。
+
+### [v3.0.5](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.5) · 更新下载与发布修复
+
+修复 Electron 下载 GitHub 安装包时的跳转处理；发布草稿改为按 ID 核验与公开，检查产物和目标提交，并区分检查、下载与校验阶段的错误。
+
+### [v3.0.4](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.4) · 桌面数据胶囊
+
+新增 240×32 紧凑数据胶囊，可显示收入、下班倒计时、任务完成度等指标；支持置顶、拖动、右键菜单和窗口偏好恢复。展开、收起以右上角为锚点，配色跟随主题与明暗模式，并优化过渡动画。
+
+### [v3.0.2](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.2) · 趣味卡片、计薪与应用内下载
+
+相较 3.0.0，新增趣味卡片、可解锁心情壁纸、下班倒计时和收工小票；支持模块内容编辑、按日灵活打卡及独立年终奖税费计算。餐食可手动填写，热量按份量估算并支持调整、恢复自动估算，修复模块裁切。加入自动检查、下载安装包能力，安装仍需手动完成；改进 Mac 打包重试与发布版本处理。
+
+### [v3.0.0](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.0) · Electron 桌面版
+
+迁移到 Electron、React 和 TypeScript；首页改为可拖动、调大小和移除的九类模块。新增浅色、暗黑、自动模式，以及包月、按天计薪和税前月薪估算开关；调整每日收入、下班补齐及偷出金额口径，统一表单样式并修复卡片裁切。旧原生版数据需通过备份迁移。
+
+### [v2.8.0](https://github.com/koxinyu11/Dog-cow/releases/tag/v2.8.0) · 紧凑标题栏
+
+新增紧凑标题栏模式。
+
+### [v2.7.0](https://github.com/koxinyu11/Dog-cow/releases/tag/v2.7.0) · 未完成任务顺延
+
+支持将未完成任务顺延到下一天。
+
+### [v2.6.0](https://github.com/koxinyu11/Dog-cow/releases/tag/v2.6.0) · 复用标签与公开更新
+
+新增可复用标签，并支持通过公开发布源进行 Sparkle 更新。
+
+### [v2.5.5](https://github.com/koxinyu11/Dog-cow/releases/tag/v2.5.5) · 更新链路验证
+
+准备最终一轮更新测试，并维护更新源；没有新增业务功能。
+
+### [v2.5.4](https://github.com/koxinyu11/Dog-cow/releases/tag/v2.5.4) · 更新缓存修复
+
+按应用版本隔离 Sparkle 更新源缓存，避免不同版本共用缓存影响更新检查。
+
+### [v2.5.3](https://github.com/koxinyu11/Dog-cow/releases/tag/v2.5.3) · 更新链路验证
+
+准备经核验的更新测试版本，并维护更新源；没有新增业务功能。
+
+### [v2.5.2](https://github.com/koxinyu11/Dog-cow/releases/tag/v2.5.2) · 更新版本匹配修复
+
+对齐应用包版本与 Sparkle 更新源版本。
+
+### [v2.5.1](https://github.com/koxinyu11/Dog-cow/releases/tag/v2.5.1) · 更新链路验证
+
+准备 2.5.1 更新测试版本，并维护更新源；没有新增业务功能。
+
+### [v2.5.0](https://github.com/koxinyu11/Dog-cow/releases/tag/v2.5.0) · Sparkle 更新接入
+
+原生 Mac 版接入 Sparkle 应用内更新，补齐更新签名流程与构建公钥配置；仓库新增限定范围的自动同步脚本。
+
+### [v2.4.1](https://github.com/koxinyu11/Dog-cow/releases/tag/v2.4.1) · 下载产物修复
+
+统一发布附件名称，保持下载资源命名稳定。
+
+### [v2.4.0](https://github.com/koxinyu11/Dog-cow/releases/tag/v2.4.0) · 原生 Mac 版
+
+提供周任务、月历和历史记录；支持单项与整周任务创建，以及时间、优先级、标签、备注和进展。提供 Apple Silicon / Intel 通用安装包，并支持当时的私有 GitHub 发布源更新检查。
+
+> 发布记录中没有独立的 v3.0.1、v3.0.3 标签，相关已发布改动归入实际包含它们的版本。
+
+</details>
 
 ## 技术栈
 
