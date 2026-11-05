@@ -47,6 +47,7 @@ const COPY_LABELS: Record<string, string> = {
   clockTitle: '打卡',
   stolenTitle: '偷出金额',
   toiletTitle: '带薪拉屎',
+  owedTitle: '老板欠我钱',
   moodTitle: '今日精神状态', receiptTitle: '下班小票', lunchTitle: '今天吃什么',
   caloriesTitle: '热量爆表',
   hopesTitle: '盼头清单', pastureTitle: '工位小牧场', converterTitle: '工资能买啥',

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   TITLES, catalogProblems, applySignals, changeTitles, emptyTitles, parseTitles, titlesView, viewOf, met,
-  taskSignals, clockSignals, funSignals, openSignals, stealSignals, TITLES_KEY,
+  taskSignals, clockSignals, funSignals, openSignals, stealSignals, owedSignals, TITLES_KEY,
 } from '../../dist-electron/src/shared/titles/index.js';
 import { Titles } from '../../dist-electron/src/main/titles.js';
 import { localDate } from '../../dist-electron/src/domain/tasks/model.js';
@@ -178,4 +178,17 @@ test('backup accepts title data and rejects a broken structure', () => {
   const base = { 'work-todolist-generic-v1': null, 'dogcow.home.v1': null, ...Object.fromEntries([1, 2, 3, 4].map((v) => [`niuma-calculator.settings.v${v}`, null])) };
   assert.doesNotThrow(() => validateLegacy({ ...base, [TITLES_KEY]: JSON.stringify(emptyTitles('2026-11-05')) }));
   assert.throws(() => validateLegacy({ ...base, [TITLES_KEY]: '{"version":1}' }), /职称/);
+});
+
+test('boss-owes series unlocks silently: no toast, no unseen, no auto-wear', () => {
+  const before = run([ledger('steal', '2026-11-04', 100)]).state;
+  assert.equal(before.worn, 'steal-1');
+  const { state, unlocked } = applySignals(before, owedSignals({ '2026-11-04': 60, '2026-11-05': 50 }), T);
+  assert.deepEqual(unlocked, ['owed-1', 'owed-100']);
+  assert.equal(state.ledgers.owed['2026-11-05'], 5000);
+  assert.deepEqual(state.pendingToast, before.pendingToast);
+  assert.deepEqual(state.unseen, before.unseen);
+  assert.equal(state.worn, 'steal-1');
+  assert.ok(titlesView(state).items.some((item) => item.id === 'owed-100' && item.series === 'owed'));
+  assert.deepEqual(owedSignals({ '2026-11-05': -1, '2026-11-06': Number.NaN }), []);
 });

@@ -1,4 +1,5 @@
 import { PaidToilet } from '../features/toilet/PaidToilet';
+import { OwedModule } from '../features/owed/OwedModule';
 import { FunModule } from '../features/fun/FunModules';
 import { defaultFun, estimateMealCalories } from '../../shared/fun';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
@@ -12,7 +13,7 @@ import { fx } from '../motion/fx';
 import {
   AlarmClock, ArrowLeft, ArrowRight, Bed, Briefcase, Building2, CalendarDays, CalendarRange, ChartColumn, Clock, Coffee,
   Check as CheckIcon, Drama, Flag, Flame, Hourglass, House, Landmark, ListTodo, LogIn, LogOut, Moon, Plus, Rabbit, Settings2, Sprout, Star, Sun,
-  Target, TreePalm, Turtle, UtensilsCrossed, Wallet, Zap, ClipboardList, PencilLine, History, PiggyBank, Trophy, type LucideIcon,
+  Target, TreePalm, Turtle, UtensilsCrossed, Wallet, Zap, ClipboardList, PencilLine, History, PiggyBank, Trophy, HandCoins, type LucideIcon,
 } from 'lucide-react';
 import { Button, Check, Chip, Emoji, LiveDot, Ring, Rolling, Stat } from '../ui';
 import { ModuleDetails } from '../components/ModuleDetails';
@@ -607,5 +608,6 @@ export const MODULES: Record<ModuleId, ModuleDef> = {
   tasks: { id: 'tasks', name: '任务列表', icon: ListTodo, accent: '#3c8fd6', titleKey: 'tasksTitle', blurb: '完整编辑每项任务', defaultSize: 'wide', render: (c) => <TasksModule {...c} /> },
   calendar: { id: 'calendar', name: '月历', icon: CalendarDays, accent: '#c4569a', titleKey: 'calendarTitle', blurb: '周条 · 月格 · 今日签', defaultSize: 'l', render: (c) => <CalendarModule {...c} /> },
   'paid-toilet': { id: 'paid-toilet', name: '带薪拉屎', icon: Briefcase, accent: '#56865b', titleKey: 'toiletTitle', blurb: '换个工位，继续领薪', defaultSize: 'm', render: c => <PaidToilet {...c} /> },
+  owed: { id: 'owed', name: '老板欠我钱', icon: HandCoins, accent: '#c0392b', titleKey: 'owedTitle', blurb: '早到晚走都记着账', defaultSize: 'm', render: (c) => <OwedModule {...c} /> },
   stolen: { id: 'stolen', name: '偷出金额', icon: Drama, accent: '#7a5bc4', titleKey: 'stolenTitle', blurb: '摸鱼的时间值多少', defaultSize: 'm', render: (c) => <StolenModule {...c} /> },
 };

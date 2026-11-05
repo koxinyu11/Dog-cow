@@ -8,6 +8,7 @@ import { createUpdateFetch } from './update-transport.js';
 import { WindowStateStore } from './window-state.js';
 import { WindowController } from './window-controller.js';
 import { buildFlexDay } from '../../app/income/src/flex.js';
+import { OWED_KEY, changeOwed, emptyOwed, owedSummary, parseOwed } from '../../app/income/src/owed.js';
 import { moodData, MOOD_REWARDS } from '../shared/mood.js';
 import { defaultFun, holidayStarts, rewardTask, seedHopes, updateFun, type HolidayStart } from '../shared/fun.js';
 import { ReleaseUpdater } from './release-updates.js';
@@ -52,6 +53,7 @@ import {
   type Layout,
   type Result,
   type Snapshot,
+  type OwedView,
   type TaskState,
 } from '../shared/contracts.js';
 import { createController, type IncomeController } from './legacy-adapter.js';
@@ -139,6 +141,8 @@ let controller: IncomeController;
 let unsubscribe: (() => void) | null = null;
 let income: IncomeState;
 let titles: Titles;
+let owedData = emptyOwed();
+let owedError = '';
 let stealDay = '';
 let releaseUpdater: ReleaseUpdater | null = null;
 const taskKey = 'work-todolist-generic-v1';
@@ -174,6 +178,7 @@ function snapshot(): Snapshot {
     board: structuredClone(board),
     hopeHolidays: hopeHolidays(),
     titles: titles?.view(),
+    owed: income ? owedView() : undefined,
     income: { ...structuredClone(income), ...(income.toilet ? { toilet: { ...structuredClone(income.toilet), pendingSave: toiletPendingSave, pendingRecordId: toiletPendingRecordId } } : {}) },
     save: { dirty: repo.dirty, error: repo.error, readError: repo.readError },
     version: app.getVersion(),
@@ -274,10 +279,20 @@ function restoreModels() {
     calendarLoader:(year,options)=>loadHolidayYear(year,{...options,fetchImpl:boundedCalendarFetch()}) });
   titles = new Titles(repo.storage, (date) => controller.dayFacts(date));
   titles.load();
+  try {
+    owedData = parseOwed(repo.storage.getItem(OWED_KEY));
+    owedError = '';
+  } catch {
+    // Keep the unreadable bytes untouched; edits stay blocked until the data is repaired or restored.
+    console.warn('[owed:load] 欠款记录格式无效，已暂停编辑。');
+    owedData = emptyOwed();
+    owedError = '欠款记录无法读取，暂不能编辑；原始数据已保留。';
+  }
   unsubscribe = controller.subscribe((raw) => {
     const data = raw as unknown as Omit<IncomeState, 'now'> & { now: Date };
     income = { ...data, now: data.now.getTime() };
     recordSteal();
+    recordOwed();
     broadcast();
     if (repo.dirty && !incomeBatch && !toiletPendingSave) void repo.flush().then(() => broadcast());
   });
@@ -290,6 +305,16 @@ function recordSteal(force = false) {
   const s = income.snapshot;
   if (!income.settings?.stealMode || income.calculationError || !s || s.status === 'rest-day' || s.fullDayLeave) return;
   titles.record({ kind: 'steal', amount: s.stolenAmount }, force);
+}
+function owedView(): OwedView {
+  const summary = owedSummary({ settings: income?.settings, snapshot: income?.calculationError ? null : income?.snapshot, data: owedData, now: income?.now ?? Date.now() });
+  return { ...summary, error: owedError, clockReady: !!(income?.settings?.stealMode && income.settings.clockMode) };
+}
+/** Feeds this month's per-day amounts to the titles ledger; the "owed" series unlocks silently. */
+function recordOwed() {
+  if (owedError || !income?.settings || income.calculationError || !income.snapshot) return;
+  const view = owedView();
+  if (view.ready) titles.record({ kind: 'owed', days: view.days });
 }
 function recordOpen() {
   titles.record({ kind: 'open' });
@@ -378,6 +403,19 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     if (picked.canceled || !picked.filePath) return toastResult('已取消保存。');
     await writeFile(picked.filePath, image.toPNG());
     return { applied: true, persisted: true, message: '小票图片已保存。' };
+  }
+  if (method === 'iouImage') {
+    if (!win || typeof p.png !== 'string' || p.png.length > 4_000_000 || !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(p.png)) throw Error('欠条图片无效，请重试。');
+    const image = nativeImage.createFromDataURL(p.png);
+    if (image.isEmpty() || image.getSize().width > 2000 || image.getSize().height > 4000) throw Error('欠条图片尺寸无效。');
+    const picked = await dialog.showSaveDialog(win, { defaultPath: `狗牛-老板欠条-${localDate()}.png`, filters: [{ name: 'PNG 图片', extensions: ['png'] }] });
+    if (picked.canceled || !picked.filePath) return toastResult('未保存：已取消。');
+    try { await writeFile(picked.filePath, image.toPNG()); }
+    catch (error) {
+      console.error(JSON.stringify({ operation: 'iouImage', stage: 'write', cause: error instanceof Error ? error.name : 'unknown' }));
+      return toastResult('未保存：欠条写入失败，请换个位置重试。');
+    }
+    return { applied: true, persisted: true, message: '欠条已保存，债主请收好。' };
   }
   if (method === 'appearance') {
     if (!['light', 'dark', 'auto'].includes(String(p.mode)) || !['light', 'dark'].includes(String(p.resolved)))
@@ -710,6 +748,16 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     toiletPendingSave = true;
     toiletPendingRecordId = String(p.recordId || changed.data.records.find((item: { status: string }) => item.status === 'running')?.id || '');
     result = controller.commitToilet(changed.data);
+  } else if (method === 'owed') {
+    expected(p, 'income');
+    if (owedError) return { applied: false, persisted: false, message: owedError, snapshot: snapshot() };
+    const changed = changeOwed(owedData, p, Date.now(), randomUUID);
+    if (!changed.data) return { applied: false, persisted: false, message: changed.message ?? '欠款操作无效。', errors: changed.errors, snapshot: snapshot() };
+    owedData = changed.data;
+    repo.storage.setItem(OWED_KEY, JSON.stringify(owedData));
+    recordOwed();
+    revisions.income++;
+    result.message = p.action === 'remove' ? '已删除。' : '已记账。';
   } else if (method === 'settings') {
     expected(p, 'income');
     result = controller.updateSettings(p.settings) as Result;

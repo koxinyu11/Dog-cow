@@ -21,6 +21,7 @@ export const SIGNALS = {
 
 export const LEDGERS = {
   steal: '日期 → 当天偷出金额（分）',
+  owed: '日期 → 当天老板欠款（分）',
   lunch: '日期 → 确认的菜名',
   mood: '日期 → 精神状态 ID',
   hopes: '日期 → 当天未过期盼头数量',

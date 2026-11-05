@@ -64,10 +64,12 @@ function evaluate(state: TitlesState, now: number, titles: readonly TitleDef[]):
       progress = true;
     }
   }
-  if (!fresh.length) return fresh;
-  state.unseen = [...new Set([...state.unseen, ...fresh])];
-  state.pendingToast = [...new Set([...state.pendingToast, ...fresh])];
-  if (!state.manual) state.worn = bestOf(fresh) ?? state.worn;
+  // Silent series are recorded but never announced or auto-worn.
+  const loud = fresh.filter((id) => { const title = titleById.get(id); return !(title && seriesById.get(title.series)?.silent); });
+  if (!loud.length) return fresh;
+  state.unseen = [...new Set([...state.unseen, ...loud])];
+  state.pendingToast = [...new Set([...state.pendingToast, ...loud])];
+  if (!state.manual) state.worn = bestOf(loud) ?? state.worn;
   return fresh;
 }
 

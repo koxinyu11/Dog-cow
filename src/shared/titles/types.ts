@@ -13,6 +13,8 @@ export interface SeriesDef {
   /** lucide-react icon name; the renderer maps it to a component. */
   icon: string;
   color: string;
+  /** Silent series unlock without toast, unseen dot or auto-wear. */
+  silent?: boolean;
 }
 
 /** Read-only facts a condition may inspect. Never exposes business state. */

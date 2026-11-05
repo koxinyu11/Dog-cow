@@ -1,9 +1,9 @@
 import type { CSSProperties } from 'react';
-import { AlarmClock, CalendarHeart, Coffee, DoorOpen, ListChecks, PartyPopper, PiggyBank, Sparkles, UtensilsCrossed, type LucideIcon } from 'lucide-react';
+import { AlarmClock, CalendarHeart, Coffee, DoorOpen, HandCoins, ListChecks, PartyPopper, PiggyBank, Sparkles, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 // Type-only: the title catalog stays in the main process; locked titles never reach the renderer.
 import type { Rarity, TitleCard } from '../../../shared/titles/types';
 
-const ICONS: Record<string, LucideIcon> = { AlarmClock, CalendarHeart, Coffee, DoorOpen, ListChecks, PartyPopper, PiggyBank, Sparkles, UtensilsCrossed };
+const ICONS: Record<string, LucideIcon> = { AlarmClock, CalendarHeart, Coffee, DoorOpen, HandCoins, ListChecks, PartyPopper, PiggyBank, Sparkles, UtensilsCrossed };
 export const titleIcon = (name: string) => ICONS[name] ?? Sparkles;
 
 export const RARITY: Record<Rarity, { label: string; stamp: string }> = {

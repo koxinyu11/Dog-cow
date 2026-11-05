@@ -1,4 +1,5 @@
 import { TOILET_KEY, validateToilet } from '../../app/income/src/paid-toilet.js';
+import { OWED_KEY, parseOwed } from '../../app/income/src/owed.js';
 import { loadSettings } from '../../app/income/src/storage.js';
 import { HOME_MODULES } from '../../app/income/src/home-layout.js';
 
@@ -6,7 +7,7 @@ export const RESTORE_KEY = 'dogcow.migration.restore.v1';
 export const MAX_TRANSFER_BYTES = 20 * 1024 * 1024;
 const fixedKeys = ['work-todolist-generic-v1', 'dogcow.home.v1', ...[1, 2, 3, 4].map(v => `niuma-calculator.settings.v${v}`)];
 export const TITLES_KEY = 'dogcow.titles.v1';
-export const allowedKey = key => fixedKeys.includes(key) || key === TOILET_KEY || key === TITLES_KEY || key === 'dogcow.board.v2' || /^niuma-calculator\.holidays\.v1\.[1-9]\d{3}$/.test(key);
+export const allowedKey = key => fixedKeys.includes(key) || key === TOILET_KEY || key === TITLES_KEY || key === OWED_KEY || key === 'dogcow.board.v2' || /^niuma-calculator\.holidays\.v1\.[1-9]\d{3}$/.test(key);
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const fail = message => { throw new Error(message); };
 const validDate = value => {
@@ -29,6 +30,7 @@ export function collectLegacy(storage) {
 export function validateLegacy(values, now = new Date()) {
   if (!record(values) || Object.keys(values).some(key => !allowedKey(key) || (values[key] !== null && typeof values[key] !== 'string'))) fail('迁移键值格式无效。');
   if (values[TOILET_KEY] != null) validateToilet(JSON.parse(values[TOILET_KEY]));
+  if (values[OWED_KEY] != null) parseOwed(values[OWED_KEY]);
   if (values[TITLES_KEY] != null) {
     // Structure only; ids and facts are checked again by the titles store on load.
     const titles = JSON.parse(values[TITLES_KEY]);

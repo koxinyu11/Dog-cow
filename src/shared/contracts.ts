@@ -103,8 +103,30 @@ export interface BonusConfig {
   annualIncome: number | string;
   annualDeductions: number | string;
 }
+export interface OvertimeConfig {
+  enabled: boolean;
+  workdayRate: number | string;
+  restRate: number | string;
+  holidayRate: number | string;
+  minMinutes: number | string;
+}
+export interface OwedMessage { id: string; date: string; minutes: number; note: string; createdAt: number; updatedAt: number; amount: number }
+export interface OwedView {
+  error: string;
+  ready: boolean;
+  clockReady: boolean;
+  enabled: boolean;
+  month: string;
+  today: number;
+  total: number;
+  parts: Record<'early' | 'late' | 'rest' | 'message', number>;
+  seconds: Record<'early' | 'late' | 'rest' | 'message', number>;
+  messages: OwedMessage[];
+  days: Record<string, number>;
+}
 export interface IncomeSettings {
   bonus?: BonusConfig;
+  overtime?: OvertimeConfig;
   payBasis: 'monthly' | 'daily';
   dailySalary: number | string;
   monthlySalary: number | string;
@@ -174,6 +196,7 @@ export interface Snapshot {
   hopeHolidays?: { name: string; date: string }[];
   income: IncomeState;
   titles?: TitlesView;
+  owed?: OwedView;
   save: { dirty: boolean; error: string; readError: string };
   version: string;
 }
@@ -200,6 +223,8 @@ export const methods = [
   'board',
   'fun',
   'receiptImage',
+  'iouImage',
+  'owed',
   'settings',
   'leave',
   'removeLeave',

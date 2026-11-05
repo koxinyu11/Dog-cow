@@ -1,5 +1,5 @@
 import {
-  TITLES_KEY, applySignals, catalogProblems, changeTitles, clockSignals, funSignals, openSignals, parseTitles, stealSignals,
+  TITLES_KEY, applySignals, catalogProblems, changeTitles, clockSignals, funSignals, openSignals, owedSignals, parseTitles, stealSignals,
   taskSignals, titlesView, viewOf, type DayFacts, type Signal, type TitleId, type TitlesAction, type TitlesState, type TitlesView,
 } from '../shared/titles/index.js';
 import type { Attendance, Task } from '../shared/contracts.js';
@@ -17,9 +17,11 @@ export type TitleEvent =
   | { kind: 'clock'; before: Attendance; after: Attendance }
   | { kind: 'fun'; action: unknown; after: FunState }
   | { kind: 'open' }
-  | { kind: 'steal'; amount: unknown };
+  | { kind: 'steal'; amount: unknown }
+  | { kind: 'owed'; days: Record<string, number> };
 
 const STEAL_STEP = 100; // cents; smaller changes wait for the next forced write
+const MONEY_LEDGERS = ['steal', 'owed'] as const;
 
 /**
  * The single integration point between business commands and the title engine.
@@ -28,19 +30,20 @@ const STEAL_STEP = 100; // cents; smaller changes wait for the next forced write
 export class Titles {
   private state: TitlesState | null = null;
   private error = '';
-  private persistedSteal = new Map<string, number>();
+  /** `${ledger}:${day}` → last written cents for the high-frequency money ledgers. */
+  private persisted = new Map<string, number>();
 
   constructor(private readonly store: Store, private readonly dayFacts: (date: string) => DayFacts | null) {}
 
   load(today = localDate()) {
     this.error = '';
-    this.persistedSteal.clear();
+    this.persisted.clear();
     const problems = catalogProblems();
     if (problems.length) console.error('[titles:catalog]', problems.join('; '));
     try {
       const raw = this.store.getItem(TITLES_KEY);
       this.state = parseTitles(raw, today);
-      for (const [day, value] of Object.entries(this.state.ledgers.steal ?? {})) if (typeof value === 'number') this.persistedSteal.set(day, value);
+      this.remember();
     } catch {
       this.state = null;
       this.error = '职称数据读取失败，已暂停记录；原数据未被覆盖。';
@@ -65,13 +68,14 @@ export class Titles {
     const result = applySignals(this.state, signals, Date.now());
     if (!result.changed) return [];
     this.state = result.state;
-    if (event.kind !== 'steal' || force || result.unlocked.length || this.stealMoved(today)) this.write();
+    const money = event.kind === 'steal' || event.kind === 'owed';
+    if (!money || force || result.unlocked.length || this.moneyMoved()) this.write();
     return result.unlocked;
   }
 
   /** Flushes any in-memory steal amount not yet written (quit, day change). */
   settle() {
-    if (this.state && [...Object.entries(this.state.ledgers.steal ?? {})].some(([day, v]) => this.persistedSteal.get(day) !== v)) this.write();
+    if (this.state && this.moneyEntries().some(([key, v]) => this.persisted.get(key) !== v)) this.write();
   }
 
   change(input: TitlesAction) {
@@ -88,19 +92,29 @@ export class Titles {
       case 'fun': return funSignals(event.action, event.after, today);
       case 'open': { const facts = this.dayFacts(today); return openSignals(today, facts ? !facts.workday : null, view); }
       case 'steal': return stealSignals(today, event.amount);
+      case 'owed': return owedSignals(event.days);
     }
   }
 
-  private stealMoved(today: string) {
-    const now = this.state!.ledgers.steal?.[today];
-    return typeof now === 'number' && Math.abs(now - (this.persistedSteal.get(today) ?? 0)) >= STEAL_STEP;
+  private moneyEntries(): [string, number][] {
+    return MONEY_LEDGERS.flatMap((ledger) => Object.entries(this.state!.ledgers[ledger] ?? {})
+      .filter((entry): entry is [string, number] => typeof entry[1] === 'number')
+      .map(([day, value]) => [`${ledger}:${day}`, value] as [string, number]));
+  }
+
+  private moneyMoved() {
+    return this.moneyEntries().some(([key, value]) => Math.abs(value - (this.persisted.get(key) ?? 0)) >= STEAL_STEP);
+  }
+
+  private remember() {
+    for (const [key, value] of this.moneyEntries()) this.persisted.set(key, value);
   }
 
   /** Title storage failure never blocks the business command that triggered it. */
   private write() {
     try {
       this.store.setItem(TITLES_KEY, JSON.stringify(this.state));
-      for (const [day, value] of Object.entries(this.state!.ledgers.steal ?? {})) if (typeof value === 'number') this.persistedSteal.set(day, value);
+      this.remember();
     } catch (error) {
       console.error('[titles:write]', error instanceof Error ? error.name : 'unknown');
     }

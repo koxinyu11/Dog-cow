@@ -3,6 +3,7 @@ import { DEFAULT_BONUS_CONFIG, validateBonusConfig } from './bonus.js';
 import { getMonthPlan } from './calendar.js';
 import { getLeaveIntervalsForDay } from './leave.js';
 import { getAttendanceDay } from './attendance.js';
+import { DEFAULT_OVERTIME_CONFIG, validateOvertimeConfig } from './owed.js';
 import { DEFAULT_PAYROLL_CONFIG, validatePayrollConfig, calculatePayroll } from './payroll.js';
 
 export const DEFAULT_SETTINGS = {
@@ -23,6 +24,7 @@ export const DEFAULT_SETTINGS = {
   salaryMode: 'net',
   payroll: DEFAULT_PAYROLL_CONFIG,
   bonus: DEFAULT_BONUS_CONFIG,
+  overtime: DEFAULT_OVERTIME_CONFIG,
 };
 
 const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
@@ -54,6 +56,7 @@ export function validateSettings(raw) {
   const dailySalary = parseNumber(fallback('dailySalary'));
   const payrollCheck = validatePayrollConfig(fallback('payroll'));
   const bonusCheck = validateBonusConfig(fallback('bonus'));
+  const overtimeCheck = validateOvertimeConfig(fallback('overtime'));
   const validStart = validTime(input.startTime);
   const validEnd = validTime(input.endTime);
 
@@ -87,6 +90,7 @@ export function validateSettings(raw) {
   if (clockMode === true && stealMode !== true) errors.clockMode = '请先开启偷时间模式，再开启上下班模式。';
   if (salaryMode !== 'net' && salaryMode !== 'gross') errors.salaryMode = '请选择税后月薪或税前月薪。';
   if (!bonusCheck.valid) errors.bonus = Object.values(bonusCheck.errors).join(' ');
+  if (!overtimeCheck.valid) errors.overtime = Object.values(overtimeCheck.errors).join(' ');
   if (!payrollCheck.valid) errors.payroll = '工资换算配置无效，请检查社保、公积金及个税设置。';
 
   if (lunchCountsAsWork === false && validStart && validEnd
@@ -123,6 +127,7 @@ export function validateSettings(raw) {
       salaryMode,
       payroll: payrollCheck.config,
       bonus: bonusCheck.config,
+      overtime: overtimeCheck.config,
     },
     errors,
   };
@@ -268,6 +273,13 @@ function summarizeDay(day, settings, now, leaves, attendance, toiletRecords = []
   const toiletStolenSeconds = intervalSeconds(attributed);
   const lunchStolenSeconds = intervalSeconds(lunch);
   const standardExpectedSeconds = intervalSeconds(expectedSoFar);
+  // Boss-owes time only trusts real clock facts; estimates never create overtime.
+  const owedWork = clockEnabled && hasClockIn ? subtractIntervals(
+    intersectIntervals(attendanceDay.workIntervals, [{ start: midnight, end: dayEnd }]), allLeaves,
+  ) : [];
+  const owedEarlySeconds = day.isWorkday ? intervalSeconds(intersectIntervals(owedWork, [{ start: midnight, end: start }])) : 0;
+  const owedLateSeconds = day.isWorkday ? intervalSeconds(intersectIntervals(owedWork, [{ start: end, end: dayEnd }])) : 0;
+  const owedRestSeconds = day.isWorkday ? 0 : intervalSeconds(owedWork);
   return {
     ...day, start, end, standard, standardLeaves, dailySeconds, scheduledElapsed,
     paidLeaveTotal, unpaidLeaveTotal, paidLeaveElapsed, unpaidLeaveElapsed,
@@ -286,6 +298,7 @@ function summarizeDay(day, settings, now, leaves, attendance, toiletRecords = []
     pendingClockIn: canSteal && clockEnabled && modeDay?.clockMode === true
       && !hasClockIn && standardExpectedSeconds > 0,
     earnedSeconds, forecastSeconds, extraWorkSeconds,
+    owedEarlySeconds, owedLateSeconds, owedRestSeconds,
   };
 }
 
@@ -420,6 +433,10 @@ export function calculateSnapshot(settings, now = new Date(), context, leaves = 
     historyEstimatedDays: days.filter((day) => day.isWorkday && day.date <= todayKey && !day.hasFacts).length,
     trackingFrom: attendance?.trackingFrom ?? null,
     unfinishedDates,
+    owedDays: days.map((day) => ({
+      date: day.date, kind: day.kind,
+      earlySeconds: day.owedEarlySeconds, lateSeconds: day.owedLateSeconds, restSeconds: day.owedRestSeconds,
+    })),
     payrollResult,
   };
 }

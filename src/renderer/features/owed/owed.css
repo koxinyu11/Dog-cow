@@ -1,0 +1,57 @@
+.owed-m { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 6px; overflow: hidden; container-type: inline-size; }
+.owed-m * { min-width: 0; }
+.owed-m .m-label, .owed-today, .owed-stat span, .owed-stat strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.owed-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.owed-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: safe center; gap: 6px; overflow: hidden; }
+.owed-actions { flex: none; display: flex; flex-wrap: nowrap; align-items: center; gap: 4px; overflow: hidden; }
+.owed-actions .ui-btn { flex: none; }
+.owed-main { display: grid; gap: 2px; }
+.owed-main .m-big { color: var(--accent); font-size: clamp(18px, var(--owed-scale), 30px); line-height: 1.1; }
+.owed-today { font-size: 12px; color: var(--c-muted); }
+.owed-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 12px; }
+.owed-stat { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--c-muted); }
+.owed-stat strong { margin-left: auto; color: var(--c-ink, inherit); font-variant-numeric: tabular-nums; }
+.owed-stat svg { flex: none; color: var(--accent); }
+.owed-m .m-notice { margin: 0; }
+
+/* s: amount + one tap. */
+.owed-m.size-s .owed-main .m-big { font-size: clamp(18px, var(--owed-scale), 26px); }
+.owed-m.size-s .owed-actions .ui-btn { min-height: 28px; padding-block: 2px; }
+/* m: single row height. */
+.owed-m.size-m { gap: 4px; }
+.owed-m.size-m .owed-body { gap: 4px; }
+.owed-inline { display: flex; align-items: baseline; gap: 8px; }
+.owed-inline .m-big { color: var(--accent); font-size: clamp(18px, var(--owed-scale), 26px); line-height: 1.1; }
+.owed-m.size-m .owed-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.owed-m.size-m .owed-stat { display: grid; gap: 0; font-size: 11px; }
+.owed-m.size-m .owed-stat strong { margin-left: 0; font-size: 12px; }
+/* Ledger rows shared by l and tall. */
+.owed-ledger { display: grid; gap: 6px; }
+.owed-ledger .owed-stats { grid-template-columns: 1fr; gap: 0; }
+.owed-ledger .owed-stat { padding: 4px 0; font-size: 13px; border-bottom: 1px dashed var(--c-border, rgba(127,127,127,.25)); }
+.owed-m.size-tall .owed-main .m-big { font-size: clamp(18px, var(--owed-scale), 32px); }
+.owed-m.size-tall .owed-body { justify-content: safe space-evenly; }
+/* l: amount left, ledger right, centered in the free height. */
+.owed-m.size-l .owed-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-content: safe center; align-items: center; gap: 20px; }
+.owed-m.size-l .owed-main .m-big { font-size: clamp(20px, calc(var(--owed-scale) * 0.6), 48px); }
+.owed-m.size-l .owed-ledger .owed-stat { padding: 8px 0; }
+/* wide: three centered columns. */
+.owed-m.size-wide { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1.2fr); align-items: center; align-content: center; gap: 18px; }
+.owed-m.size-wide .owed-col { display: grid; gap: 6px; align-content: center; }
+.owed-m.size-wide .owed-col-end { justify-items: end; }
+.owed-m.size-wide .owed-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.owed-m.size-wide .owed-stat { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 2px 6px; }
+.owed-m.size-wide .owed-stat strong { grid-column: 1 / -1; margin-left: 0; font-size: 14px; }
+.owed-wide-top, .owed-wide-amount { display: flex; align-items: center; gap: 8px; }
+.owed-wide-amount { align-items: baseline; gap: 10px; }
+.owed-m.size-wide .m-big { color: var(--accent); font-size: clamp(18px, var(--owed-scale), 30px); line-height: 1.1; }
+.owed-link { border: 0; padding: 0; background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
+.owed-dialog { width: min(720px, 92vw); }
+.owed-history { display: grid; gap: 10px; }
+.owed-row { display: grid; grid-template-columns: 150px 90px minmax(0, 1fr) 80px auto; align-items: end; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--c-border, rgba(0,0,0,.08)); }
+.owed-row.is-new { border-bottom-style: dashed; }
+.owed-row input { width: 100%; }
+.owed-row-amount { padding-bottom: 8px; font-weight: 700; text-align: right; }
+.owed-row-actions { display: flex; gap: 4px; padding-bottom: 2px; }
+.owed-empty { margin: 8px 0; color: var(--c-muted); font-size: 13px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { 

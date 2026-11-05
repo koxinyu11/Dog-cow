@@ -7,4 +7,4 @@ export { taskSignals } from './collectors/task.js';
 export { clockSignals, type DayFacts } from './collectors/clock.js';
 export { funSignals } from './collectors/fun.js';
 export { openSignals } from './collectors/app.js';
-export { stealSignals } from './collectors/money.js';
+export { owedSignals, stealSignals } from './collectors/money.js';

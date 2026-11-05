@@ -10,6 +10,8 @@ const allowed = new Set([
   'board',
   'fun',
   'receiptImage',
+  'iouImage',
+  'owed',
   'settings',
   'leave',
   'removeLeave',

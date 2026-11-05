@@ -57,7 +57,7 @@ test('every background theme key is valid, unknown keys are rejected', () => {
 
 test('default home keeps original nine cards and new fun cards stay optional', () => {
   const board = defaultBoard();
-  assert.deepEqual([...board.items.map((item) => item.id)].sort(), MODULE_IDS.filter(id => !['paid-toilet','mood','receipt','lunch','calories','hopes','pasture','converter'].includes(id)).sort());
+  assert.deepEqual([...board.items.map((item) => item.id)].sort(), MODULE_IDS.filter(id => !['paid-toilet','owed','mood','receipt','lunch','calories','hopes','pasture','converter'].includes(id)).sort());
   for (const columns of [12, 6]) {
     assert.equal(overlaps(pack(board.items, columns)), false);
   }

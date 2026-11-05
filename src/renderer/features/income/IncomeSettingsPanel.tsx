@@ -10,6 +10,7 @@ import { NumberField } from '../../components/NumberField';
 import { ErrorList } from '../../components/ErrorList';
 import { PayrollFields } from './PayrollFields';
 import { BonusFields } from './BonusFields';
+import { OvertimeFields } from './OvertimeFields';
 import { Button, Segmented, Switch } from '../../ui';
 
 export function IncomeSettingsPanel({ income, notify }: {
@@ -85,6 +86,7 @@ export function IncomeSettingsPanel({ income, notify }: {
           {d.flexEnabled && <Segmented<IncomeSettings['flexMode']> label="弹性打卡模式" value={d.flexMode}
             options={[[ 'shift','晚到晚走' ],[ 'exempt','只免迟到' ]]} onChange={mode=>set('flexMode',mode)} />}
         </section>
+        <OvertimeFields settings={d} error={auto.errors.overtime} change={(overtime) => set('overtime', overtime)} />
         <details className="settings-help">
           <summary><Clock3 size={14} /> 计薪规则与日历状态</summary>
           <p>{d.payBasis === 'daily' ? '日薪乘以排班天数计算本月预计收入。' : '月薪固定，按排班分配到每天。提前上班不增加日薪；点击下班补齐当天应得收入，差额计入下班早。'}</p>
