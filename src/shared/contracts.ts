@@ -1,5 +1,6 @@
 import type { WindowTransition, WindowSnapshot } from './capsule.js';
 import type { Board } from './board.js';
+import type { TitlesView } from './titles/types.js';
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type Fields = Record<string, unknown>;
 export interface Tag {
@@ -169,6 +170,7 @@ export interface Snapshot {
   layoutWarning: string;
   board: Board;
   income: IncomeState;
+  titles?: TitlesView;
   save: { dirty: boolean; error: string; readError: string };
   version: string;
 }
@@ -198,6 +200,7 @@ export const methods = [
   'leave',
   'removeLeave',
   'toilet',
+  'titles',
   'prepareClock',
   'clock',
   'refreshCalendar',

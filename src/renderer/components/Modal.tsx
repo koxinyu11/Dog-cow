@@ -23,12 +23,14 @@ export function Modal({
     <dialog
       ref={ref}
       className={className}
+      // React bubbles cancel/close from nested dialogs; only react to this dialog's own events.
       onCancel={(event) => {
+        if (event.target !== event.currentTarget) return;
         event.preventDefault();
         onClose();
       }}
-      onClose={() => {
-        if (open) onClose();
+      onClose={(event) => {
+        if (event.target === event.currentTarget && open) onClose();
       }}
     >
       <div className="dialog-heading">

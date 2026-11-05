@@ -242,6 +242,19 @@ export function createIncomeController({
     return command(true, true, {}, '带薪拉屎记录已更新。');
   }
 
+  /** Read-only schedule facts for one date; null when settings or calendar cannot decide. */
+  function dayFacts(date) {
+    if (destroyed || !state.settings) return null;
+    try {
+      const day = calculateSnapshot(state.settings, new Date(`${date}T12:00:00`), state.calendarContext, state.leaves, state.attendance, []);
+      return {
+        workday: day.status !== 'rest-day', fullDayLeave: Boolean(day.fullDayLeave),
+        startAt: day.scheduledStartAt, endAt: day.scheduledEndAt,
+        flex: Boolean(state.attendance.days.find((entry) => entry.date === date)?.flex),
+      };
+    } catch { return null; }
+  }
+
   function retrySave() {
     if (destroyed) return stopped();
     if (!state.settings) return command(false, false, { general: '还没有可保存的有效设置。' }, '请先填写有效设置。');
@@ -357,6 +370,6 @@ export function createIncomeController({
 
   return {
     getState, subscribe, updateSettings, saveLeave, removeLeave, commitAttendance, commitToilet,
-    refreshCalendar, tick, retrySave, destroy,
+    refreshCalendar, tick, retrySave, destroy, dayFacts,
   };
 }

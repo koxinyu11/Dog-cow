@@ -1,6 +1,7 @@
 import { loadHolidayYear } from '../../app/income/src/calendar.js';
 import { createIncomeController } from '../../app/income/src/controller.js';
 import type { IncomeState, Result, ToiletState } from '../shared/contracts.js';
+import type { DayFacts } from '../shared/titles/index.js';
 export interface IncomeController {
   subscribe(listener: (state: Omit<IncomeState, 'now'> & { now: Date }) => void): () => void;
   getState(): unknown;
@@ -11,6 +12,7 @@ export interface IncomeController {
   commitToilet(data: Pick<ToiletState, 'version' | 'records'>): Result;
   refreshCalendar(force?: boolean): Promise<unknown>;
   tick(): void;
+  dayFacts(date: string): DayFacts | null;
   destroy(): void;
 }
 // The old tested engine retains its JavaScript implementation during migration;

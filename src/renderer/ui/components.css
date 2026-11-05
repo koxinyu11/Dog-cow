@@ -207,6 +207,8 @@
 }
 .ui-toast.is-error span { background: var(--c-danger); animation: toast-in 420ms var(--ease-spring), shake 400ms 120ms; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(24px) scale(0.9); } }
+.ui-toast.has-action { pointer-events: auto; }
+.ui-toast .ui-toast-action { margin-left: 12px; padding: 0; border: 0; font: inherit; font-weight: 700; color: #ffd98a; background: none; cursor: pointer; }
 
 /* ---------- Stat ---------- */
 .ui-stat { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 13px; }

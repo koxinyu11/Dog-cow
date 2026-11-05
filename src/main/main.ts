@@ -29,6 +29,7 @@ import { readFile, writeFile, mkdir, rename, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Repository } from './repository.js';
+import { Titles } from './titles.js';
 import {
   addDays,
   copyDefaults,
@@ -128,6 +129,8 @@ const prepared = new Map<string, { at: number; revision: number; action: string 
 let controller: IncomeController;
 let unsubscribe: (() => void) | null = null;
 let income: IncomeState;
+let titles: Titles;
+let stealDay = '';
 let releaseUpdater: ReleaseUpdater | null = null;
 const taskKey = 'work-todolist-generic-v1';
 const layoutKey = 'dogcow.home.v1';
@@ -150,6 +153,7 @@ function snapshot(): Snapshot {
     layout: structuredClone(layout),
     layoutWarning,
     board: structuredClone(board),
+    titles: titles?.view(),
     income: { ...structuredClone(income), ...(income.toilet ? { toilet: { ...structuredClone(income.toilet), pendingSave: toiletPendingSave, pendingRecordId: toiletPendingRecordId } } : {}) },
     save: { dirty: repo.dirty, error: repo.error, readError: repo.readError },
     version: app.getVersion(),
@@ -213,12 +217,27 @@ function restoreModels() {
       commands = job;
     }, ms),
     calendarLoader:(year,options)=>loadHolidayYear(year,{...options,fetchImpl:boundedCalendarFetch()}) });
+  titles = new Titles(repo.storage, (date) => controller.dayFacts(date));
+  titles.load();
   unsubscribe = controller.subscribe((raw) => {
     const data = raw as unknown as Omit<IncomeState, 'now'> & { now: Date };
     income = { ...data, now: data.now.getTime() };
+    recordSteal();
     broadcast();
     if (repo.dirty && !incomeBatch && !toiletPendingSave) void repo.flush().then(() => broadcast());
   });
+}
+/** Today's stolen estimate feeds the money titles only on days it is meaningful. */
+function recordSteal(force = false) {
+  const today = localDate(new Date(income.now));
+  if (stealDay && stealDay !== today) titles.settle();
+  stealDay = today;
+  const s = income.snapshot;
+  if (!income.settings?.stealMode || income.calculationError || !s || s.status === 'rest-day' || s.fullDayLeave) return;
+  titles.record({ kind: 'steal', amount: s.stolenAmount }, force);
+}
+function recordOpen() {
+  titles.record({ kind: 'open' });
 }
 function validLayout(value: unknown): value is Layout {
   if (
@@ -553,6 +572,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
         board = { ...board, fun: rewardTask(board.fun ?? defaultFun(), result.completion.taskId) };
         repo.storage.setItem(BOARD_KEY, JSON.stringify(board));
         revisions.home++;
+        titles.record({ kind: 'task-done', task: { id: result.completion.taskId, date: result.completion.date } });
       }
     } catch (error) {
       tasks = before;
@@ -588,6 +608,16 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     board = { ...board, fun: next };
     repo.storage.setItem(BOARD_KEY, JSON.stringify(board));
     revisions.home++;
+    titles.record({ kind: 'fun', action: p.action, after: next });
+  } else if (method === 'titles') {
+    const action = String(p.action);
+    const ids = Array.isArray(p.ids) && p.ids.every((id) => typeof id === 'string') ? (p.ids as string[]) : null;
+    if (action === 'wear' && typeof p.id === 'string') titles.change({ action, id: p.id });
+    else if (action === 'unwear') titles.change({ action });
+    else if ((action === 'seen' || action === 'toast-shown') && ids) titles.change({ action, ids });
+    else if (action === 'show' && typeof p.value === 'boolean') titles.change({ action, value: p.value });
+    else throw Error('职称操作无效。');
+    result.message = '';
   } else if (method === 'board') {
     expected(p, 'home');
     if (!validBoard(p.board, Object.keys(copyDefaults))) throw Error('看板配置无效。');
@@ -633,6 +663,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     return { ...toastResult(''), code: token, errors: { at: String(at) } };
   } else if (method === 'clock') {
     expected(p, 'income');
+    const attendanceBefore = structuredClone(income.attendance);
     const action =
       p.action === 'pause' || p.action === 'resume'
         ? p.action
@@ -712,6 +743,10 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     }
     if (toilet) { toiletPendingSave = true; toiletPendingRecordId = active!.id; }
     result = controller.commitAttendance(change.attendance, toilet) as Result;
+    if (result.applied) {
+      titles.record({ kind: 'clock', before: attendanceBefore, after: income.attendance });
+      if (action === 'finish') recordSteal(true);
+    }
 
   } else throw Error('不允许的操作。');
   if (result.applied) {
@@ -748,6 +783,7 @@ async function doQuit() {
     win!.webContents.send('dogcow:before-quit', quitNonce);
   });
   await commands;
+  if (!repo.readError) titles.settle();
   const saved = (!repo.dirty || (await repo.flush())) && await windows.flush();
   if (!flushed || !saved) {
     const answer = await dialog.showMessageBox(win, {
@@ -805,6 +841,7 @@ async function start() {
     }
   }
   restoreModels();
+  if (!repo.readError && repo.migration?.phase !== 'pending') recordOpen();
   await repo.flush();
   windowStore = new WindowStateStore(profile);
   await windowStore.load();
@@ -921,7 +958,15 @@ async function start() {
       },
     ]),
   );
-  win.on('focus', () => controller.tick());
+  win.on('focus', () => {
+    controller.tick();
+    if (repo.readError || repo.migration?.phase === 'pending') return;
+    commands = commands.then(async () => {
+      recordOpen();
+      if (repo.dirty) await repo.flush();
+      broadcast();
+    }).catch(() => console.error('[titles:open] 记录失败。'));
+  });
   const interruptToilet = () => {
     const job = commands.then(async () => {
       incomeBatch = true;

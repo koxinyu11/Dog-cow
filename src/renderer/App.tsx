@@ -1,4 +1,6 @@
 import { ToiletStatus } from './features/toilet/PaidToilet';
+import { TitleChip } from './features/titles/TitleBadge';
+import { TitlesPane } from './features/titles/TitlesPane';
 import { capsuleTheme } from './features/capsule/capsule-theme';
 import { useTheme } from './theme';
 import { installWindowTransition } from './features/capsule/window-transition';
@@ -25,7 +27,7 @@ import { BoardContext, computeMetrics } from './board/metrics';
 import { fx } from './motion/fx';
 import { OffworkNotice, OffworkReceipt } from './features/attendance/Offwork';
 import type { IncomeState } from '../shared/contracts';
-import { CircleAlert, ClipboardList, LayoutGrid, Package, Palette, PanelTopClose, PanelTopOpen, Plus, Settings, Wallet, Wand2 } from 'lucide-react';
+import { BadgeCheck, CircleAlert, ClipboardList, LayoutGrid, Package, Palette, PanelTopClose, PanelTopOpen, Plus, Settings, Wallet, Wand2 } from 'lucide-react';
 import { Button, Emoji, IconButton, MenuProvider, Segmented, Toast } from './ui';
 
 const COPY_LABELS: Record<string, string> = {
@@ -47,7 +49,7 @@ const COPY_LABELS: Record<string, string> = {
   caloriesTitle: '热量爆表',
   hopesTitle: '盼头清单', pastureTitle: '工位小牧场', converterTitle: '工资换算器',
 };
-type Tab = 'look' | 'income' | 'records' | 'data';
+type Tab = 'look' | 'income' | 'records' | 'data' | 'titles';
 const taskNode = (id: string) => document.querySelector(`[data-task-id="${CSS.escape(id)}"]`);
 
 export function App() {
@@ -77,6 +79,8 @@ export function App() {
   const [confetti, setConfetti] = useState(0);
   const [clock, setClock] = useState<{ action: string; date?: string; token: string; at: number } | null>(null);
   const [receipt, setReceipt] = useState<{ income: IncomeState; date: string; completedTasks: number } | null>(null);
+  const [titleToast, setTitleToast] = useState<{ text: string; ids: string[] } | null>(null);
+  const [titleFocus, setTitleFocus] = useState('');
   useEffect(() => {
     document.body.classList.toggle('capsule-mode', !!state?.compact);
     if (state?.compact) setSettings(false);
@@ -118,6 +122,16 @@ export function App() {
     setToast({ text, tone });
     later('toast', 4000, () => setToast({ text: '' }));
   };
+  // Unlock notice waits behind business toasts and the offwork receipt; shown once per title.
+  const pendingTitles = state?.titles?.pendingToast ?? [];
+  useEffect(() => {
+    if (!pendingTitles.length || receipt || toast.text || titleToast || state?.compact) return;
+    const names = pendingTitles.map((id) => state?.titles?.items.find((card) => card.id === id)?.name).filter(Boolean);
+    if (!names.length) return;
+    setTitleToast({ text: `解锁了新职称：${names[0]}${names.length > 1 ? ' 等' : ''}`, ids: pendingTitles });
+    void command('titles', { action: 'toast-shown', ids: pendingTitles });
+    later('title-toast', 4000, () => setTitleToast(null));
+  }, [pendingTitles.join(','), receipt, toast.text, titleToast, state?.compact]);
   useEffect(() => {
     if (state?.window.warning && !state.compact) notify(WINDOW_ERRORS[state.window.warning as keyof typeof WINDOW_ERRORS] ?? '窗口操作未完成，请重试。', 'error');
   }, [state?.window.warning, state?.compact]);
@@ -170,6 +184,11 @@ export function App() {
     void flushDrafts();
     setTab(next as Tab);
     setSettings(true);
+  };
+  const openTitles = (id = '') => {
+    setTitleFocus(id);
+    setTitleToast(null);
+    openSettings('titles');
   };
   const saveBoard = async (next: BoardModel) => {
     const result = await command('board', { board: next }, 'home');
@@ -225,7 +244,13 @@ export function App() {
               </span>
               <div>
                 <p className="kicker">{title('headerKicker')}</p>
-                <h1>{title('appTitle')}</h1>
+                <div className="brand-title-row">
+                  <h1>{title('appTitle')}</h1>
+                  {(() => {
+                    const worn = state.titles?.showInHeader && state.titles.items.find((card) => card.id === state.titles?.worn);
+                    return worn ? <TitleChip key={worn.id} card={worn} onClick={() => openTitles(worn.id)} /> : null;
+                  })()}
+                </div>
                 <p className="date-line">
                   <Copy
                     value={state.tasks.settings.dateLine}
@@ -307,6 +332,7 @@ export function App() {
                 ['income', <><Wallet size={14} /> 工资排班</>],
                 ['records', <><ClipboardList size={14} /> 请假打卡</>],
                 ['data', <><Package size={14} /> 迁移备份</>],
+                ['titles', <><BadgeCheck size={14} /> 职称</>],
               ]}
             />
             <div className="settings-pane" hidden={tab !== 'look'}>
@@ -328,6 +354,9 @@ export function App() {
             <div className="settings-pane" hidden={tab !== 'data'}>
               <DataPanel notify={notify} />
             </div>
+            <div className="settings-pane" hidden={tab !== 'titles'}>
+              <TitlesPane titles={state.titles} visible={settings && tab === 'titles'} focusId={titleFocus} notify={notify} />
+            </div>
             <p className="muted settings-foot">
               狗牛 {state.version} · 数据保存在本机 · {state.save.dirty ? '未保存 / 保存中' : '已保存'}
             </p>
@@ -340,7 +369,9 @@ export function App() {
             requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('.clock-main')?.focus());
           }} />}
           {confetti > 0 && !reduced && <Confetti key={confetti} />}
-          <Toast message={toast.text} tone={toast.tone} />
+          {toast.text || !titleToast
+            ? <Toast message={toast.text} tone={toast.tone} />
+            : <Toast message={titleToast.text} action={{ label: '去看看', onClick: () => openTitles(titleToast.ids[0]) }} />}
         </main>
       </BoardContext.Provider>
     </MenuProvider>

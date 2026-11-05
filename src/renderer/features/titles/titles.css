@@ -1,0 +1,111 @@
+/* ---------- Title chip: a mini landscape badge clipped beside the app title ---------- */
+.brand-title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; }
+.title-chip {
+  --title-color: var(--c-brand);
+  --chip-bg: #fff; --chip-ink: #1d2420; --chip-edge: transparent;
+  position: relative; display: inline-flex; align-items: center; gap: 6px; height: 26px; max-width: 15em;
+  padding: 0 9px 0 16px; border: 1px solid var(--chip-edge); border-radius: 7px;
+  font: 600 12.5px/1 inherit; color: var(--chip-ink); background: var(--chip-bg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  transform: rotate(-2deg); transform-origin: left center; cursor: pointer;
+  transition: transform 180ms var(--ease-spring, ease); animation: title-fade 300ms ease-out;
+}
+.title-chip:hover, .title-chip:focus-visible { transform: rotate(0deg) translateY(-1px); }
+.title-chip:focus-visible { outline: 2px solid var(--title-color); outline-offset: 2px; }
+.title-chip-hole { position: absolute; left: 5px; top: 50%; width: 5px; height: 11px; border-radius: 3px; transform: translateY(-50%); background: rgba(0, 0, 0, 0.2); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.25); }
+.title-chip-icon { flex: none; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; color: #fff; background: var(--title-color); }
+.title-chip-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 8em; }
+.title-chip-rarity { flex: none; font-size: 10px; font-weight: 600; opacity: 0.62; }
+/* Materials mirror the warehouse badges. */
+.title-chip.is-intern { --chip-bg: #efe1c6; --chip-edge: rgba(120, 85, 40, 0.35); border-style: dashed; }
+.title-chip.is-regular { --chip-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0 30%, transparent 30%), color-mix(in srgb, var(--title-color) 24%, #fff); }
+.title-chip.is-special { --chip-bg: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.7) 45%, transparent 60%) no-repeat -80px 0 / 200% 100%, color-mix(in srgb, var(--title-color) 10%, rgba(255, 255, 255, 0.85)); --chip-edge: var(--title-color); }
+.title-chip.is-special:hover { background-position: 80px 0, 0 0; transition: background-position 800ms ease, transform 180ms ease; }
+.title-chip.is-plate { --chip-bg: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 4px), linear-gradient(160deg, #e7c77a, #b08d3c 70%, #8f6f2a); --chip-ink: #3a2a10; --chip-edge: rgba(60, 40, 10, 0.35); }
+.title-chip.is-plate .title-chip-icon { background: #3a2a10; color: #e7c77a; }
+.title-chip.is-secret { --chip-bg: #2f4a3a; --chip-ink: #f3e6b5; --chip-edge: #c9a227; }
+.title-chip.is-secret .title-chip-icon { background: #c9a227; color: #2f4a3a; }
+.title-chip.is-secret .title-chip-hole { background: rgba(0, 0, 0, 0.4); }
+.on-dark .title-chip, .on-image .title-chip, [data-theme='dark'] .title-chip { box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4), 0 0 0 0.5px rgba(255, 255, 255, 0.12); text-shadow: none; }
+@keyframes title-fade { from { opacity: 0; } }
+
+/* ---------- Warehouse ---------- */
+.titles-pane { display: grid; gap: 14px; }
+.titles-plate { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; padding: 12px 14px; border-radius: 12px; background: #6b4a2b; color: #fbf3e4; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18); }
+.titles-plate > div { display: grid; gap: 2px; margin-right: auto; }
+.titles-plate span { font-size: 12px; opacity: 0.8; }
+.titles-plate .ui-switch-row { color: inherit; }
+.titles-plate .title-chip { color: #1d2420; }
+
+/* Pegboard wall with wooden shelves. */
+.titles-wall {
+  display: grid; gap: 4px; padding: 14px; border-radius: 14px; max-height: 360px; overflow: auto;
+  background-color: #e9dcc4;
+  background-image: radial-gradient(circle, rgba(80, 55, 30, 0.28) 1.6px, transparent 2px);
+  background-size: 18px 18px;
+}
+.titles-wall.is-empty { min-height: 160px; place-items: center; color: #6b4a2b; font-size: 13px; }
+.titles-shelf h4 { margin: 0 0 6px; font-size: 11px; letter-spacing: 0.08em; color: #6b4a2b; }
+.titles-hooks { display: flex; gap: 12px; overflow-x: auto; padding: 4px 2px 12px; border-bottom: 8px solid #a9784a; box-shadow: 0 6px 0 -2px rgba(70, 45, 20, 0.25); }
+
+/* ---------- Badge: material by rarity ---------- */
+.title-badge {
+  --title-color: var(--c-brand);
+  position: relative; flex: none; display: grid; justify-items: center; align-content: start; gap: 4px;
+  width: 96px; min-height: 128px; padding: 14px 8px 10px; border: 0; border-radius: 10px;
+  font: inherit; text-align: center; color: #1d2420; cursor: pointer;
+  transition: transform 160ms var(--ease-spring, ease), box-shadow 160ms ease;
+}
+.title-badge:hover, .title-badge.is-selected { transform: translateY(-3px) rotate(-1deg); }
+.title-badge.is-selected { box-shadow: 0 0 0 2px var(--title-color), 0 8px 18px rgba(0, 0, 0, 0.18); }
+.title-badge:focus-visible { outline: 2px solid var(--title-color); outline-offset: 3px; }
+.title-badge-hole { width: 18px; height: 5px; border-radius: 3px; background: rgba(0, 0, 0, 0.22); margin-top: -6px; }
+.title-badge-icon { color: var(--title-color); }
+.title-badge-name { font-size: 12.5px; line-height: 1.25; }
+.title-badge-meta, .title-badge-date { font-size: 9.5px; opacity: 0.72; }
+.title-badge-new { position: absolute; top: 6px; right: 6px; padding: 1px 5px; border-radius: 6px; font-size: 9.5px; font-weight: 700; color: #fff; background: #d2493a; }
+.title-badge-stamp {
+  position: absolute; left: 50%; top: 54%; padding: 2px 6px; border: 2px solid currentColor; border-radius: 6px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.05em; white-space: nowrap; opacity: 0.85; pointer-events: none;
+  color: #c43c2f; transform: translate(-50%, -50%) rotate(-14deg); animation: title-stamp 600ms var(--ease-spring, ease-out) both;
+}
+@keyframes title-stamp { from { opacity: 0; transform: translate(-50%, -50%) rotate(-14deg) scale(1.8); } }
+
+/* 实习：牛皮纸卡 */
+.title-badge.is-intern { background: #efe1c6; outline: 1px dashed rgba(120, 85, 40, 0.45); outline-offset: -5px; box-shadow: 0 3px 6px rgba(70, 45, 20, 0.18); }
+.title-badge.is-intern .title-badge-stamp { color: #2f62b5; border-radius: 50%; }
+/* 正式：塑封卡 */
+.title-badge.is-regular { background: linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0 14%, transparent 14%), color-mix(in srgb, var(--title-color) 22%, #fff); box-shadow: inset 0 0 0 4px #fff, 0 3px 8px rgba(0, 0, 0, 0.16); }
+/* 编外：亚克力卡 */
+.title-badge.is-special { background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.6) 45%, transparent 60%) no-repeat -120px 0 / 200% 100%, color-mix(in srgb, var(--title-color) 12%, rgba(255, 255, 255, 0.72)); box-shadow: inset 0 0 0 2px var(--title-color), 0 4px 10px rgba(0, 0, 0, 0.16); }
+.title-badge.is-special:hover { background-position: 120px 0, 0 0; transition: background-position 900ms ease, transform 160ms ease; }
+.title-badge.is-special .title-badge-stamp { color: #b08d3c; border-radius: 50% / 40%; }
+/* 铭牌：黄铜 */
+.title-badge.is-plate { color: #3a2a10; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 4px), linear-gradient(160deg, #e7c77a, #b08d3c 70%, #8f6f2a); box-shadow: inset 0 0 0 2px rgba(60, 40, 10, 0.35), 0 4px 10px rgba(0, 0, 0, 0.22); }
+.title-badge.is-plate .title-badge-name { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45); }
+.title-badge.is-plate .title-badge-icon { color: #3a2a10; }
+.title-badge.is-plate .title-badge-stamp { color: #3a2a10; }
+/* 内部：档案袋 / 墨绿烫金 */
+.title-badge.is-secret { color: #f3e6b5; background: #2f4a3a; box-shadow: inset 0 0 0 2px #c9a227, 0 4px 10px rgba(0, 0, 0, 0.25); }
+.title-badge.is-secret .title-badge-icon { color: #c9a227; }
+
+.title-badge.is-large { width: 160px; min-height: 216px; padding-top: 22px; gap: 8px; cursor: default; }
+.title-badge.is-large:hover { transform: none; }
+.title-badge.is-large .title-badge-name { font-size: 16px; }
+.title-badge.is-large .title-badge-meta, .title-badge.is-large .title-badge-date { font-size: 11px; }
+
+/* ---------- Detail popup (above the settings dialog) ---------- */
+.title-detail-dialog { width: min(420px, 92vw); }
+.titles-detail { display: grid; justify-items: center; gap: 12px; padding: 4px 4px 2px; text-align: center; }
+.titles-copy { margin: 4px 0 0; font-size: 14px; line-height: 1.6; }
+.titles-detail details { font-size: 12px; color: var(--c-muted); }
+.titles-detail summary { cursor: pointer; }
+.titles-detail details p { margin: 6px 0 0; }
+.titles-detail-error { margin: 0; font-size: 12px; color: var(--c-danger); }
+.titles-detail-actions { display: flex; justify-content: center; width: 100%; padding-top: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .title-chip, .title-badge-stamp { animation: none; }
+  .title-chip, .title-chip:hover { transform: none; transition: none; }
+  .title-badge, .title-badge.is-special:hover { transition: none; }
+}

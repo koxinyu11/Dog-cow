@@ -307,10 +307,15 @@ export function MenuProvider({ children }: { children: ReactNode }) {
 }
 
 /* ---------- Toast ---------- */
-export function Toast({ message, tone }: { message: string; tone?: 'ok' | 'error' }) {
+export function Toast({ message, tone, action }: { message: string; tone?: 'ok' | 'error'; action?: { label: string; onClick: () => void } }) {
   return (
-    <div role="status" aria-live="polite" className={`ui-toast ${message ? 'is-open' : ''} ${tone === 'error' ? 'is-error' : ''}`}>
-      {message && <span key={message}>{message}</span>}
+    <div role="status" aria-live="polite" className={`ui-toast ${message ? 'is-open' : ''} ${tone === 'error' ? 'is-error' : ''} ${message && action ? 'has-action' : ''}`}>
+      {message && (
+        <span key={message}>
+          {message}
+          {action && <button type="button" className="ui-toast-action" onClick={action.onClick}>{action.label}</button>}
+        </span>
+      )}
     </div>
   );
 }

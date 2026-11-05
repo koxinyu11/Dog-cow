@@ -13,7 +13,7 @@
 | ID | 功能 | 当前状态 |
 | --- | --- | --- |
 | F08 | [顶栏实时状态（第一期）](menu-bar-status.md) | v1 已记录，未实施 |
-| F09 | [离谱职称](absurd-titles.md) | v1 累计解锁与佩戴方案，未实施 |
+| F09 | [离谱职称](absurd-titles.md) | v9 已实现，用户已确认，未实施 |
 | G01 | [小牛接草](catch-grass.md) | v2 详细候选计划，未实施 |
 | G02 | [画饼消消乐](merge-promises.md) | v2 详细候选计划，未实施 |
 | G03 | [下班冲刺](offwork-run.md) | v2 详细候选计划，未实施 |

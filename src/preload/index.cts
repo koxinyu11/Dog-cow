@@ -14,6 +14,7 @@ const allowed = new Set([
   'leave',
   'removeLeave',
   'toilet',
+  'titles',
   'prepareClock',
   'clock',
   'refreshCalendar',
