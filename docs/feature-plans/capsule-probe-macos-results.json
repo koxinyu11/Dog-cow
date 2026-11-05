@@ -1,0 +1,396 @@
+[
+  {
+    "test": "environment",
+    "detail": {
+      "electron": "45.2.2",
+      "platform": "darwin",
+      "arch": "arm64",
+      "displays": [
+        {
+          "workArea": {
+            "x": 0,
+            "y": 30,
+            "width": 2560,
+            "height": 1335
+          },
+          "scaleFactor": 2
+        }
+      ]
+    }
+  },
+  {
+    "test": "expanded-before",
+    "detail": {
+      "id": 1,
+      "webContentsId": 1,
+      "bounds": {
+        "x": 300,
+        "y": 200,
+        "width": 1000,
+        "height": 700
+      },
+      "content": {
+        "x": 300,
+        "y": 200,
+        "width": 1000,
+        "height": 700
+      },
+      "resizable": true,
+      "topmost": false,
+      "fullscreen": false,
+      "maximized": false,
+      "focused": true
+    }
+  },
+  {
+    "test": "capsule-240x44",
+    "detail": {
+      "id": 1,
+      "webContentsId": 1,
+      "bounds": {
+        "x": 300,
+        "y": 200,
+        "width": 240,
+        "height": 44
+      },
+      "content": {
+        "x": 300,
+        "y": 200,
+        "width": 240,
+        "height": 44
+      },
+      "resizable": false,
+      "topmost": false,
+      "fullscreen": false,
+      "maximized": false,
+      "focused": true
+    }
+  },
+  {
+    "test": "topmost-on",
+    "detail": {
+      "id": 1,
+      "webContentsId": 1,
+      "bounds": {
+        "x": 300,
+        "y": 200,
+        "width": 240,
+        "height": 44
+      },
+      "content": {
+        "x": 300,
+        "y": 200,
+        "width": 240,
+        "height": 44
+      },
+      "resizable": false,
+      "topmost": true,
+      "fullscreen": false,
+      "maximized": false,
+      "focused": true
+    }
+  },
+  {
+    "test": "topmost-off",
+    "detail": {
+      "id": 1,
+      "webContentsId": 1,
+      "bounds": {
+        "x": 300,
+        "y": 200,
+        "width": 240,
+        "height": 44
+      },
+      "content": {
+        "x": 300,
+        "y": 200,
+        "width": 240,
+        "height": 44
+      },
+      "resizable": false,
+      "topmost": false,
+      "fullscreen": false,
+      "maximized": false,
+      "focused": true
+    }
+  },
+  {
+    "test": "expanded-restored",
+    "detail": {
+      "id": 1,
+      "webContentsId": 1,
+      "bounds": {
+        "x": 300,
+        "y": 200,
+        "width": 1000,
+        "height": 700
+      },
+      "content": {
+        "x": 300,
+        "y": 200,
+        "width": 1000,
+        "height": 700
+      },
+      "resizable": true,
+      "topmost": false,
+      "fullscreen": false,
+      "maximized": false,
+      "focused": true
+    }
+  },
+  {
+    "test": "expanded-resize",
+    "detail": {
+      "id": 1,
+      "webContentsId": 1,
+      "bounds": {
+        "x": 300,
+        "y": 200,
+        "width": 1100,
+        "height": 740
+      },
+      "content": {
+        "x": 300,
+        "y": 200,
+        "width": 1100,
+        "height": 740
+      },
+      "resizable": true,
+      "topmost": false,
+      "fullscreen": false,
+      "maximized": false,
+      "focused": true
+    }
+  },
+  {
+    "test": "maximize",
+    "detail": {
+      "id": 1,
+      "webContentsId": 1,
+      "bounds": {
+        "x": 0,
+        "y": 30,
+        "width": 2560,
+        "height": 1336
+      },
+      "content": {
+        "x": 0,
+        "y": 30,
+        "width": 2560,
+        "height": 1336
+      },
+      "resizable": true,
+      "topmost": false,
+      "fullscreen": false,
+      "maximized": true,
+      "focused": true
+    }
+  },
+  {
+    "test": "unmaximize",
+    "detail": {
+      "id": 1,
+      "webContentsId": 1,
+      "bounds": {
+        "x": 300,
+        "y": 200,
+        "width": 1100,
+        "height": 740
+      },
+      "content": {
+        "x": 300,
+        "y": 200,
+        "width": 1100,
+        "height": 740
+      },
+      "resizable": true,
+      "topmost": false,
+      "fullscreen": false,
+      "maximized": false,
+      "focused": true
+    }
+  },
+  {
+    "test": "fullscreen-enter",
+    "detail": {
+      "id": 1,
+      "webContentsId": 1,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 2560,
+        "height": 1440
+      },
+      "content": {
+        "x": 0,
+        "y": 0,
+        "width": 2560,
+        "height": 1440
+      },
+      "resizable": false,
+      "topmost": false,
+      "fullscreen": true,
+      "maximized": false,
+      "focused": true
+    }
+  },
+  {
+    "test": "fullscreen-leave",
+    "detail": {
+      "id": 1,
+      "webContentsId": 1,
+      "bounds": {
+        "x": 300,
+        "y": 200,
+        "width": 1100,
+        "height": 740
+      },
+      "content": {
+        "x": 300,
+        "y": 200,
+        "width": 1100,
+        "height": 740
+      },
+      "resizable": true,
+      "topmost": false,
+      "fullscreen": false,
+      "maximized": false,
+      "focused": true
+    }
+  },
+  {
+    "test": "identity-preserved",
+    "detail": {
+      "sameWebContents": true,
+      "id": 1,
+      "webContentsId": 1,
+      "bounds": {
+        "x": 300,
+        "y": 200,
+        "width": 240,
+        "height": 44
+      },
+      "content": {
+        "x": 300,
+        "y": 200,
+        "width": 240,
+        "height": 44
+      },
+      "resizable": false,
+      "topmost": false,
+      "fullscreen": false,
+      "maximized": false,
+      "focused": true
+    }
+  },
+  {
+    "test": "ready-for-manual-check",
+    "detail": {
+      "id": 1,
+      "webContentsId": 1,
+      "bounds": {
+        "x": 300,
+        "y": 200,
+        "width": 240,
+        "height": 44
+      },
+      "content": {
+        "x": 300,
+        "y": 200,
+        "width": 240,
+        "height": 44
+      },
+      "resizable": false,
+      "topmost": true,
+      "fullscreen": false,
+      "maximized": false,
+      "focused": true
+    }
+  },
+  {
+    "test": "blur",
+    "detail": {
+      "focused": false
+    }
+  },
+  {
+    "test": "focus",
+    "detail": {
+      "focused": true
+    }
+  },
+  {
+    "test": "blur",
+    "detail": {
+      "focused": false
+    }
+  },
+  {
+    "test": "focus",
+    "detail": {
+      "focused": true
+    }
+  },
+  {
+    "test": "blur",
+    "detail": {
+      "focused": false
+    }
+  },
+  {
+    "test": "manual-status",
+    "detail": {
+      "id": 1,
+      "webContentsId": 1,
+      "bounds": {
+        "x": 300,
+        "y": 200,
+        "width": 240,
+        "height": 44
+      },
+      "content": {
+        "x": 300,
+        "y": 200,
+        "width": 240,
+        "height": 44
+      },
+      "resizable": false,
+      "topmost": true,
+      "fullscreen": false,
+      "maximized": false,
+      "focused": false,
+      "title": "F10 Probe ticks 61"
+    }
+  },
+  {
+    "test": "focus",
+    "detail": {
+      "focused": true
+    }
+  },
+  {
+    "test": "manual-status",
+    "detail": {
+      "id": 1,
+      "webContentsId": 1,
+      "bounds": {
+        "x": 300,
+        "y": 200,
+        "width": 240,
+        "height": 44
+      },
+      "content": {
+        "x": 300,
+        "y": 200,
+        "width": 240,
+        "height": 44
+      },
+      "resizable": false,
+      "topmost": true,
+      "fullscreen": false,
+      "maximized": false,
+      "focused": true,
+      "title": "F10 Probe ticks 75"
+    }
+  }
+]

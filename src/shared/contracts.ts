@@ -1,3 +1,4 @@
+import type { WindowTransition, WindowSnapshot } from './capsule.js';
 import type { Board } from './board.js';
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type Fields = Record<string, unknown>;
@@ -141,6 +142,7 @@ export interface UpdateState {
 export interface Snapshot {
   updates?: UpdateState;
   compact: boolean;
+  window: WindowSnapshot;
   sequence: number;
   revisions: Record<Domain, number>;
   tasks: TaskState;
@@ -158,6 +160,8 @@ export interface Result {
   message: string;
   errors?: Record<string, string>;
   code?: string;
+  errorCode?: string;
+  correlationId?: string;
   snapshot?: Snapshot;
   completion?: { taskId: string; date: string; allDone: boolean };
 }
@@ -180,7 +184,12 @@ export const methods = [
   'chooseImport',
   'commitImport',
   'exportBackup',
-  'compact',
+  'windowMode',
+  'windowModeReady',
+  'windowTransitionReady',
+  'capsulePreferences',
+  'resetCapsulePosition',
+  'capsuleMenu',
   'checkUpdates',
   'openUpdate',
   'openSource',
@@ -190,6 +199,9 @@ export type Method = (typeof methods)[number];
 export interface Bridge {
   invoke(method: Method, payload?: Fields): Promise<Result>;
   subscribe(callback: (snapshot: Snapshot) => void): () => void;
+  windowTransition(callback: (transition: WindowTransition) => void): () => void;
+  prepareWindowMode(callback: (nonce: string) => void): () => void;
+  openCapsuleSettings(callback: (id: string) => void): () => void;
   beforeQuit(callback: (nonce: string) => void): () => void;
 }
 declare global {

@@ -1,3 +1,5 @@
+import { WindowStateStore } from './window-state.js';
+import { WindowController } from './window-controller.js';
 import { buildFlexDay } from '../../app/income/src/flex.js';
 import { moodData, MOOD_REWARDS } from '../shared/mood.js';
 import { defaultFun, rewardTask, updateFun } from '../shared/fun.js';
@@ -16,7 +18,6 @@ import {
   net,
   powerMonitor,
   protocol,
-  screen,
   shell,
 } from 'electron';
 import { randomUUID } from 'node:crypto';
@@ -99,8 +100,8 @@ let layout: Layout = {
 };
 let board: Board = defaultBoard();
 let revisions = { tasks: 0, income: 0, home: 0 };
-let compact = false;
-let expanded: Electron.Rectangle | null = null;
+let windows: WindowController;
+let windowStore: WindowStateStore;
 let quitting = false;
 let quitPending: Promise<void> | null = null;
 let quitNonce = '';
@@ -121,14 +122,17 @@ let releaseUpdater: ReleaseUpdater | null = null;
 const taskKey = 'work-todolist-generic-v1';
 const layoutKey = 'dogcow.home.v1';
 const official = 'https://github.com/koxinyu11/Dog-cow/releases';
+const windowBackground = (dark: boolean) => dark ? '#141c19' : '#f6f5ef';
 const toastResult = (message: string): Result => ({
   applied: false,
   persisted: false,
   message,
 });
 function snapshot(): Snapshot {
+  const windowState = windows?.snapshot() ?? { ...windowStore.value, phase: 'idle' as const, dirty: windowStore.dirty, warning: windowStore.warning };
   return {
-    compact,
+    compact: windowState.mode === 'capsule',
+    window: windowState,
     sequence: ++sequence,
     revisions: { ...revisions },
     tasks: structuredClone(tasks),
@@ -247,14 +251,13 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     if (!['light', 'dark', 'auto'].includes(String(p.mode)) || !['light', 'dark'].includes(String(p.resolved)))
       return toastResult('显示模式无效。');
     nativeTheme.themeSource = p.mode === 'auto' ? 'system' : p.mode as 'light' | 'dark';
-    win?.setBackgroundColor(p.resolved === 'dark' ? '#141c19' : '#f6f5ef');
+    win?.setBackgroundColor(windowBackground(p.resolved === 'dark'));
     return toastResult('');
   }
   if (method === 'bootstrap') return { ...toastResult(''), snapshot: snapshot() };
-  if (method === 'compact') {
-    toggleCompact();
-    return toastResult('窗口已切换。');
-  }
+  if (method === 'capsulePreferences') return windows.preferences(p);
+  if (method === 'resetCapsulePosition') return windows.resetPosition();
+  if (method === 'capsuleMenu') { windows.menu(); return toastResult(''); }
   if (method === 'quit') {
     setTimeout(() => void requestQuit(), 0);
     return toastResult('');
@@ -636,22 +639,6 @@ async function invoke(method: string, p: Fields): Promise<Result> {
   }
   return finish(result);
 }
-function toggleCompact() {
-  if (!win) return;
-  if (!compact) {
-    expanded = win.getBounds();
-    win.setMinimumSize(320, 64);
-    win.setResizable(false);
-    win.setBounds({ ...expanded, height: 64 });
-    compact = true;
-  } else {
-    win.setResizable(true);
-    win.setMinimumSize(900, 620);
-    if (expanded) win.setBounds(expanded);
-    compact = false;
-  }
-  broadcast();
-}
 function requestQuit(): Promise<void> {
   if (quitPending) return quitPending;
   quitPending = doQuit().finally(() => {
@@ -661,6 +648,7 @@ function requestQuit(): Promise<void> {
 }
 async function doQuit() {
   if (!win) return;
+  windows.cancel();
   quitNonce = randomUUID();
   const flushed = await new Promise<boolean>((resolve) => {
     const timeout = setTimeout(() => {
@@ -675,7 +663,7 @@ async function doQuit() {
     win!.webContents.send('dogcow:before-quit', quitNonce);
   });
   await commands;
-  const saved = !repo.dirty || (await repo.flush());
+  const saved = (!repo.dirty || (await repo.flush())) && await windows.flush();
   if (!flushed || !saved) {
     const answer = await dialog.showMessageBox(win, {
       type: 'warning',
@@ -683,17 +671,11 @@ async function doQuit() {
       defaultId: 0,
       cancelId: 0,
       message: '还有未提交草稿或未保存修改。',
-      detail: '取消可继续编辑；放弃后这些修改可能丢失。',
+      detail: '取消可继续编辑；放弃后尚未保存的内容或窗口偏好可能丢失。',
     });
     if (answer.response === 0) return;
     if (answer.response === 1) return doQuit();
   }
-  if (!compact)
-    try {
-      await writeFile(path.join(profile, 'window-state.json'), JSON.stringify(win.getBounds()));
-    } catch {
-      console.warn('[window:save] 窗口位置未能保存。');
-    }
   quitting = true;
   controller.destroy();
   app.quit();
@@ -739,6 +721,8 @@ async function start() {
   }
   restoreModels();
   await repo.flush();
+  windowStore = new WindowStateStore(profile);
+  await windowStore.load();
   const root = path.join(app.getAppPath(), 'dist-renderer');
   protocol.handle('dogcow', (request) => {
     const url = new URL(request.url);
@@ -750,37 +734,7 @@ async function start() {
       return new Response('Forbidden', { status: 403 });
     return net.fetch(pathToFileURL(requested).href);
   });
-  let bounds: Electron.Rectangle = { x: 0, y: 0, width: 1280, height: 820 };
-  let restore = false;
-  try {
-    const parsed: unknown = JSON.parse(
-      await readFile(path.join(profile, 'window-state.json'), 'utf8'),
-    );
-    if (
-      record(parsed) &&
-      ['x', 'y', 'width', 'height'].every(
-        (key) => typeof parsed[key] === 'number' && Number.isFinite(parsed[key]),
-      )
-    ) {
-      const candidate = parsed as unknown as Electron.Rectangle;
-      if (
-        candidate.width >= 900 &&
-        candidate.height >= 620 &&
-        screen
-          .getAllDisplays()
-          .some(
-            (display) =>
-              candidate.x < display.workArea.x + display.workArea.width &&
-              candidate.x + candidate.width > display.workArea.x &&
-              candidate.y < display.workArea.y + display.workArea.height &&
-              candidate.y + candidate.height > display.workArea.y,
-          )
-      ) {
-        bounds = candidate;
-        restore = true;
-      }
-    }
-  } catch {}
+  const bounds = windowStore.value.expanded.bounds;
   win = new BrowserWindow({
     ...bounds,
     minWidth: 900,
@@ -788,7 +742,7 @@ async function start() {
     title: '狗牛',
     ...(runtimeIcon ? { icon: runtimeIcon } : {}),
     show: false,
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#141c19' : '#f6f5ef',
+    backgroundColor: windowBackground(nativeTheme.shouldUseDarkColors),
     ...(process.platform === 'darwin'
       ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 16, y: 14 } }
       : {}),
@@ -799,7 +753,12 @@ async function start() {
       sandbox: true,
     },
   });
-  if (!restore) win.center();
+  windows = new WindowController(win, windowStore, {
+    broadcast, saveData: async () => !repo.readError && await repo.flush(),
+    enqueue: <T>(work: () => Promise<T>) => { const job = commands.then(work); commands = job.catch(() => {}); return job; },
+    quitting: () => quitting || !!quitPending,
+  });
+  await windows.initialize();
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (event) => event.preventDefault());
   win.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) =>
@@ -815,10 +774,14 @@ async function start() {
         !validPayload(payload ?? {})
       )
         return toastResult('操作来源或参数无效。');
+      if (method === 'windowTransitionReady') return windows.acknowledgeTransition((payload ?? {}) as Fields);
+      if (method === 'windowModeReady') return windows.acknowledge((payload ?? {}) as Fields);
+      if (method === 'windowMode') return windows.request(record(payload) ? payload.target : undefined).then(result => ({ ...result, snapshot: snapshot() }));
       if (method === 'quit' && record(payload) && payload.nonce === quitNonce && acknowledgeFlush) {
         acknowledgeFlush(payload.ready === true);
         return toastResult('');
       }
+      if (windows.phase === 'applying' || windows.phase === 'restoring') return toastResult('窗口正在切换，请稍后重试。');
       const job = commands
         .then(() => invoke(method, (payload ?? {}) as Fields))
         .catch((error) => {
@@ -850,7 +813,7 @@ async function start() {
                 dialog.showMessageBox(win!, { message: result.message }),
               ),
           },
-          { label: '收成横条 / 展开', click: toggleCompact },
+          { label: '收成胶囊 / 展开', click: () => void windows.request(windows.snapshot().mode === 'capsule' ? 'expanded' : 'capsule') },
           {
             label: '退出狗牛',
             accelerator: 'CmdOrCtrl+Q',
@@ -872,19 +835,6 @@ async function start() {
       },
     ]),
   );
-  let boundsTimer: ReturnType<typeof setTimeout> | undefined;
-  const saveBounds = () => {
-    clearTimeout(boundsTimer);
-    boundsTimer = setTimeout(() => {
-      if (win && !compact)
-        void writeFile(
-          path.join(profile, 'window-state.json'),
-          JSON.stringify(win.getBounds()),
-        ).catch(() => {});
-    }, 300);
-  };
-  win.on('resize', saveBounds);
-  win.on('move', saveBounds);
   win.on('focus', () => controller.tick());
   powerMonitor.on('resume', () => controller.tick());
   win.on('close', (event) => {

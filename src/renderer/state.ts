@@ -19,8 +19,13 @@ export async function boot() {
   if (!installed) {
     installed = true;
     window.dogcow.subscribe(receive);
+    window.dogcow.prepareWindowMode((nonce) => {
+      const guard = new CustomEvent('dogcow:prepare-capsule', { cancelable: true });
+      const allowed = window.dispatchEvent(guard);
+      void (allowed ? flushDrafts() : Promise.resolve(false)).catch(() => false).then(ready => window.dogcow.invoke('windowModeReady', { nonce, ready }));
+    });
     window.dogcow.beforeQuit((nonce) => {
-      void flushDrafts().then((ok) => window.dogcow.invoke('quit', { nonce, ready: ok }));
+      void flushDrafts().catch(() => false).then((ok) => window.dogcow.invoke('quit', { nonce, ready: ok }));
     });
   }
   const result = await window.dogcow.invoke('bootstrap');
@@ -53,6 +58,8 @@ export function command(method: Method, payload: Fields = {}, domain?: Domain): 
     queues[domain] = next;
     return next;
   }
+  // Native mode changes wait for drafts; do not place them ahead of drafts in this queue.
+  if (method === 'windowMode') return send();
   const next = pending.then(send, send);
   pending = next;
   return next;
@@ -67,6 +74,6 @@ export function registerFlush(callback: () => Promise<unknown>) {
 export async function flushDrafts() {
   window.dispatchEvent(new Event('dogcow:flush'));
   const outcomes = await Promise.all([...flushers].map((flush) => flush()));
-  await Promise.all(Object.values(queues));
+  await Promise.all([...Object.values(queues), pending]);
   return outcomes.every((value) => value !== false);
 }

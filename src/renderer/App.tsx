@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { capsuleTheme } from './features/capsule/capsule-theme';
+import { useTheme } from './theme';
+import { installWindowTransition } from './features/capsule/window-transition';
+import { WINDOW_ERRORS } from '../shared/capsule';
+import { Capsule, CapsuleSettings } from './features/capsule/Capsule';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { localDate } from '../domain/tasks/model';
 import { type Fields, type Result } from '../shared/contracts';
 import { defaultBoard, type Board as BoardModel, type BoardItem, type MetricId } from '../shared/board';
@@ -45,6 +50,15 @@ const taskNode = (id: string) => document.querySelector(`[data-task-id="${CSS.es
 
 export function App() {
   const state = useAppState();
+  const { resolved } = useTheme();
+  const capsuleSurface = state ? capsuleTheme(state.board.background, resolved).surface : '';
+  // The application owns this color across both modes; capsule unmount cannot clear it.
+  useLayoutEffect(() => {
+    if (!capsuleSurface) return;
+    document.body.style.setProperty('--capsule-window-surface', capsuleSurface);
+    return () => { document.body.style.removeProperty('--capsule-window-surface'); };
+  }, [capsuleSurface]);
+  useEffect(installWindowTransition, []);
   const [bootDone, setBootDone] = useState(false);
   useEffect(() => {
     if (state) document.title = state.tasks.settings.appTitle;
@@ -61,6 +75,27 @@ export function App() {
   const [confetti, setConfetti] = useState(0);
   const [clock, setClock] = useState<{ action: string; date?: string; token: string; at: number } | null>(null);
   const [receipt, setReceipt] = useState<{ income: IncomeState; date: string; completedTasks: number } | null>(null);
+  useEffect(() => {
+    document.body.classList.toggle('capsule-mode', !!state?.compact);
+    if (state?.compact) setSettings(false);
+    return () => document.body.classList.remove('capsule-mode');
+  }, [state?.compact]);
+  useEffect(() => {
+    const prepare = (event: Event) => {
+      if (newTask || weekly || clock || receipt || document.querySelector('dialog[open]:not(.settings-dialog)')) event.preventDefault();
+    };
+    window.addEventListener('dogcow:prepare-capsule', prepare);
+    return () => window.removeEventListener('dogcow:prepare-capsule', prepare);
+  }, [newTask, weekly, clock, receipt]);
+  useEffect(() => window.dogcow.openCapsuleSettings(() => {
+    setSettings(true); setTab('look');
+    requestAnimationFrame(() => document.getElementById('capsule-settings')?.focus());
+  }), []);
+  const switchMode = async (target: 'expanded' | 'capsule') => {
+    const result = await command('windowMode', { target });
+    if (result.message) notify(result.message, result.applied ? 'ok' : 'error');
+    if (result.applied && target === 'capsule') setSettings(false);
+  };
   const reduced = useReducedMotion();
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const later = (key: string, ms: number, run: () => void) => {
@@ -72,6 +107,9 @@ export function App() {
     setToast({ text, tone });
     later('toast', 4000, () => setToast({ text: '' }));
   };
+  useEffect(() => {
+    if (state?.window.warning && !state.compact) notify(WINDOW_ERRORS[state.window.warning as keyof typeof WINDOW_ERRORS] ?? '窗口操作未完成，请重试。', 'error');
+  }, [state?.window.warning, state?.compact]);
   const handle = async (result: Result) => {
     notify(result.message, result.applied ? 'ok' : 'error');
     if (result.completion) {
@@ -131,7 +169,7 @@ export function App() {
   };
   const metrics = useMemo(() => (state ? computeMetrics(state) : null), [state]);
 
-  if (!bootDone || !state || !metrics)
+  if (!state || !metrics || (!bootDone && !state.compact))
     return <LoadingScreen ready={!!state && !!metrics} onComplete={setBootDone} />;
   const board = state.board ?? defaultBoard();
   const today = localDate(new Date(state.income.now));
@@ -150,26 +188,22 @@ export function App() {
     <MenuProvider>
       <BoardContext.Provider value={{ metrics, bindings: board.bindings, bind }}>
         <div className={`app-bg ${bg.className}`} style={bg.style} aria-hidden="true">
-          {board.background.kind === 'preset' && <Scene preset={board.background.value} />}
+          {!state.compact && board.background.kind === 'preset' && <Scene preset={board.background.value} />}
         </div>
         <div className="app-drag" aria-hidden="true" />
         <IconButton
           hidden={state.compact}
           className="window-compact-toggle"
-          label="收成长条"
+          label="收成胶囊"
           variant="ghost"
-          onClick={() => void command('compact')}
+          onClick={() => void switchMode('capsule')}
         >
           <PanelTopClose size={17} />
         </IconButton>
-        <div hidden={!state.compact} className="compact-bar">
-          <strong>{state.tasks.settings.appTitle || '狗牛'}</strong>
-          <IconButton label="展开窗口" variant="ghost" onClick={() => void command('compact')}>
-            <PanelTopOpen size={17} />
-          </IconButton>
-        </div>
+        {state.compact && <Capsule state={state} expand={() => void switchMode('expanded')} />}
         <main
           hidden={state.compact}
+          inert={state.window.phase !== 'idle'}
           className={`app-shell ${shelf ? 'shelf-open' : ''} ${backgroundIsDark(board.background) ? 'on-dark' : ''} ${board.background.kind === 'image' ? 'on-image' : ''}`}
         >
           <header className="app-header">
@@ -264,6 +298,7 @@ export function App() {
               ]}
             />
             <div className="settings-pane" hidden={tab !== 'look'}>
+              <CapsuleSettings state={state} notify={notify} />
               <Appearance
                 background={board.background}
                 fun={board.fun}
