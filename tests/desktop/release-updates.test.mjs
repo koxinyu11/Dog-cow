@@ -86,6 +86,25 @@ test('trusted GitHub asset redirects work, and missing or rate-limited latest re
   assert.match(limited.state.message, /受限/);
 }));
 
+test('metadata and every download hop override the Chinese app User-Agent rejected by the asset server', async () => fixture(async (options) => {
+  const requested = [];
+  const finalURL = 'https://release-assets.githubusercontent.com/test';
+  const updater = new ReleaseUpdater({ ...options, fetch: async (url, init) => {
+    requested.push(url);
+    const userAgent = new Headers(init?.headers).get('User-Agent') ?? '狗牛/3.0.14';
+    if (userAgent !== 'DogCow-desktop') return new Response(null, { status: 400 });
+    if (url.includes('/releases/latest')) return metadata();
+    if (url === asset.browser_download_url) return new Response(null, { status: 302, headers: { location: finalURL } });
+    return new Response(content);
+  } });
+  await updater.check();
+  assert.equal(updater.state.status, 'ready');
+  assert.deepEqual(requested, [
+    'https://api.github.com/repos/koxinyu11/Dog-cow/releases/latest', asset.browser_download_url, finalURL,
+  ]);
+  assert.deepEqual(await readFile(await updater.installer()), content);
+}));
+
 
 test('interrupted body cleanup still closes the file and removes partial data; retry works', async () => fixture(async (options) => {
   let interrupted = true;

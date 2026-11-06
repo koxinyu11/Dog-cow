@@ -777,7 +777,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
   } else if (method === 'prepareClock') {
     const token = randomUUID();
     const action = String(p.action);
-    if (!['start', 'flex-start', 'finish', 'edit'].includes(action)) throw Error('打卡操作无效。');
+    if (!['start', 'flex-start', 'finish', 'edit', 'edit-breaks'].includes(action)) throw Error('打卡操作无效。');
     const at = Date.now();
     prepared.set(token, { at, revision: revisions.income, action });
     return { ...toastResult(''), code: token, errors: { at: String(at) } };
@@ -821,12 +821,27 @@ async function invoke(method: string, p: Fields): Promise<Result> {
       let startAt = parse(p.startTime, original?.clockIn);
       let endAt = parse(p.endTime, original?.clockOut);
       if (p.method === 'recorded') {
-        if (p.date !== localDate(new Date(draft.at)) || draft.action === 'edit')
+        if (p.date !== localDate(new Date(draft.at)) || ['edit', 'edit-breaks'].includes(draft.action))
           throw Error('现在打卡日期不匹配。');
         if (['start','flex-start'].includes(draft.action)) startAt = draft.at;
         if (draft.action === 'finish') endAt = draft.at;
       }
       if (['start','flex-start'].includes(draft.action)) endAt = original?.clockOut?.at ?? null;
+      const breaks = p.breaks === undefined ? undefined : (() => {
+        if (!Array.isArray(p.breaks) || !['edit', 'edit-breaks'].includes(draft.action))
+          throw Error('午休补录操作无效。');
+        return p.breaks.map((entry) => {
+          if (!entry || typeof entry !== 'object') throw Error('午休记录无效。');
+          const item = entry as Record<string, unknown>;
+          const previous = original?.breaks.find((value) => value.id === item.id);
+          return { id: item.id, startAt: parse(item.startTime, previous?.start),
+            endAt: parse(item.endTime, previous?.end) };
+        });
+      })();
+      if (draft.action === 'edit-breaks') {
+        startAt = original?.clockIn?.at ?? null;
+        endAt = original?.clockOut?.at ?? null;
+      }
       let flex;
       if (draft.action === 'flex-start') {
         if (original?.clockIn || p.date!==localDate(now) || !income.snapshot || income.snapshot.status==='rest-day' || income.snapshot.fullDayLeave) throw Error('弹性打卡仅适用于今天尚未上班的工作日。');
@@ -840,6 +855,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
           date: p.date,
           startAt,
           endAt,
+          ...(breaks !== undefined ? { breaks } : {}),
           ...(flex ? {flex} : {}),
           source: p.method,
           startSource:

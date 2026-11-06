@@ -46,9 +46,10 @@ export function ClockButtons({
             <button disabled={!income.settings} onClick={() => open('finish')}>
               {day?.clockOut ? '修改下班时间' : '下班打卡'}
             </button>
-            <button onClick={() => open('edit')}>补录其他日期</button>
+
           </>
         )}
+        {enabled && <button onClick={() => open(clock ? 'edit' : 'edit-breaks')}>补录实际时间</button>}
         {enabled && (
           <button
             disabled={

@@ -284,7 +284,7 @@ function ClockModule({ state, size, openClock, openSettings, notify }: ModuleCtx
               <summary>更多</summary>
               <div>
                 {clockMode && day?.clockIn && att.state !== 'finished' && <Button size="sm" variant="ghost" icon={<PencilLine size={14} />} onClick={() => openClock('start')}>改上班</Button>}
-                {clockMode && <Button size="sm" variant="ghost" icon={<History size={14} />} onClick={() => openClock('edit')}>补录</Button>}
+                {enabled && <Button size="sm" variant="ghost" icon={<History size={14} />} onClick={() => openClock(clockMode ? 'edit' : 'edit-breaks')}>补录</Button>}
                 <Button size="sm" variant="ghost" icon={<ClipboardList size={14} />} onClick={() => openSettings('records')}>记录</Button>
               </div>
             </details>

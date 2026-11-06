@@ -38,6 +38,20 @@ test('abort and pre-response errors terminate the native probe', async () => {
   const failed = fixture(request => request.emit('error', Error('connection failed')));
   await assert.rejects(failed.fetch('https://github.com/file', { redirect: 'manual' }), /connection failed/);
 });
+
+test('the ASCII User-Agent reaches both the native probe and final Chromium fetch', async () => {
+  const sent = new Headers();
+  const f = fixture(request => request.emit('response', new EventEmitter()), async (_url, init) => {
+    assert.equal(new Headers(init.headers).get('User-Agent'), 'DogCow-desktop');
+    return new Response('installer');
+  });
+  f.request.setHeader = (name, value) => sent.set(name, value);
+  const response = await f.fetch('https://release-assets.githubusercontent.com/file', {
+    redirect: 'manual', headers: { 'User-Agent': 'DogCow-desktop' },
+  });
+  assert.equal(await response.text(), 'installer');
+  assert.equal(sent.get('User-Agent'), 'DogCow-desktop');
+});
 test('final fetch keeps caller cancellation and propagates body errors', async () => {
   const abort = new AbortController();
   const f = fixture(request => request.emit('response', new EventEmitter()), async (_url, init) => {

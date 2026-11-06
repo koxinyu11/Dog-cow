@@ -218,6 +218,29 @@ export function setAttendanceTimes(attendance, values, now = new Date()) {
   if (startAt === null) delete day.flex;
   day.clockIn = changeFact(day.clockIn, startAt, startSource);
   day.clockOut = changeFact(day.clockOut, endAt, endSource);
+  if (values.breaks !== undefined) {
+    if (!Array.isArray(values.breaks)) return failure('invalid-breaks', '午休记录格式无效。');
+    const ids = new Set();
+    const breaks = [];
+    for (const entry of values.breaks) {
+      if (!entry || typeof entry.id !== 'string' || !entry.id.trim() || ids.has(entry.id))
+        return failure('invalid-breaks', '午休记录重复或无效。');
+      ids.add(entry.id);
+      const previous = day.breaks.find((item) => item.id === entry.id);
+      for (const [position, at] of [entry.startAt, entry.endAt].entries()) {
+        if (position === 1 && at === null && previous?.end === null) continue;
+        if (!validTimestamp(at) || localDateKey(new Date(at)) !== date || at > prepared.at)
+          return failure('invalid-break-time', '请填写所选日期内、不晚于现在的午休时间。');
+      }
+      if (entry.endAt !== null && entry.endAt <= entry.startAt)
+        return failure('invalid-break-order', '午休结束时间必须晚于开始时间。');
+      if (entry.endAt === null && !previous)
+        return failure('missing-break-end', '请填写午休结束时间。');
+      breaks.push({ id: entry.id, start: changeFact(previous?.start, entry.startAt, 'backfill'),
+        end: changeFact(previous?.end, entry.endAt, 'backfill') });
+    }
+    day.breaks = breaks.sort((a, b) => a.start.at - b.start.at);
+  }
   if (!day.clockIn && !day.clockOut && day.breaks.length === 0) {
     if (index >= 0) prepared.attendance.days.splice(index, 1);
   } else if (index < 0) prepared.attendance.days.push(day);

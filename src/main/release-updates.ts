@@ -5,6 +5,8 @@ import path from 'node:path';
 import type { UpdateState } from '../shared/contracts.js';
 
 export const RELEASE_API = 'https://api.github.com/repos/koxinyu11/Dog-cow/releases/latest';
+// Electron's default User-Agent includes the Chinese app name, which the asset server rejects.
+const UPDATE_USER_AGENT = 'DogCow-desktop';
 class UpdateError extends Error {
   constructor(message: string, readonly code?: string, readonly retryable = false, readonly httpStatus?: number, readonly retryAfterMs?: number) { super(message); }
 }
@@ -117,7 +119,7 @@ export class ReleaseUpdater {
     this.phase = 'check';
     this.received = 0;
     this.set({ status: 'checking', version: '', errorCode: undefined, correlationId: undefined, progress: 0, message: '正在检查最新正式版…' });
-    const response = await this.options.fetch(RELEASE_API, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'DogCow-desktop' }, signal: AbortSignal.timeout(15000), redirect: 'error' });
+    const response = await this.options.fetch(RELEASE_API, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': UPDATE_USER_AGENT }, signal: AbortSignal.timeout(15000), redirect: 'error' });
     if (response.status === 404) { this.set({ status: 'current', message: '暂无正式版更新。' }); return; }
     if (!response.ok) { await response.body?.cancel(); throw this.httpError(response); }
     const metadataReader = response.body?.getReader();
@@ -151,7 +153,7 @@ export class ReleaseUpdater {
       let url = release.asset.browser_download_url;
       let download: Response | undefined;
       for (let hop = 0; hop < 6; hop++) {
-        download = await this.options.fetch(url, { signal: AbortSignal.timeout(15 * 60 * 1000), redirect: 'manual' });
+        download = await this.options.fetch(url, { headers: { 'User-Agent': UPDATE_USER_AGENT }, signal: AbortSignal.timeout(15 * 60 * 1000), redirect: 'manual' });
         if (![301, 302, 303, 307, 308].includes(download.status)) break;
         const location = download.headers.get('location');
         await download.body?.cancel();

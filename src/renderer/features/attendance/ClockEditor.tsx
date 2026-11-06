@@ -28,19 +28,24 @@ export function ClockEditor({
   onFinished: (income: IncomeState, date: string, completedTasks: number) => void;
 }) {
   const isStart = ['start','flex-start'].includes(draft.action);
+  const isEdit = ['edit', 'edit-breaks'].includes(draft.action);
+  const breaksOnly = draft.action === 'edit-breaks';
   const isFlex = draft.action==='flex-start';
   const [date, setDate] = useState(draft.date || localDate(new Date(draft.at)));
   const original = income.attendance.days.find((day) => day.date === date);
   const [method, setMethod] = useState(
-    draft.action === 'edit' || (isStart ? original?.clockIn : original?.clockOut)
+    isEdit || (isStart ? original?.clockIn : original?.clockOut)
       ? 'backfill'
       : 'recorded',
   );
   const [start, setStart] = useState(time(original?.clockIn?.at));
   const [end, setEnd] = useState(time(original?.clockOut?.at));
+  const [breaks, setBreaks] = useState(() => (original?.breaks ?? []).map((item) => ({ id: item.id, startTime: time(item.start.at), endTime: time(item.end?.at) })));
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   useEffect(() => {
+    setBreaks((original?.breaks ?? []).map((item) => ({ id: item.id, startTime: time(item.start.at), endTime: time(item.end?.at) })));
+    setError('');
     setStart(time(original?.clockIn?.at));
     setEnd(time(original?.clockOut?.at));
   }, [date]);
@@ -85,6 +90,7 @@ export function ClockEditor({
                 method,
                 startTime: startValue,
                 endTime: endValue,
+                ...(isEdit ? { breaks } : {}),
               },
               'income',
             );
@@ -112,28 +118,28 @@ export function ClockEditor({
             <DatePicker
               min={income.attendance.trackingFrom}
               max={localDate(new Date(income.now))}
-              disabled={method === 'recorded' || draft.action !== 'edit' || !!draft.date}
+              disabled={method === 'recorded' || !isEdit || !!draft.date}
               value={date}
               onChange={(nextValue) => setDate(nextValue)}
             />
           </Field>
-          <Field label="打卡方式">
+          {!isEdit && <Field label="打卡方式">
             <FormSelect value={method} onChange={(nextValue) => setMethod(nextValue)}>
-              <option disabled={draft.action === 'edit'} value="recorded">
+              <option disabled={isEdit} value="recorded">
                 现在打卡
               </option>
               <option value="backfill">忘记点击，补实际时间</option>
             </FormSelect>
-          </Field>
-          <Field label="实际上班时间">
+          </Field>}
+          {!breaksOnly && <Field label="实际上班时间">
             <TimePicker
               seconds
               value={startValue}
               disabled={method === 'recorded' && (isStart || !!original?.clockIn)}
               onChange={(nextValue) => setStart(nextValue)}
             />
-          </Field>
-          {(!isStart || original?.clockOut) && (
+          </Field>}
+          {(!breaksOnly && (!isStart || original?.clockOut)) && (
             <Field label="实际下班时间">
               <TimePicker
                 seconds
@@ -144,11 +150,20 @@ export function ClockEditor({
             </Field>
           )}
         </div>
-        <p className="muted">
+        {isEdit && <fieldset disabled={busy}>
+          <legend>午休</legend>
+          {breaks.map((item, index) => <div key={item.id} className="fields">
+            <Field label={`午休 ${index + 1} 开始`}><TimePicker seconds value={item.startTime} onChange={(value) => setBreaks(breaks.map((row) => row.id === item.id ? { ...row, startTime: value } : row))} /></Field>
+            <Field label={`午休 ${index + 1} 结束`}><TimePicker seconds value={item.endTime} onChange={(value) => setBreaks(breaks.map((row) => row.id === item.id ? { ...row, endTime: value } : row))} />{!item.endTime && original?.breaks.some((row) => row.id === item.id && !row.end) && <small>进行中，可补结束时间</small>}</Field>
+            <Button variant="ghost" onClick={() => setBreaks(breaks.filter((row) => row.id !== item.id))}>删除此段</Button>
+          </div>)}
+          <Button variant="ghost" onClick={() => setBreaks([...breaks, { id: crypto.randomUUID(), startTime: '', endTime: '' }])}>添加午休</Button>
+        </fieldset>}
+        {!isEdit && <p className="muted">
           现在打卡使用打开弹窗时的{' '}
           {new Date(draft.at).toLocaleTimeString('zh-CN', { hour12: false })}
           。下班前必须有实际上班时间。
-        </p>
+        </p>}
         <p className="error" role="alert">
           {error}
         </p>

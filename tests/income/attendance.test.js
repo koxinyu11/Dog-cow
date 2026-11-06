@@ -303,3 +303,46 @@ test('首次操作/更新时间、事实日期和午休重叠均校验', () => {
   ];
   assert.equal(validateAttendance(overlapping).valid, false);
 });
+
+
+test('午休补录支持多段、修改、删除，冲突和未来时间拒绝且不改原数据', () => {
+  const base = clocks(empty(), time(9).getTime(), time(18).getTime());
+  const save = (attendance, breaks) => setAttendanceTimes(attendance, {
+    date, startAt: time(9).getTime(), endAt: time(18).getTime(), source: 'backfill', breaks,
+  }, time(19));
+  const first = { id: 'lunch', startAt: time(12).getTime(), endAt: time(13).getTime() };
+  const second = { id: 'rest', startAt: time(15).getTime(), endAt: time(15, 15).getTime() };
+  const added = save(base, [second, first]);
+  assert.equal(added.ok, true);
+  assert.equal(added.attendance.days[0].breaks.length, 2);
+  assert.equal(added.attendance.days[0].breaks[0].start.source, 'backfill');
+  assert.equal(getAttendanceDay(added.attendance, date, time(19)).breakSeconds, 4500);
+  const before = structuredClone(added.attendance);
+  for (const invalid of [
+    { ...second, startAt: time(12, 30).getTime() },
+    { ...second, endAt: time(15).getTime() },
+    { ...second, endAt: time(20).getTime() },
+    { ...second, startAt: time(8).getTime() },
+    { ...second, startAt: null, endAt: null },
+  ]) assert.equal(save(added.attendance, [first, invalid]).ok, false);
+  assert.deepEqual(added.attendance, before);
+  const modified = save(added.attendance, [{ ...first, endAt: time(13, 30).getTime() }]);
+  assert.equal(modified.ok, true);
+  assert.equal(modified.attendance.days[0].breaks[0].start.recordedAt, before.days[0].breaks[0].start.recordedAt);
+  assert.equal(save(modified.attendance, []).attendance.days[0].breaks.length, 0);
+});
+
+test('仅午休可补录且保留进行中的午休', () => {
+  const running = action(empty(), 'pause', time(12));
+  const entry = running.days[0].breaks[0];
+  const values = { date, startAt: null, endAt: null, source: 'backfill',
+    breaks: [{ id: entry.id, startAt: entry.start.at, endAt: null }] };
+  const preserved = setAttendanceTimes(running, values, time(14));
+  assert.equal(preserved.ok, true);
+  assert.deepEqual(preserved.attendance.days[0].breaks, running.days[0].breaks);
+  values.breaks[0].endAt = time(13).getTime();
+  const ended = setAttendanceTimes(running, values, time(14));
+  assert.equal(ended.ok, true);
+  assert.equal(ended.attendance.days[0].clockIn, null);
+  assert.equal(ended.attendance.days[0].breaks[0].end.source, 'backfill');
+});

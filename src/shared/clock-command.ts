@@ -8,7 +8,7 @@ export function clockCommandError(
 ): string {
   if (!settings?.stealMode) return '请先开启偷时间模式。';
   const action = String(input.action);
-  if (!['pause', 'resume', 'start', 'flex-start', 'finish', 'edit'].includes(action))
+  if (!['pause', 'resume', 'start', 'flex-start', 'finish', 'edit', 'edit-breaks'].includes(action))
     return '打卡操作无效，请重新打开确认弹窗。';
   if (['start', 'flex-start', 'finish', 'edit'].includes(action) && !settings.clockMode)
     return '请先开启上下班模式。';
