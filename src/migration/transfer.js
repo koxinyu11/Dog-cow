@@ -7,7 +7,8 @@ export const RESTORE_KEY = 'dogcow.migration.restore.v1';
 export const MAX_TRANSFER_BYTES = 20 * 1024 * 1024;
 const fixedKeys = ['work-todolist-generic-v1', 'dogcow.home.v1', ...[1, 2, 3, 4].map(v => `niuma-calculator.settings.v${v}`)];
 export const TITLES_KEY = 'dogcow.titles.v1';
-export const allowedKey = key => fixedKeys.includes(key) || key === TOILET_KEY || key === TITLES_KEY || key === OWED_KEY || key === 'dogcow.board.v2' || /^niuma-calculator\.holidays\.v1\.[1-9]\d{3}$/.test(key);
+export const COINS_KEY = 'dogcow.coins.v1';
+export const allowedKey = key => fixedKeys.includes(key) || key === TOILET_KEY || key === TITLES_KEY || key === COINS_KEY || key === OWED_KEY || key === 'dogcow.board.v2' || /^niuma-calculator\.holidays\.v1\.[1-9]\d{3}$/.test(key);
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const fail = message => { throw new Error(message); };
 const validDate = value => {
@@ -35,6 +36,11 @@ export function validateLegacy(values, now = new Date()) {
     // Structure only; ids and facts are checked again by the titles store on load.
     const titles = JSON.parse(values[TITLES_KEY]);
     if (!record(titles) || titles.version !== 1 || !validDate(titles.enabledAt) || !record(titles.keys) || !record(titles.ledgers) || !Array.isArray(titles.unlocked)) fail('职称数据无效。');
+  }
+  if (values[COINS_KEY] != null) {
+    // Structure only; every field is checked again by the wallet on load.
+    const coins = JSON.parse(values[COINS_KEY]);
+    if (!record(coins) || coins.version !== 1 || !Number.isSafeInteger(coins.balance) || coins.balance < 0 || !record(coins.used) || !Array.isArray(coins.owned) || !Array.isArray(coins.entries)) fail('狗牛币数据无效。');
   }
   for (const key of fixedKeys) if (!Object.hasOwn(values, key)) fail('迁移包缺少必要键。');
   const tasks = values[fixedKeys[0]] === null ? null : JSON.parse(values[fixedKeys[0]]);

@@ -1,4 +1,7 @@
-import { isWallpaperUnlocked } from '../../shared/wallpapers';
+import { setSelfDeception, useDisplayIncome } from '../display-income';
+import { coinWallpaper, isWallpaperUnlocked } from '../../shared/wallpapers';
+import type { CoinsView } from '../../shared/coins';
+import { CoinSwatch } from '../features/coins/CoinSwatch';
 import { defaultFun, type FunState } from '../../shared/fun';
 import { useRef, useState, type CSSProperties } from 'react';
 import { ANIMATED_PRESETS, BACKGROUND_PRESETS, DARK_PRESETS, MAX_IMAGE_LENGTH, type Background, type PresetKey } from '../../shared/board';
@@ -44,6 +47,7 @@ export function Appearance({
   background,
   fun,
   titleIds,
+  coins,
   setBackground,
   resetBoard,
   notify,
@@ -51,11 +55,13 @@ export function Appearance({
   background: Background;
   fun?: FunState;
   titleIds: readonly string[];
+  coins?: CoinsView;
   setBackground: (bg: Background) => Promise<void>;
   resetBoard: () => void;
   notify: (message: string) => void;
 }) {
   const { mode, resolved } = useTheme();
+  const displayIncome = useDisplayIncome();
   const [motion, setMotion] = useState(() => localStorage.getItem(FX_PREF_KEY) !== 'off');
   const file = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -78,9 +84,19 @@ export function Appearance({
         <p className="muted" role="status">{mode === 'auto' ? '跟随系统外观 · ' : ''}当前为{resolved === 'dark' ? '暗黑' : '浅色'}模式</p>
       </section>
       <section>
+        <h3><Sparkles size={16} /> 自欺欺人</h3>
+        <Switch label="自欺欺人" checked={displayIncome.enabled}
+          hint="主页收入金额 ×10，实际记录不变"
+          onChange={(on) => {
+            if (!setSelfDeception(on)) notify('自欺欺人设置未保存，请重试。');
+          }} />
+      </section>
+      <section>
         <h3><Palette size={16} /> 背景</h3>
         <div className="bg-grid">
-          {(Object.keys(BACKGROUND_PRESETS) as PresetKey[]).filter(key=>isWallpaperUnlocked(key, fun ?? defaultFun(), titleIds)).map((key) => (
+          {(Object.keys(BACKGROUND_PRESETS) as PresetKey[]).filter(key=>coinWallpaper(key) || isWallpaperUnlocked(key, fun ?? defaultFun(), titleIds, coins?.owned)).map((key) => !isWallpaperUnlocked(key, fun ?? defaultFun(), titleIds, coins?.owned) ? (
+            <CoinSwatch key={key} preset={key} coins={coins} notify={notify} onBought={(anchor) => void choose({ kind: 'preset', value: key }, anchor)} />
+          ) : (
             <button
               key={key}
               className={`bg-swatch ${DARK_PRESETS.includes(key) ? 'is-dark' : ''}`}

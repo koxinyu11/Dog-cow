@@ -15,10 +15,19 @@ export const TITLE_WALLPAPERS = [
   { id: 'forever-shareholder', title: 'open-365', name: '终身股东', emoji: '📈' },
 ] as const;
 
+/** Wallpapers bought with 狗牛币. Shown locked with a price; the main process charges this price, never one from the renderer. */
+export const COIN_WALLPAPERS = [
+  { id: 'mint-factory', name: '摸鱼印钞厂', emoji: '🏭', price: 500 },
+  { id: 'boss-iou', name: '老板欠条墙', emoji: '🧾', price: 1000 },
+] as const;
+export const coinItem = (id: string) => `wallpaper:${id}`;
+export const coinWallpaper = (id: string) => COIN_WALLPAPERS.find(w => w.id === id);
+
 export const HIDDEN_WALLPAPERS: readonly string[] = [...MOOD_REWARDS.map(r => r.id), ...TITLE_WALLPAPERS.map(w => w.id)];
 
 /** Single unlock rule for the picker and the main-process guard. Unknown ids are ordinary presets. */
-export function isWallpaperUnlocked(id: string, fun: FunState | undefined, titleIds: readonly string[]) {
+export function isWallpaperUnlocked(id: string, fun: FunState | undefined, titleIds: readonly string[], owned: readonly string[] = []) {
+  if (coinWallpaper(id)) return owned.includes(coinItem(id));
   if (MOOD_REWARDS.some(r => r.id === id)) return !!fun && moodData(fun).wallpapers.includes(id);
   const reward = TITLE_WALLPAPERS.find(w => w.id === id);
   return reward ? titleIds.includes(reward.title) : true;

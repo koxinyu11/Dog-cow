@@ -1,0 +1,168 @@
+/* 狗牛币 wallpapers. Parts are <b> inside positioned <i>; motion follows the global
+   .no-fx / prefers-reduced-motion rules in motion.css. */
+.sc-mint-factory b, .sc-boss-iou b { position: absolute; display: block; }
+
+/* ---------- Shared CSS calf (sized in em; scenes set font-size) ---------- */
+.calf { position: absolute; width: 10em; height: 9em; }
+.calf-body { left: 1em; top: 4em; width: 7em; height: 4em; border-radius: 2.4em 2.2em 1.8em 2em; background: linear-gradient(180deg, #fffdf8, #ece4d6); box-shadow: inset -0.4em -0.4em 0 rgba(120, 100, 80, 0.12), 0 0.3em 0.6em rgba(0, 0, 0, 0.18); }
+.calf-spot { background: #3b3430; border-radius: 48% 52% 60% 40%; }
+.calf-spot.s1 { left: 1.2em; top: 0.6em; width: 2em; height: 1.5em; }
+.calf-spot.s2 { left: 4.2em; top: 2em; width: 1.4em; height: 1.1em; rotate: 20deg; }
+.calf-badge { left: 3em; top: 1.2em; width: 1.1em; height: 1.4em; border-radius: 0.2em; background: linear-gradient(180deg, #4a7fd1 0 30%, #f4f6fb 30%); box-shadow: 0 0.1em 0.2em rgba(0, 0, 0, 0.25); }
+.calf-badge::before { content: ''; position: absolute; left: 0.45em; top: -0.9em; width: 0.15em; height: 0.9em; background: #4a7fd1; }
+.calf-head { left: 5.4em; top: 0.8em; width: 4.4em; height: 4em; border-radius: 46% 46% 42% 42%; background: linear-gradient(180deg, #fffdf8, #efe7da); box-shadow: inset -0.3em -0.3em 0 rgba(120, 100, 80, 0.12); }
+.calf-horn { top: -0.6em; width: 0.6em; height: 1em; border-radius: 50% 50% 30% 30%; background: linear-gradient(180deg, #f7e7bf, #d8bf86); }
+.calf-horn.l { left: 1em; rotate: -18deg; } .calf-horn.r { right: 1em; rotate: 18deg; }
+.calf-ear { top: 0.6em; width: 1.5em; height: 0.8em; border-radius: 50%; background: radial-gradient(ellipse at 60% 50%, #f4b9a8 0 40%, #fffaf2 42%); box-shadow: 0 0.05em 0.15em rgba(0, 0, 0, 0.15); }
+.calf-ear.l { left: -1em; rotate: -20deg; } .calf-ear.r { right: -1em; rotate: 20deg; }
+.calf-patch { left: 0.5em; top: 0.5em; width: 1.7em; height: 1.6em; border-radius: 50% 45% 55% 50%; background: #3b3430; }
+.calf-eye { top: 1.3em; width: 0.5em; height: 0.55em; border-radius: 50%; background: #1d1a18; box-shadow: inset 0.12em -0.12em 0 #fff8; animation: calf-blink 5s infinite; }
+.calf-eye.l { left: 1.05em; background: #fff; box-shadow: inset 0 0 0 0.12em #1d1a18; } .calf-eye.r { right: 1.05em; }
+.calf-muzzle { left: 0.7em; bottom: 0.2em; width: 3em; height: 1.6em; border-radius: 50%; background: linear-gradient(180deg, #f8c9b9, #eaa996); }
+.calf-nostril { top: 0.6em; width: 0.35em; height: 0.25em; border-radius: 50%; background: #a8604f; }
+.calf-nostril.l { left: 0.8em; } .calf-nostril.r { right: 0.8em; }
+.calf-tail { left: 0.2em; top: 4.6em; width: 0.25em; height: 2.2em; border-radius: 0.2em; background: #ece4d6; transform-origin: 50% 0; rotate: 30deg; animation: calf-tail 2.6s ease-in-out infinite alternate; }
+.calf-tail::after { content: ''; position: absolute; left: -0.25em; bottom: -0.4em; width: 0.75em; height: 0.8em; border-radius: 50%; background: #3b3430; }
+@keyframes calf-blink { 0%, 94%, 100% { scale: 1 1; } 97% { scale: 1 0.1; } }
+@keyframes calf-tail { to { rotate: 60deg; } }
+
+/* ================= 摸鱼印钞厂 ================= */
+.sc-mint-factory { background: linear-gradient(180deg, #2c2350 0%, #4a3a7c 42%, #8a6fb8 70%, #c9a8d8 100%); }
+.mf-stars { inset: 0 0 45% 0; opacity: 0.9;
+  background: radial-gradient(1px 1px at 12% 20%, #fff, transparent), radial-gradient(1.5px 1.5px at 30% 8%, #fff, transparent), radial-gradient(1px 1px at 46% 30%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 62% 14%, #fff, transparent), radial-gradient(1px 1px at 88% 34%, #fff, transparent), radial-gradient(1px 1px at 22% 40%, #fff, transparent);
+  animation: mf-twinkle 4s ease-in-out infinite alternate; }
+.mf-moon { top: 9%; right: 12%; width: 11cqmin; height: 11cqmin; border-radius: 50%;
+  background: radial-gradient(circle at 38% 36%, #fffbe6, #f6e3a4 60%, #e8c978);
+  box-shadow: 0 0 4cqmin 1cqmin rgba(255, 233, 160, 0.45), 0 0 14cqmin 4cqmin rgba(255, 220, 140, 0.18), inset -1.4cqmin -1cqmin 0 rgba(200, 160, 80, 0.25); }
+.mf-city { left: 0; right: 0; bottom: 30%; height: 26%; opacity: 0.85;
+  background: linear-gradient(#251d44, #251d44) 2% 100% / 9% 70% no-repeat, linear-gradient(#2b2250, #2b2250) 12% 100% / 7% 95% no-repeat,
+    linear-gradient(#221a3e, #221a3e) 21% 100% / 11% 55% no-repeat, linear-gradient(#2b2250, #2b2250) 60% 100% / 8% 85% no-repeat,
+    linear-gradient(#251d44, #251d44) 70% 100% / 12% 60% no-repeat, linear-gradient(#2b2250, #2b2250) 84% 100% / 6% 100% no-repeat, linear-gradient(#221a3e, #221a3e) 92% 100% / 10% 50% no-repeat; }
+.mf-win { width: 1.2cqmin; height: 1.6cqmin; border-radius: 0.2cqmin; background: #ffd77a; box-shadow: 0 0 1.2cqmin #ffd77a; animation: mf-window 7s steps(1) infinite; }
+.mf-win.w1 { left: 14%; top: 20%; } .mf-win.w2 { left: 24%; top: 55%; animation-delay: -2s; } .mf-win.w3 { left: 63%; top: 30%; animation-delay: -4.5s; } .mf-win.w4 { left: 86%; top: 12%; animation-delay: -1s; }
+.mf-floor { left: 0; right: 0; bottom: 0; height: 30%; background: linear-gradient(180deg, #5a4688, #3a2d5e); box-shadow: inset 0 0.6cqmin 0 rgba(255, 255, 255, 0.12); }
+
+.mf-press { left: 7%; bottom: 26%; width: 24cqmin; height: 26cqmin; border-radius: 2cqmin 2cqmin 1cqmin 1cqmin;
+  background: linear-gradient(90deg, #6c7a8f, #b8c3d1 35%, #8693a6 60%, #5b677a);
+  box-shadow: inset 0 -2cqmin 0 rgba(0, 0, 0, 0.18), 0 1.6cqmin 2.4cqmin rgba(10, 5, 30, 0.45);
+  animation: mf-thump 1.6s ease-in-out infinite; transform-origin: 50% 100%; }
+.mf-press::before { content: ''; position: absolute; inset: 1.4cqmin; border-radius: 1.2cqmin; background: radial-gradient(circle, #5b677a 0.4cqmin, transparent 0.5cqmin) 0 0 / 4cqmin 4cqmin; opacity: 0.5; }
+.mf-press-top { left: 14%; right: 14%; top: -3cqmin; height: 3.6cqmin; border-radius: 1.4cqmin 1.4cqmin 0 0; background: linear-gradient(90deg, #4f5a6c, #9aa6b6 40%, #56627a); }
+.mf-press-light { right: 2.4cqmin; top: 2.4cqmin; width: 2.2cqmin; height: 2.2cqmin; border-radius: 50%; background: #6cf0a0; box-shadow: 0 0 1.6cqmin #6cf0a0; animation: mf-blink 1.6s steps(1) infinite; }
+.mf-press-gauge { left: 2.6cqmin; top: 2.4cqmin; width: 6cqmin; height: 6cqmin; border-radius: 50%; background: conic-gradient(from 200deg, #e05a4a 0 15%, #f6f1e4 15% 100%); box-shadow: inset 0 0 0 0.6cqmin #3e4656; }
+.mf-press-slot { right: -1cqmin; bottom: 5cqmin; width: 4cqmin; height: 3cqmin; border-radius: 0.6cqmin; background: #2b3140; box-shadow: inset 0 0.6cqmin 0 #000a; }
+
+.mf-belt { left: calc(7% + 22cqmin); right: calc(8% + 16cqmin); bottom: 27%; height: 3cqmin; border-radius: 2cqmin;
+  background: repeating-linear-gradient(90deg, #3a3550 0 2cqmin, #4c4668 2cqmin 4cqmin) 0 0 / 4cqmin 100%;
+  box-shadow: 0 1cqmin 1.4cqmin rgba(10, 5, 30, 0.4); animation: mf-belt 0.8s linear infinite; }
+.mf-roller { bottom: -1.6cqmin; width: 2.6cqmin; height: 2.6cqmin; border-radius: 50%; background: conic-gradient(#8e98ab 0 25%, #5a6378 0 50%, #8e98ab 0 75%, #5a6378 0); animation: mf-spin 0.8s linear infinite; }
+.mf-roller.r1 { left: 8%; } .mf-roller.r2 { left: 46%; } .mf-roller.r3 { right: 8%; }
+
+.mf-bill { left: calc(7% + 22cqmin); bottom: calc(27% + 2.6cqmin); width: 8cqmin; height: 4.4cqmin; border-radius: 0.6cqmin;
+  background: radial-gradient(circle at 50% 50%, transparent 1.3cqmin, rgba(255, 255, 255, 0.25) 1.4cqmin 1.6cqmin, transparent 1.7cqmin),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.08) 0 0.4cqmin, transparent 0.4cqmin 1cqmin), linear-gradient(180deg, #7ccf8c, #3f9a5e);
+  box-shadow: inset 0 0 0 0.4cqmin rgba(255, 255, 255, 0.35), 0 0.6cqmin 0.8cqmin rgba(0, 0, 0, 0.3); animation: mf-ride 3.6s linear infinite; }
+.mf-bill b { inset: 0; display: grid; place-items: center; font: 800 2.4cqmin/1 ui-rounded, system-ui, sans-serif; color: #e9ffe9; text-shadow: 0 0.2cqmin 0 #2c7146; }
+.mf-bill.b2 { animation-delay: -1.2s; } .mf-bill.b3 { animation-delay: -2.4s; }
+
+.mf-pig { right: 8%; bottom: 22%; width: 18cqmin; height: 14cqmin; border-radius: 50% 50% 46% 46%;
+  background: radial-gradient(circle at 35% 30%, #ffe1ea 0 12%, transparent 30%), linear-gradient(180deg, #ffb3c6, #f07fa0);
+  box-shadow: inset -1.6cqmin -1.4cqmin 0 rgba(180, 60, 100, 0.25), 0 1.4cqmin 2cqmin rgba(10, 5, 30, 0.4); animation: mf-swell 3.6s ease-in-out infinite; }
+.mf-pig-ear { left: 22%; top: -1.6cqmin; width: 4cqmin; height: 3.4cqmin; border-radius: 0.6cqmin 4cqmin 0 4cqmin; background: #f07fa0; rotate: -10deg; }
+.mf-pig-slot { left: 36%; top: 1.4cqmin; width: 5cqmin; height: 1cqmin; border-radius: 1cqmin; background: #8a2c4a; box-shadow: 0 0 0 0 #ffd77a; animation: mf-slot 3.6s ease-out infinite; }
+.mf-pig-snout { left: -2cqmin; top: 42%; width: 4.6cqmin; height: 4cqmin; border-radius: 50%; background: radial-gradient(circle at 35% 50%, #b84a6c 0 0.5cqmin, transparent 0.6cqmin), radial-gradient(circle at 65% 50%, #b84a6c 0 0.5cqmin, transparent 0.6cqmin), #ff9cb6; }
+.mf-pig-leg { bottom: -2cqmin; width: 3.2cqmin; height: 3cqmin; border-radius: 0 0 1cqmin 1cqmin; background: #e5708f; }
+.mf-pig-leg.l { left: 18%; } .mf-pig-leg.r { right: 18%; }
+
+.mf-chair { left: 40%; bottom: 4%; width: 22cqmin; height: 12cqmin; border-radius: 3cqmin 3cqmin 1cqmin 1cqmin;
+  background: linear-gradient(180deg, #2f2a48, #1f1b33); box-shadow: 0 2cqmin 0 -1cqmin #15122a, 0 1cqmin 2cqmin rgba(0, 0, 0, 0.35); }
+.calf.is-lounging { left: calc(40% + 3cqmin); bottom: 7%; font-size: 1.8cqmin; transform-origin: 50% 100%; animation: mf-lounge 6s ease-in-out infinite alternate; }
+.mf-dust { inset: 10% 0 30% 0;
+  background: radial-gradient(0.6cqmin 0.6cqmin at 20% 60%, #ffe08a, transparent), radial-gradient(0.5cqmin 0.5cqmin at 45% 40%, #ffe08a, transparent),
+    radial-gradient(0.7cqmin 0.7cqmin at 70% 70%, #ffe08a, transparent), radial-gradient(0.4cqmin 0.4cqmin at 85% 50%, #ffe08a, transparent);
+  animation: mf-dust 9s linear infinite; opacity: 0.8; }
+.mf-neon { right: 5%; bottom: 6%; padding: 0.8cqmin 1.8cqmin; border: 0.4cqmin solid #ff8fd0; border-radius: 1.2cqmin;
+  font: 700 2.6cqmin/1 ui-rounded, system-ui, sans-serif; letter-spacing: 0.15em; color: #ffe6f6;
+  text-shadow: 0 0 0.6cqmin #ff8fd0, 0 0 1.6cqmin #ff4fb0; box-shadow: 0 0 1.4cqmin #ff4fb0, inset 0 0 1cqmin #ff4fb080; animation: mf-neon 5s steps(1) infinite; }
+
+@keyframes mf-twinkle { to { opacity: 0.45; } }
+@keyframes mf-window { 0%, 100% { opacity: 1; } 40% { opacity: 0.15; } 55% { opacity: 1; } }
+@keyframes mf-thump { 0%, 100% { scale: 1 1; } 45% { scale: 1.02 0.97; } }
+@keyframes mf-blink { 50% { background: #ffd34d; box-shadow: 0 0 1.6cqmin #ffd34d; } }
+@keyframes mf-belt { to { background-position: 4cqmin 0; } }
+@keyframes mf-spin { to { rotate: 360deg; } }
+@keyframes mf-ride {
+  0% { translate: 0 0; opacity: 0; scale: 0.7; }
+  8% { opacity: 1; scale: 1; }
+  78% { translate: calc(100cqw - 7cqw - 22cqmin - 8cqw - 22cqmin) 0; rotate: 0deg; }
+  92% { translate: calc(100cqw - 7cqw - 22cqmin - 8cqw - 18cqmin) 4cqmin; rotate: 70deg; opacity: 1; scale: 0.8; }
+  100% { translate: calc(100cqw - 7cqw - 22cqmin - 8cqw - 18cqmin) 7cqmin; rotate: 90deg; opacity: 0; scale: 0.5; }
+}
+@keyframes mf-swell { 0%, 84%, 100% { scale: 1; } 90% { scale: 1.06 0.97; } }
+@keyframes mf-slot { 0%, 84% { box-shadow: 0 0 0 0 #ffd77a00; } 90% { box-shadow: 0 0 2cqmin 0.6cqmin #ffd77a; } 100% { box-shadow: 0 0 0 0 #ffd77a00; } }
+@keyframes mf-lounge { from { rotate: -4deg; } to { rotate: 4deg; } }
+@keyframes mf-dust { from { translate: 0 2cqh; } to { translate: 3cqw -6cqh; } }
+@keyframes mf-neon { 0%, 100% { opacity: 1; } 62% { opacity: 0.55; } 64% { opacity: 1; } 66% { opacity: 0.7; } 68% { opacity: 1; } }
+
+[data-theme='dark'] .sc-mint-factory { background: linear-gradient(180deg, #120e24 0%, #221a40 45%, #3a2d5e 75%, #4a3a70 100%); }
+[data-theme='dark'] .mf-floor { background: linear-gradient(180deg, #2c2348, #1a1530); }
+
+/* ================= 老板欠条墙 ================= */
+.sc-boss-iou { background: linear-gradient(180deg, #c8644f, #b2513f 60%, #8f3f31); }
+.iou-paper { inset: 0; opacity: 0.35;
+  background: repeating-linear-gradient(90deg, transparent 0 5cqmin, rgba(255, 255, 255, 0.1) 5cqmin 5.3cqmin),
+    radial-gradient(circle at 2.5cqmin 2.5cqmin, rgba(255, 255, 255, 0.12) 0.5cqmin, transparent 0.6cqmin) 0 0 / 5.3cqmin 5.3cqmin; }
+.iou-light { left: 50%; top: -10cqh; width: 160cqw; height: 100cqh; translate: -50% 0; transform-origin: 50% 0;
+  background: radial-gradient(ellipse 26% 70% at 50% 10%, rgba(255, 228, 170, 0.45), transparent 70%); animation: iou-sway 6s ease-in-out infinite alternate; }
+.iou-lamp { left: 50%; top: 0; width: 0.4cqmin; height: 9cqmin; background: #2a1a16; transform-origin: 50% 0; animation: iou-sway 6s ease-in-out infinite alternate; }
+.iou-lamp b { left: -4.8cqmin; bottom: -3.4cqmin; width: 10cqmin; height: 4.4cqmin; border-radius: 5cqmin 5cqmin 0.6cqmin 0.6cqmin; background: linear-gradient(180deg, #3d2a22, #6a4a38); box-shadow: 0 1.6cqmin 3cqmin rgba(255, 220, 150, 0.6); }
+.iou-lamp b::after { content: ''; position: absolute; left: 3cqmin; bottom: -1.4cqmin; width: 4cqmin; height: 2cqmin; border-radius: 0 0 2cqmin 2cqmin; background: #fff2c4; box-shadow: 0 0 3cqmin #ffe3a0; }
+
+.iou-board { left: 12%; right: 12%; top: 20%; height: 48%; border-radius: 1.6cqmin;
+  background: radial-gradient(circle, rgba(90, 50, 20, 0.25) 0.3cqmin, transparent 0.4cqmin) 0 0 / 1.6cqmin 1.6cqmin, linear-gradient(160deg, #d7a46a, #c18a52);
+  box-shadow: inset 0 0 0 1.4cqmin #7a4a2a, inset 0 0 0 1.8cqmin #5c3620, 0 2cqmin 3cqmin rgba(40, 10, 5, 0.45); }
+.iou-note { position: absolute; padding: 1.4cqmin 1.8cqmin 1.2cqmin; display: grid; gap: 0.4cqmin; min-width: 14cqmin; border-radius: 0.4cqmin;
+  background: linear-gradient(180deg, #fffaf0, #f3e9d2); box-shadow: 0 0.8cqmin 1.4cqmin rgba(60, 25, 10, 0.35); transform-origin: 50% 0.6cqmin; animation: iou-flutter 5s ease-in-out infinite; }
+.iou-note strong { font: 800 3cqmin/1 ui-monospace, 'SF Mono', monospace; color: #8f2a20; }
+.iou-note small { font: 500 1.8cqmin/1 system-ui, sans-serif; color: #7a6a5a; }
+.iou-pin { left: calc(50% - 1cqmin); top: -0.8cqmin; width: 2cqmin; height: 2cqmin; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ff9a8a, #c0392b 60%); box-shadow: 0 0.4cqmin 0.4cqmin rgba(0, 0, 0, 0.35); }
+.iou-note.n1 { left: 6%; top: 12%; rotate: -5deg; }
+.iou-note.n2 { left: 36%; top: 8%; rotate: 3deg; animation-delay: -1.2s; }
+.iou-note.n3 { left: 66%; top: 14%; rotate: -2deg; animation-delay: -2.4s; }
+.iou-note.n4 { left: 18%; top: 56%; rotate: 4deg; animation-delay: -3.1s; }
+.iou-note.n5 { left: 54%; top: 54%; rotate: -4deg; animation: iou-new 9s ease-out infinite; }
+
+.iou-stamp { left: 58%; top: 52%; width: 15cqmin; height: 7cqmin; display: grid; place-items: center; transform-origin: 50% 50%; animation: iou-stamp 9s ease-out infinite; }
+.iou-stamp b { position: static; white-space: nowrap; padding: 0.6cqmin 1.6cqmin; font: 900 3.4cqmin/1 system-ui, sans-serif; letter-spacing: 0.1em; color: #d33a2c; border: 0.6cqmin double #d33a2c; border-radius: 1cqmin; rotate: -14deg; mix-blend-mode: multiply; }
+.iou-ink { left: calc(58% + 7.5cqmin); top: calc(52% + 3.5cqmin); width: 20cqmin; height: 20cqmin; translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(circle, transparent 46%, rgba(211, 58, 44, 0.5) 48%, transparent 52%),
+    radial-gradient(0.8cqmin 0.8cqmin at 20% 30%, #d33a2c, transparent), radial-gradient(0.6cqmin 0.6cqmin at 80% 25%, #d33a2c, transparent), radial-gradient(0.7cqmin 0.7cqmin at 70% 80%, #d33a2c, transparent);
+  opacity: 0; animation: iou-ink 9s ease-out infinite; }
+
+.iou-counter { right: 5%; top: 6%; height: 5.6cqmin; overflow: hidden; padding: 0 1.4cqmin; border-radius: 1cqmin;
+  background: linear-gradient(180deg, #2a1a16, #3f2820); box-shadow: inset 0 0.4cqmin 0.8cqmin #000a, 0 0 0 0.4cqmin #a87850; }
+.iou-digits { position: static !important; display: grid !important; font: 700 3.4cqmin/5.6cqmin ui-monospace, 'SF Mono', monospace; color: #ffcf6a; text-shadow: 0 0 1cqmin #ffb84a; animation: iou-roll 6s steps(1) infinite; }
+
+.iou-floor { left: 0; right: 0; bottom: 0; height: 20%; background: linear-gradient(180deg, #6b3a2c, #4a261c); box-shadow: inset 0 0.6cqmin 0 rgba(255, 220, 180, 0.15); }
+.iou-floor::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 20%, rgba(255, 230, 190, 0.12) 45%, transparent 70%); }
+.iou-walker { left: 4%; bottom: 6%; width: 22cqmin; height: 26cqmin; animation: iou-walk 14s ease-in-out infinite alternate; }
+.calf.is-walking { left: 0; bottom: 0; font-size: 2cqmin; animation: iou-step 0.7s ease-in-out infinite; }
+.iou-sign { left: 15cqmin; bottom: 22cqmin; white-space: nowrap; padding: 1.2cqmin 2.4cqmin; font: 900 3.6cqmin/1 system-ui, sans-serif; letter-spacing: 0.2em; color: #fff7e6;
+  background: linear-gradient(180deg, #a4683c, #7c4a26); border-radius: 0.8cqmin; box-shadow: 0 0.8cqmin 1.2cqmin rgba(0, 0, 0, 0.35), inset 0 -0.4cqmin 0 rgba(0, 0, 0, 0.2);
+  transform-origin: 50% 100%; animation: iou-wave 1.4s ease-in-out infinite; }
+.iou-sign::after { content: ''; position: absolute; left: calc(50% - 0.5cqmin); top: 100%; width: 1cqmin; height: 10cqmin; background: #6a3e20; }
+
+@keyframes iou-sway { from { rotate: -4deg; } to { rotate: 4deg; } }
+@keyframes iou-flutter { 0%, 100% { transform: rotateX(0) skewY(0); } 50% { transform: rotateX(14deg) skewY(-1deg); } }
+@keyframes iou-new { 0%, 8% { translate: 0 6cqmin; opacity: 0; scale: 1.1; } 16% { translate: 0 0; opacity: 1; scale: 1; } 90% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes iou-stamp { 0%, 18% { scale: 2.6; opacity: 0; translate: 0 -8cqmin; } 24% { scale: 1; opacity: 1; translate: 0 0; } 26% { scale: 0.96; } 30% { scale: 1; } 88% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes iou-ink { 0%, 23% { opacity: 0; scale: 0.4; } 26% { opacity: 0.9; scale: 1; } 40% { opacity: 0; scale: 1.25; } 100% { opacity: 0; } }
+@keyframes iou-roll { 0% { translate: 0 0; } 33% { translate: 0 -5.6cqmin; } 66% { translate: 0 -11.2cqmin; } }
+@keyframes iou-walk { from { translate: 0 0; } to { translate: calc(92cqw - 22cqmin) 0; } }
+@keyframes iou-step { 50% { translate: 0 -0.6cqmin; rotate: -2deg; } }
+@keyframes iou-wave { 50% { rotate: -7deg; } }
+
+[data-theme='dark'] .sc-boss-iou { background: linear-gradient(180deg, #4a1c17, #3a1512 60%, #26100d); }
+[data-theme='dark'] .iou-light { background: radial-gradient(ellipse 26% 70% at 50% 10%, rgba(255, 210, 140, 0.32), transparent 70%); }
+[data-theme='dark'] .iou-floor { background: linear-gradient(180deg, #3a1f17, #24120d); }

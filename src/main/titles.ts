@@ -78,6 +78,11 @@ export class Titles {
     if (this.state && this.moneyEntries().some(([key, v]) => this.persisted.get(key) !== v)) this.write();
   }
 
+  /** Read-only money ledgers for the coin wallet; `null` while titles are locked. */
+  moneyLedgers(): Pick<TitlesState['ledgers'], 'steal' | 'owed'> | null {
+    return this.state ? { steal: this.state.ledgers.steal, owed: this.state.ledgers.owed } : null;
+  }
+
   change(input: TitlesAction) {
     if (!this.state) throw Error(this.error || '职称数据不可用。');
     this.state = changeTitles(this.state, input);

@@ -64,13 +64,14 @@ export const BACKGROUND_PRESETS = {
   'money-rain': '带薪下钱雨', 'milk-tea': '奶茶自由', 'pi-vault': '无理小金库', 'run-offwork': '到点跑路',
   'friday-resident': '周五永居', 'monday-immune': '周一免疫', 'ticket-shredder': '需求粉碎机',
   'overtime-hunter': '资本家克星', 'forever-shareholder': '终身股东',
+  'mint-factory': '摸鱼印钞厂', 'boss-iou': '老板欠条墙',
 } as const;
 export type PresetKey = keyof typeof BACKGROUND_PRESETS;
 /** Presets with a dark sky need light header text. */
-export const DARK_PRESETS: readonly PresetKey[] = ['night', 'deep-rest', 'galaxy-off', 'friday-resident', 'forever-shareholder'];
+export const DARK_PRESETS: readonly PresetKey[] = ['night', 'deep-rest', 'galaxy-off', 'friday-resident', 'forever-shareholder', 'boss-iou'];
 /** Presets with slow ambient animation. */
 export const ANIMATED_PRESETS: readonly PresetKey[] = ['meadow', 'ocean', 'sunset', 'night', 'friday', 'monday', 'cloud-rest', 'deep-rest', 'galaxy-off',
-  'money-rain', 'milk-tea', 'run-offwork', 'friday-resident', 'ticket-shredder', 'forever-shareholder'];
+  'money-rain', 'milk-tea', 'run-offwork', 'friday-resident', 'ticket-shredder', 'forever-shareholder', 'mint-factory', 'boss-iou'];
 export type Background =
   | { kind: 'preset'; value: keyof typeof BACKGROUND_PRESETS }
   | { kind: 'color'; value: string }

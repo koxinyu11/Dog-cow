@@ -204,6 +204,7 @@ export interface Snapshot {
   hopeHolidays?: { name: string; date: string }[];
   income: IncomeState;
   titles?: TitlesView;
+  coins?: import('./coins.js').CoinsView;
   owed?: OwedView;
   save: { dirty: boolean; error: string; readError: string };
   version: string;
@@ -238,6 +239,7 @@ export const methods = [
   'removeLeave',
   'toilet',
   'titles',
+  'coins',
   'prepareClock',
   'clock',
   'refreshCalendar',

@@ -7,7 +7,7 @@ const ACCENTS: Record<PresetKey, string> = {
   night: '#8589c2', friday: '#dca688', monday: '#929dab', boba: '#b49676',
   pie: '#d4aa62', candy: '#bf92bb', paper: '#9aa6ae',
   'cloud-rest': '#85afc5', 'deep-rest': '#548eaa', 'galaxy-off': '#a08cc6',
-  'money-rain': '#c9a24a', 'milk-tea': '#b58a64', 'pi-vault': '#8a9a7b', 'run-offwork': '#e0875a',
+  'money-rain': '#c9a24a', 'mint-factory': '#7a5bc4', 'boss-iou': '#c0392b', 'milk-tea': '#b58a64', 'pi-vault': '#8a9a7b', 'run-offwork': '#e0875a',
   'friday-resident': '#d98a4e', 'monday-immune': '#7fa8a0', 'ticket-shredder': '#8f96a8',
   'overtime-hunter': '#c46a5a', 'forever-shareholder': '#d4a83a',
 };

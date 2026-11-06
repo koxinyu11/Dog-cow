@@ -11,7 +11,7 @@ import { buildFlexDay } from '../../app/income/src/flex.js';
 import { OWED_KEY, changeOwed, emptyOwed, owedSummary, parseOwed } from '../../app/income/src/owed.js';
 import { moodData, MOOD_REWARDS } from '../shared/mood.js';
 import { defaultFun, holidayStarts, rewardTask, seedHopes, updateFun, type HolidayStart } from '../shared/fun.js';
-import { isWallpaperUnlocked } from '../shared/wallpapers.js';
+import { coinItem, coinWallpaper, isWallpaperUnlocked } from '../shared/wallpapers.js';
 import { UpdateInstaller, installRecovery } from './update-install.js';
 import { acknowledgeInstall, backupProfile, installFailure, INSTALL_MESSAGES, type InstallJob } from './update-helper.js';
 import { ReleaseUpdater } from './release-updates.js';
@@ -39,6 +39,8 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Repository } from './repository.js';
 import { Titles } from './titles.js';
+import { Coins } from './coins.js';
+import { COINS_KEY } from '../shared/coins.js';
 import {
   addDays,
   copyDefaults,
@@ -146,6 +148,7 @@ let controller: IncomeController;
 let unsubscribe: (() => void) | null = null;
 let income: IncomeState;
 let titles: Titles;
+let coins: Coins;
 let owedData = emptyOwed();
 let owedError = '';
 let stealDay = '';
@@ -183,6 +186,7 @@ function snapshot(): Snapshot {
     board: structuredClone(board),
     hopeHolidays: hopeHolidays(),
     titles: titles?.view(),
+    coins: coins?.view(),
     owed: income ? owedView() : undefined,
     income: { ...structuredClone(income), ...(income.toilet ? { toilet: { ...structuredClone(income.toilet), pendingSave: toiletPendingSave, pendingRecordId: toiletPendingRecordId } } : {}) },
     save: { dirty: repo.dirty, error: repo.error, readError: repo.readError },
@@ -284,6 +288,8 @@ function restoreModels() {
     calendarLoader:(year,options)=>loadHolidayYear(year,{...options,fetchImpl:boundedCalendarFetch()}) });
   titles = new Titles(repo.storage, (date) => controller.dayFacts(date));
   titles.load();
+  coins = new Coins(repo.storage, () => titles.moneyLedgers());
+  coins.load();
   try {
     owedData = parseOwed(repo.storage.getItem(OWED_KEY));
     owedError = '';
@@ -559,11 +565,14 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     const pending = importDraft;
     importDraft = null;
     const backup = await repo.backup('before-import');
+    // An older pack without a wallet keeps the current one, so restored ledgers cannot be exchanged twice.
+    const currentCoins = repo.storage.getItem(COINS_KEY);
     repo.values = new Map(
       Object.entries(pending.values).filter(
         (pair): pair is [string, string] => typeof pair[1] === 'string',
       ),
     );
+    if (typeof pending.values[COINS_KEY] !== 'string' && currentCoins !== null) repo.values.set(COINS_KEY, currentCoins);
     repo.readError = '';
     repo.revision++;
     repo.migration = {
@@ -749,11 +758,24 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     else if (action === 'show' && typeof p.value === 'boolean') titles.change({ action, value: p.value });
     else throw Error('职称操作无效。');
     result.message = '';
+  } else if (method === 'coins') {
+    if (p.action === 'exchange') {
+      titles.settle();
+      const gained = coins.exchange();
+      result.code = 'coins-exchanged';
+      result.message = `+${gained} 狗牛币`;
+    } else if (p.action === 'buy-wallpaper' && typeof p.id === 'string') {
+      const wall = coinWallpaper(p.id);
+      if (!wall) throw Error('兑换项目无效。');
+      coins.spend(coinItem(wall.id), wall.price);
+      result.code = 'wallpaper-bought';
+      result.message = `已解锁「${wall.name}」`;
+    } else throw Error('狗牛币操作无效。');
   } else if (method === 'board') {
     expected(p, 'home');
     if (!validBoard(p.board, Object.keys(copyDefaults))) throw Error('看板配置无效。');
     const requested = p.board.background;
-    if (requested.kind === 'preset' && !isWallpaperUnlocked(requested.value, board.fun ?? defaultFun(), titles.view().items.map(t => t.id))) throw Error('这张壁纸还未解锁。');
+    if (requested.kind === 'preset' && !isWallpaperUnlocked(requested.value, board.fun ?? defaultFun(), titles.view().items.map(t => t.id), coins.view().owned)) throw Error('这张壁纸还未解锁。');
     board = { ...structuredClone(p.board), fun: board.fun };
     layoutWarning = '';
     repo.storage.setItem(BOARD_KEY, JSON.stringify(board));

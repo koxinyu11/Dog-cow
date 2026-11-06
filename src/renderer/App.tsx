@@ -1,3 +1,4 @@
+import { useDisplayIncome } from './display-income';
 import { HopeManagerLauncher } from './features/fun/HopeManagerLauncher';
 import { TraySettings } from './features/tray/TraySettings';
 import { ToiletStatus } from './features/toilet/PaidToilet';
@@ -23,6 +24,7 @@ import { Confetti } from './features/dashboard/Confetti';
 import { DataPanel } from './features/settings/DataPanel';
 import { IncomeSettingsPanel, RecordsPanel, ClockEditor } from './Income';
 import { Board } from './board/Board';
+import { CoinCard } from './features/coins/CoinCard';
 import { wallpapersForTitles } from '../shared/wallpapers';
 import { Appearance, backgroundIsDark, backgroundStyle } from './board/Appearance';
 import { Scene } from './board/Scene';
@@ -206,7 +208,8 @@ export function App() {
       fx('error', document.querySelector('.board'));
     }
   };
-  const metrics = useMemo(() => (state ? computeMetrics(state) : null), [state]);
+  const { multiplier } = useDisplayIncome();
+  const metrics = useMemo(() => (state ? computeMetrics(state, multiplier) : null), [state, multiplier]);
 
   if (!state || !metrics || (!bootDone && !state.compact))
     return <LoadingScreen ready={!!state && !!metrics} onComplete={setBootDone} />;
@@ -352,6 +355,7 @@ export function App() {
                 background={board.background}
                 fun={board.fun}
                 titleIds={state.titles?.items.map((t) => t.id) ?? []}
+                coins={state.coins}
                 setBackground={(background) => saveBoard({ ...board, background })}
                 resetBoard={() => void saveBoard({ ...board, items: defaultBoard().items }).then(() => fx('module-add', document.querySelector('.board')))}
                 notify={notify}
@@ -367,6 +371,7 @@ export function App() {
               <DataPanel notify={notify} />
             </div>
             <div className="settings-pane" hidden={tab !== 'titles'}>
+              <CoinCard coins={state.coins} />
               <TitlesPane titles={state.titles} visible={settings && tab === 'titles'} focusId={titleFocus} notify={notify} />
             </div>
             <p className="muted settings-foot">

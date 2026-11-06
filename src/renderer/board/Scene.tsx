@@ -2,11 +2,14 @@
 // swatch in 设置 → 外观; sizes use container units so both scale from one definition.
 import type { CSSProperties, ReactNode } from 'react';
 import type { PresetKey } from '../../shared/board';
+import { bossIou, mintFactory } from './coin-scenes';
 
 const layers: Partial<Record<PresetKey, ReactNode>> = {
   'cloud-rest': <><i className="sc-sun" /><i className="sc-cloud c1" /><i className="sc-cloud c2" /><i className="reward-float">🐮 ☁️</i><i className="reward-caption">今天也轻一点</i></>,
   'deep-rest': <><i className="reward-rays" /><i className="reward-bubbles">◦ ˚ ◦ ˚ ◦</i><i className="reward-jelly j1">🪼</i><i className="reward-jelly j2">🪼</i><i className="reward-seabed" /></>,
   'galaxy-off': <><i className="reward-stars" /><i className="reward-orbit" /><i className="reward-planet">🪐</i><i className="reward-ship">🐮 🚀</i></>,
+  'mint-factory': mintFactory,
+  'boss-iou': bossIou,
   'money-rain': <><i className="wp-rain r1">💰 🪙 💴 🪙 💰</i><i className="wp-rain r2">🪙 💴 💰 💴 🪙</i><i className="wp-rain r3">💴 💰 🪙 💰 💴</i><i className="wp-catcher">🐮</i><i className="wp-caption">工资在路上</i></>,
   'milk-tea': <><i className="wp-pearls p1">● ● ●</i><i className="wp-pearls p2">● ● ●</i><i className="wp-pearls p3">● ●</i><i className="wp-cup">🧋</i><i className="wp-caption">少糖 · 去冰 · 自由</i></>,
   'pi-vault': <><i className="wp-digits">3.14159265358979323846264338327950288419716939937510582097494459</i><i className="wp-safe">🔐</i><i className="wp-caption">金额非常圆，非常无理</i></>,
