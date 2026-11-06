@@ -1,5 +1,7 @@
 /** Stable UI-safe failures for the independent activity domain. */
 export const TOILET_ERRORS = {
+  TOILET_CUSTOM_REQUIRED: '请先设置自定义活动。',
+  TOILET_CUSTOM_INVALID: '请填写 1～12 个字符的活动名称，并选择图标。',
   TOILET_KIND_INVALID: '活动类型无效，请重新选择。',
   TOILET_DATA_INVALID: '记录读取失败，请先导出备份。',
   TOILET_NOT_AVAILABLE: '当前不能开始，请核对状态。',

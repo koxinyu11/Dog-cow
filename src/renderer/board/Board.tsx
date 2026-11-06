@@ -19,7 +19,7 @@ import { MODULES, type ModuleCtx } from './modules';
 
 import type { ActivityKind } from '../../shared/contracts';
 import { ActivityTabs } from '../features/toilet/ActivityTabs';
-import { ACTIVITIES } from '../features/toilet/activities';
+import { currentActivity } from '../features/toilet/activities';
 
 const CELL_H = 172;
 const GAP = 14;
@@ -382,7 +382,7 @@ export function Board({
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => setModuleEditor(p.id)}
                 >
-                  <Badge icon={p.id === 'paid-toilet' ? ACTIVITIES[activityKind].Icon : def.icon} color={p.id === 'paid-toilet' ? ACTIVITIES[activityKind].color : def.accent} size="sm" />
+                  <Badge icon={p.id === 'paid-toilet' ? currentActivity(activityKind, ctx.state.income.toilet).Icon : def.icon} color={p.id === 'paid-toilet' ? currentActivity(activityKind, ctx.state.income.toilet).color : def.accent} size="sm" />
                 </button>
                 <h2 className="mod-title" onPointerDown={(e) => e.target === e.currentTarget && beginDrag(e, p.id, 'board', p.size)}>
                   {p.id === 'paid-toilet' ? <span className="activity-heading">

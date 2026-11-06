@@ -1,3 +1,4 @@
+import { ACTIVITY_KINDS } from './paid-toilet.js';
 const clockEnabledForToilet = settings => settings.stealMode && settings.clockMode;
 import { DEFAULT_BONUS_CONFIG, validateBonusConfig } from './bonus.js';
 import { getMonthPlan } from './calendar.js';
@@ -271,7 +272,7 @@ function summarizeDay(day, settings, now, leaves, attendance, toiletRecords = []
     }
   }
   const toiletStolenSeconds = intervalSeconds(attributed);
-  const activitySeconds = Object.fromEntries(['toilet', 'smoking', 'coffee'].map(kind => {
+  const activitySeconds = Object.fromEntries(ACTIVITY_KINDS.map(kind => {
     const intervals = toiletRecords.filter(record => (record.kind ?? 'toilet') === kind && record.status !== 'needs-review')
       .flatMap(record => intersectIntervals([{ start: record.startAt, end: record.endAt ?? current }], toiletBounds));
     const unique = [];

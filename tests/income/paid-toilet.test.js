@@ -173,7 +173,7 @@ test('v1 migration preserves exact original bytes, record identity and valuation
   const storage = { getItem: key => map.get(key) ?? null, setItem: (key, value) => map.set(key, value) };
   const restored = loadToilet(storage);
   assert.equal(restored.changed, true);
-  assert.equal(restored.data.version, 2);
+  assert.equal(restored.data.version, 3);
   assert.equal(restored.data.records[0].kind, 'toilet');
   assert.equal(restored.data.legacyBackup, legacy);
   assert.equal(storage.getItem(TOILET_KEY), legacy); // Reading alone never writes.
@@ -184,7 +184,7 @@ test('v1 migration preserves exact original bytes, record identity and valuation
   const started = changeToilet(controller.getState().toilet, { action: 'start', kind: 'coffee' }, +at(15), '', () => 'new-coffee');
   assert.equal(controller.commitToilet(started.data).persisted, true);
   const disk = JSON.parse(storage.getItem(TOILET_KEY));
-  assert.equal(disk.version, 2);
+  assert.equal(disk.version, 3);
   assert.equal(disk.legacyBackup, legacy);
   assert.equal(disk.records.length, 2);
   controller.destroy();
@@ -206,4 +206,109 @@ test('failed migration writes preserve old storage and can be retried without lo
   assert.equal(controller.retrySave().persisted, true);
   assert.equal(JSON.parse(storage.getItem(TOILET_KEY)).legacyBackup, legacy);
   controller.destroy();
+});
+
+test('custom configuration validates names and icons before starting', () => {
+  assert.equal(changeToilet(empty(), { action: 'start', kind: 'custom' }, +at(10), '', () => 'custom').errorCode, 'TOILET_CUSTOM_REQUIRED');
+  for (const name of ['', '   ', '一二三四五六七八九十一二三', '刷\n手机']) {
+    assert.equal(changeToilet(empty(), { action: 'configureCustom', name, icon: 'phone' }, +at(10), '', () => '').errorCode, 'TOILET_CUSTOM_INVALID');
+  }
+  assert.equal(changeToilet(empty(), { action: 'configureCustom', name: '刷手机', icon: 'not-an-icon' }, +at(10), '', () => '').errorCode, 'TOILET_CUSTOM_INVALID');
+  const configured = changeToilet(empty(), { action: 'configureCustom', name: '  刷手机  ', icon: 'phone' }, +at(10), '先设置薪资', () => '');
+  assert.equal(configured.ok, true); // Configuration is independent of salary readiness.
+  assert.deepEqual(configured.data.customActivity, { name: '刷手机', icon: 'phone' });
+  assert.equal(changeToilet(configured.data, { action: 'start', kind: 'custom' }, +at(10), '午休中', () => 'a').errorCode, 'TOILET_NOT_AVAILABLE');
+  assert.equal(changeToilet(empty(), { action: 'configureCustom', name: '✨'.repeat(12), icon: 'sparkles' }, +at(10), '', () => '').ok, true);
+});
+
+test('renaming custom activity preserves running, completed and restored record snapshots', () => {
+  let data = changeToilet(empty(), { action: 'configureCustom', name: '刷手机', icon: 'phone' }, +at(10), '', () => '').data;
+  data = changeToilet(data, { action: 'start', kind: 'custom' }, +at(10), '', () => 'first').data;
+  data = changeToilet(data, { action: 'configureCustom', name: '散步', icon: 'walk' }, +at(10, 1), '', () => '').data;
+  assert.deepEqual(data.records[0].customActivity, { name: '刷手机', icon: 'phone' });
+  assert.equal(changeToilet(data, { action: 'start', kind: 'custom' }, +at(10, 1), '', () => 'duplicate').errorCode, 'TOILET_CONFLICT');
+  data = changeToilet(data, { action: 'end', recordId: 'first' }, +at(10, 5), '', () => '').data;
+  data = changeToilet(data, { action: 'start', kind: 'custom' }, +at(10, 6), '', () => 'second').data;
+  assert.deepEqual(data.records.map(item => item.customActivity.name), ['刷手机', '散步']);
+  const restored = loadToilet({ getItem: () => JSON.stringify(data) });
+  assert.equal(restored.data.customActivity.name, '散步');
+  assert.equal(restored.data.records[0].customActivity.icon, 'phone');
+  assert.equal(restored.data.records[1].status, 'needs-review');
+  assert.equal(restored.data.records[1].customActivity.icon, 'walk');
+});
+
+test('four simultaneous activities share the original pricing and combined union', () => {
+  let data = changeToilet(empty(), { action: 'configureCustom', name: '发呆', icon: 'sparkles' }, +at(10), '', () => '').data;
+  for (const kind of ['toilet', 'smoking', 'coffee', 'custom']) {
+    data = changeToilet(data, { action: 'start', kind }, +at(10), '', () => kind).data;
+  }
+  const running = calculate(data.records, {}, undefined, [], at(10, 8));
+  for (const kind of ['toilet', 'smoking', 'coffee', 'custom']) assert.equal(running.activitySummaries[kind].seconds, 480);
+  assert.equal(running.toiletStolenSeconds, 480);
+  assert.ok(Math.abs(running.toiletStolenAmount - 480 * running.perSecond) < 1e-10);
+  assert.equal(calculate(reviewToilet(data, 'sleep').data.records).toiletStolenSeconds, 0);
+  assert.equal(endToilet(data, +at(10, 8), 'offwork').records.filter(item => item.status === 'completed').length, 4);
+});
+
+test('v2 upgrades preserve original bytes and the v1 backup through subsequent configuration saves', () => {
+  const previous = { version: 2, legacyBackup: 'original v1 bytes', records: [{ ...record('coffee'), kind: 'coffee' }] };
+  const raw = JSON.stringify(previous, null, 2);
+  const map = new Map([[TOILET_KEY, raw]]);
+  const storage = { getItem: key => map.get(key) ?? null, setItem: (key, value) => map.set(key, value) };
+  const controller = createIncomeController({ storage, now: () => at(16), setIntervalImpl: () => 0, clearIntervalImpl: () => {} });
+  const upgraded = JSON.parse(storage.getItem(TOILET_KEY));
+  assert.equal(upgraded.version, 3);
+  assert.equal(upgraded.migrationBackup, raw);
+  assert.equal(upgraded.legacyBackup, previous.legacyBackup);
+  assert.deepEqual(upgraded.records, previous.records);
+  const configured = changeToilet(controller.getState().toilet, { action: 'configureCustom', name: '阅读', icon: 'book' }, +at(16), '', () => '');
+  assert.equal(controller.commitToilet(configured.data).persisted, true);
+  assert.equal(controller.getState().settings, null);
+  const restored = loadToilet(storage);
+  assert.equal(restored.data.customActivity.name, '阅读');
+  assert.equal(restored.data.migrationBackup, raw);
+  assert.equal(restored.changed, false);
+  controller.updateSettings(settings());
+  assert.equal(JSON.parse(storage.getItem(TOILET_KEY)).customActivity.name, '阅读');
+  assert.equal(JSON.parse(storage.getItem(TOILET_KEY)).migrationBackup, raw);
+  controller.destroy();
+});
+
+test('corrupt custom facts never overwrite original storage', () => {
+  const custom = { ...record('custom'), kind: 'custom' };
+  for (const value of [null, { version: 3, records: [custom] }, { version: 3, customActivity: { name: '手机', icon: 'invalid' }, records: [] },
+    { version: 2, records: [{ ...custom, customActivity: { name: '手机', icon: 'phone' } }] }]) {
+    const raw = JSON.stringify(value); let writes = 0;
+    const restored = loadToilet({ getItem: () => raw, setItem: () => writes++ });
+    assert.ok(restored.error);
+    assert.equal(writes, 0);
+  }
+});
+
+test('icon catalog preserves existing IDs and accepts every icon with its corresponding emoji', async () => {
+  const { ACTIVITY_ICONS, ACTIVITY_ICON_IDS } = await import('../../app/income/src/activity-icons.js');
+  assert.equal(ACTIVITY_ICON_IDS.length, 16);
+  for (const id of ['phone', 'book', 'game', 'walk', 'sparkles']) assert.ok(ACTIVITY_ICON_IDS.includes(id));
+  assert.equal(ACTIVITY_ICONS.meal.emoji, '🍚');
+  assert.equal(ACTIVITY_ICONS.fish.emoji, '🐟');
+  for (const icon of ACTIVITY_ICON_IDS) {
+    assert.match(ACTIVITY_ICONS[icon].emoji, /\p{Extended_Pictographic}/u);
+    assert.ok(ACTIVITY_ICONS[icon].label);
+    const configured = changeToilet(empty(), { action: 'configureCustom', name: '带薪吃饭', icon }, +at(10), '', () => '');
+    assert.equal(configured.ok, true);
+    const started = changeToilet(configured.data, { action: 'start', kind: 'custom' }, +at(10), '', () => icon);
+    assert.equal(started.data.records[0].customActivity.icon, icon);
+    assert.equal(started.data.records[0].customActivity.name, '带薪吃饭');
+  }
+});
+
+test('icon search supports Chinese activities, emoji and English without changing the catalog', async () => {
+  const { searchActivityIcons, ACTIVITY_ICON_IDS } = await import('../../app/income/src/activity-icons.js');
+  assert.deepEqual(searchActivityIcons('吃饭'), ['meal']);
+  assert.deepEqual(searchActivityIcons('摸鱼'), ['fish']);
+  assert.deepEqual(searchActivityIcons('🐟'), ['fish']);
+  assert.deepEqual(searchActivityIcons('  PHONE '), ['phone']);
+  assert.deepEqual(searchActivityIcons('午餐 饭'), ['meal']);
+  assert.deepEqual(searchActivityIcons('没有这种图标'), []);
+  assert.deepEqual(searchActivityIcons('   '), ACTIVITY_ICON_IDS);
 });

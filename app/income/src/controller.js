@@ -149,7 +149,7 @@ export function createIncomeController({
   function persist() {
     let toiletSaved = true;
     try {
-      const raw = JSON.stringify({ version: 2, records: state.toilet.records, ...(state.toilet.legacyBackup === undefined ? {} : { legacyBackup: state.toilet.legacyBackup }) });
+      const raw = JSON.stringify({ version: 3, customActivity: state.toilet.customActivity, records: state.toilet.records, ...(state.toilet.legacyBackup === undefined ? {} : { legacyBackup: state.toilet.legacyBackup }), ...(state.toilet.migrationBackup === undefined ? {} : { migrationBackup: state.toilet.migrationBackup }) });
       if (!state.toilet.error && storage && (toiletNeedsWrite || raw !== persistedToilet)) {
         storage.setItem(TOILET_KEY, raw);
         persistedToilet = raw;
@@ -239,7 +239,7 @@ export function createIncomeController({
     toiletNeedsWrite = false;
     recompute(readNow());
     emit();
-    return command(true, true, {}, '带薪拉屎记录已更新。');
+    return command(true, true, {}, '带薪活动已保存。');
   }
 
   /** Read-only schedule facts for one date; null when settings or calendar cannot decide. */

@@ -144,9 +144,12 @@ export interface IncomeSettings {
   salaryMode: string;
   payroll: Payroll;
 }
-export type ActivityKind = 'toilet' | 'smoking' | 'coffee';
+export type ActivityKind = 'toilet' | 'smoking' | 'coffee' | 'custom';
+export type CustomActivityIcon = keyof typeof import('../../app/income/src/activity-icons.js').ACTIVITY_ICONS;
+export interface CustomActivity { name: string; icon: CustomActivityIcon }
 export interface ToiletRecord {
   kind: ActivityKind;
+  customActivity?: CustomActivity;
   id: string;
   startAt: number;
   endAt: number | null;
@@ -155,7 +158,9 @@ export interface ToiletRecord {
   interruption?: 'sleep' | 'restart' | 'cross-day' | 'clock-change';
 }
 export interface ToiletState {
-  version: 2;
+  version: 3;
+  customActivity: CustomActivity | null;
+  migrationBackup?: string;
   legacyBackup?: string;
   records: ToiletRecord[];
   error: string;

@@ -39,6 +39,9 @@ export const PRESETS = {
   resume: { host: 'fx-jelly', caption: '回来啦' },
   coin: {},
   'coin-big': { particles: [{ emoji: ['🪙'], count: 6, pattern: 'fall', spread: 120 }], host: 'fx-jelly', caption: '又赚了 ¥100' },
+  // Paid activities: start is a quiet nod; coins appear once, only when an end adds real stolen time.
+  'activity-start': { host: 'fx-nod' },
+  'activity-gain': { particles: [{ emoji: ['🪙'], count: 4, pattern: 'rise', size: [14, 18] }], host: 'fx-jelly' },
   'off-soon': { host: 'fx-wiggle' },
   'module-add': { host: 'fx-drop-in', hostMs: 520 },
   'module-remove': {},

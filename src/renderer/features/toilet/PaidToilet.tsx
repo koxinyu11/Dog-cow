@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Briefcase, History, Square, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Briefcase, History, PencilLine, Square, Trash2 } from 'lucide-react';
 import { shouldCelebrateToilet, toiletRecordOnDate } from '../../../shared/toilet';
 import type { ActivityKind, Snapshot, ToiletRecord } from '../../../shared/contracts';
 import type { ModuleCtx } from '../../board/modules';
@@ -9,93 +9,38 @@ import { duration, money, time } from '../../format';
 import { Modal } from '../../components/Modal';
 import { DatePicker } from '../../components/DatePicker';
 import { TimePicker } from '../../components/TimePicker';
-import { Button } from '../../ui';
+import { Button, Segmented } from '../../ui';
 import { Field } from '../../components/Modal';
-import { ACTIVITIES } from './activities';
+import { ACTIVITY_KEYS, currentActivity, getActivity } from './activities';
+import { CustomActivityEditor } from './CustomActivityEditor';
+import { ActivityBadge, ActivityScene } from './scenes';
+import { useMotionPaused, useScenePhase, type SceneMode } from './useActivityMotion';
+import { fx } from '../../motion/fx';
+import type { SizeKey } from '../../../shared/board';
 import './toilet.css';
 
 type Detail = { id: string; date?: string; effectiveSeconds: number; addedSeconds: number; amount: number; effectiveAmount: number };
 const number = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? value : 0;
 const activeRecord = (state: Snapshot, kind?: ActivityKind) => state.income.toilet?.records.find(item => item.status !== 'completed' && (!kind || item.kind === kind));
 
-
-type Mode = 'idle' | 'running' | 'review' | 'off';
-
-/** Decoration only: derived from record state, never owns the business timer. */
-function Stall({ mode, seconds, coinEvery, flushing, decor = false, mine = false, iconSign = false }: { mode: Mode; seconds: number; coinEvery: number; flushing: boolean; decor?: boolean; mine?: boolean; iconSign?: boolean }) {
-  const roll = mode === 'running' ? Math.max(0, 1 - Math.floor(seconds / 300) / 3) : 1;
-  const sign = iconSign ? mode === 'running' ? '💩' : mode === 'review' ? '🧻' : mode === 'off' ? '⏸' : '✓'
-    : mode === 'running' ? '💩 使用中' : mode === 'review' ? '待核对' : mode === 'off' ? '暂停营业' : '空闲';
-  return <svg className={`toilet-scene is-${mode} ${flushing ? 'is-flushing' : ''} ${decor ? 'is-decor' : ''}`} viewBox="0 0 150 120" preserveAspectRatio="xMidYMax meet" aria-hidden="true"
-    style={{ '--coin-every': `${coinEvery}s` } as CSSProperties}>
-    <rect x="8" y="6" width="134" height="108" rx="14" fill="var(--toilet-room)" />
-    {/* toilet behind the door */}
-    <g className="toilet-bowl">
-      <rect x="66" y="40" width="26" height="22" rx="5" fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="2" />
-      <path d="M56 64h46v6c0 12-9 19-20 19h-6c-11 0-20-7-20-19Z" fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="2" />
-      <path d="M70 89v10h18V89" fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="2" />
-      <text className="toilet-flush-poop" x="79" y="74" textAnchor="middle" fontSize="13">💩</text>
-    </g>
-    {/* toilet paper roll shrinks while the timer runs */}
-    <g className="toilet-roll">
-      <path d="M112 44h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="119" cy="54" r={4 + 6 * roll} fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="2" />
-      <circle cx="119" cy="54" r="3" fill="var(--toilet-room)" stroke="currentColor" strokeWidth="1.5" />
-    </g>
-    {/* door swings closed when occupied */}
-    <g className="toilet-door">
-      <rect x="20" y="14" width="78" height="86" rx="7" fill="var(--toilet-door)" stroke="currentColor" strokeWidth="2" />
-      <circle cx="88" cy="58" r="2.5" fill="currentColor" />
-      {!decor && <g className="toilet-sign">
-        <rect x="31" y="24" width="56" height="17" rx="8.5" fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="1.5" />
-        <text x="59" y="36" textAnchor="middle" fontSize="9" fontWeight="700" fill="currentColor">{sign}</text>
-      </g>}
-      {mine && <g className="toilet-mine"><rect x="24" y="78" width="20" height="14" rx="4" fill="var(--accent, #56865b)" /><text x="34" y="88.5" textAnchor="middle" fontSize="9" fontWeight="700" fill="#fff">你</text></g>}
-    </g>
-    {/* hooves peeking under the door */}
-    <g className="toilet-hooves" fill="currentColor">
-      <rect x="44" y="100" width="11" height="8" rx="3" /><rect x="62" y="100" width="11" height="8" rx="3" />
-    </g>
-    {mode === 'running' && !decor && <g className="toilet-coins">
-      {[24, 93, 104].map((x, i) => <g key={x} className="toilet-coin" style={{ animationDelay: `calc(var(--coin-every) * ${i / 3})` }}>
-        <circle cx={x} cy="6" r="4.5" fill="#f0bf45" stroke="#a87412" strokeWidth="1.2" />
-        <text x={x} y="8.6" textAnchor="middle" fontSize="6" fontWeight="800" fill="#8a5a0e">¥</text>
-      </g>)}
-    </g>}
-  </svg>;
-}
-
-function BreakScene({ kind, mode, settled }: { kind: 'smoking' | 'coffee'; mode: Mode; settled: boolean }) {
-  return <svg className={`toilet-scene break-scene is-${mode} ${settled ? 'is-settled' : ''}`} viewBox="0 0 150 120" aria-hidden="true">
-    <rect x="8" y="6" width="134" height="108" rx="14" fill="var(--toilet-room)" />
-    <path d="M24 99h102" stroke="currentColor" opacity=".25" strokeWidth="2" strokeLinecap="round" />
-    {kind === 'coffee' ? <>
-      <ellipse cx="72" cy="97" rx="38" ry="5" fill="currentColor" opacity=".1" />
-      <path d="M48 50h46l-5 40H53Z" fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="2.5" />
-      <path d="M94 56h8c17 0 14 26-11 25" fill="none" stroke="currentColor" strokeWidth="3" />
-      <path d="M51 64h40l-2 15H53Z" fill="var(--activity-color)" opacity=".45" />
-      <path d="M44 48h54" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-      <g className="break-vapor" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity=".5">
-        <path d="M60 39c-9-9 9-10 0-21" /><path d="M76 36c-9-9 9-10 0-21" /><path d="M91 39c-9-9 9-10 0-21" />
-      </g>
-    </> : <>
-      <ellipse cx="77" cy="94" rx="36" ry="8" fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="2" />
-      <g className="break-cigarette">
-        <path d="m36 68 67-18 4 14-67 18Z" fill="var(--toilet-porcelain)" stroke="currentColor" strokeWidth="2" />
-        <path d="m36 68 20-5 4 14-20 5Z" fill="var(--activity-color)" />
-        <path d="m101 51 4-1 4 14-4 1Z" fill="var(--activity-color)" className="break-ember" />
-      </g>
-      <path className="break-vapor" d="M108 44c-20-15 16-16-2-30" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity=".5" />
-    </>}
-  </svg>;
-}
+const STATUS: Record<SceneMode, string> = { idle: '空闲', running: '计时中', review: '待核对', off: '暂停营业' };
+/** Sizes with room for a worded action button; smaller cards keep the round icon button. */
+const LABELED: ReadonlySet<SizeKey> = new Set(['l', 'wide', 'tall']);
+const STRIP_MARKS = 6;
+type Gain = { id: string; seconds: number; amount: number };
 
 export function PaidToilet({ state, size, openSettings, openClock, notify, activityKind = 'toilet' }: ModuleCtx) {
-  const activity = ACTIVITIES[activityKind];
+  const activity = currentActivity(activityKind, state.income.toilet);
+  const [customEditor, setCustomEditor] = useState(false);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [settled, setSettled] = useState('');
+  const [gain, setGain] = useState<Gain | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+  const actionButton = useRef<HTMLButtonElement>(null);
+  const totalLine = useRef<HTMLSpanElement>(null);
+  const paused = useMotionPaused(root);
+  useEffect(() => setGain(null), [activityKind]);
   const data = state.income.toilet;
   const active = activeRecord(state, activityKind) ?? (data?.pendingSave ? data.records.find(item => item.id === data.pendingRecordId && item.kind === activityKind) : undefined);
   const running = active?.status === 'running';
@@ -106,23 +51,25 @@ export function PaidToilet({ state, size, openSettings, openClock, notify, activ
   const summary = (snapshot?.activitySummaries as Record<ActivityKind, { seconds: number; amount: number }> | undefined)?.[activityKind];
   const seconds = active ? Math.max(0, Math.floor(((active.endAt ?? state.income.now) - active.startAt) / 1000)) : number(summary?.seconds);
   const currentDetail = (snapshot?.toiletDetails as Detail[] | undefined)?.find(item => item.id === active?.id);
+  const mode: SceneMode = active?.status === 'needs-review' || pending ? 'review' : running ? 'running' : !active && reason ? 'off' : 'idle';
+  const phase = useScenePhase(activityKind, mode);
   const perform = async () => {
     if (active?.status === 'needs-review') { setOpen(true); return; }
     setBusy(true); setError('');
     try {
       const result = await command('toilet', { action: running ? 'end' : 'start', recordId: active?.id, kind: activityKind }, 'income');
-      if (!result.applied || !result.persisted) setError(result.message);
-      else {
-        notify(running ? `${activity.label}已结束，记录已保存。` : `${activity.label}开始计时。`);
-        setSettled(running && active && shouldCelebrateToilet(result, active.id) ? active.id : '');
+      if (!result.applied || !result.persisted) { setError(result.message); return; }
+      notify(running ? `${activity.label}已结束，记录已保存。` : `${activity.label}开始计时。`);
+      if (!running) fx('activity-start', actionButton.current);
+      else if (active && shouldCelebrateToilet(result, active.id)) {
+        const detail = (result.snapshot?.income.snapshot?.toiletDetails as Detail[] | undefined)?.find(item => item.id === active.id);
+        setGain({ id: active.id, seconds: number(detail?.addedSeconds), amount: number(detail?.amount) });
+        // Coins rise from the total when it is visible, otherwise from the button that was pressed.
+        fx('activity-gain', totalLine.current?.offsetParent ? totalLine.current : actionButton.current);
       }
     } catch { setError('未收到操作结果，请核对当前状态后重试。'); }
     finally { setBusy(false); }
   };
-  const mode: Mode = active?.status === 'needs-review' || pending ? 'review' : running ? 'running' : !active && reason ? 'off' : 'idle';
-  const rate = currentDetail && currentDetail.addedSeconds > 0 ? currentDetail.amount / currentDetail.addedSeconds : 0;
-  const coinEvery = rate > 0 ? Math.min(4, Math.max(0.8, 0.1 / rate)) : 2.4;
-  const line = running ? activity.running : activity.idle;
   const settings = state.income.settings;
   // A blocked card turns its main action into the way out instead of adding a hint row.
   const fix = mode !== 'off' || data?.error || state.save.readError ? null
@@ -131,37 +78,53 @@ export function PaidToilet({ state, size, openSettings, openClock, notify, activ
   const today = localDate(new Date(state.income.now));
   const todayCount = data?.records.filter(item => item.kind === activityKind && item.status !== 'needs-review' && toiletRecordOnDate(item, today, state.income.now)).length ?? 0;
   const label = pending ? '记录尚未保存' : mode === 'review' ? '上次记录待核对' : running ? '本次用时' : '今日有效偷出';
-  const main = mode === 'off'
+  const locked = pending || !!data?.error || !!state.save.readError;
+  const needsCustom = activityKind === 'custom' && !data?.customActivity && !active;
+  const labeled = LABELED.has(size);
+  const actionText = busy ? '保存中…' : running ? activity.end : active ? '核对时间' : activity.start;
+  const main = needsCustom ? <Button size="sm" variant="primary" disabled={locked} onClick={() => setCustomEditor(true)}>设置活动</Button> : mode === 'off'
     ? fix ? <Button size="sm" variant="primary" title={reason} onClick={fix.go}>{fix.label} →</Button> : <span className="toilet-reason" title={reason}>暂不可用</span>
-    : <button type="button" className={`toilet-poop is-${mode}`} disabled={busy || pending} onClick={() => void perform()}
-      aria-label={running ? activity.end : active ? '核对时间' : activity.start} title={running ? activity.end : active ? '核对时间' : activity.start}>
-      <span aria-hidden="true">{busy ? '⏳' : running ? activity.runningEmoji : active ? '📝' : activity.emoji}</span>
+    : <button ref={actionButton} type="button" className={`activity-action is-${mode} ${labeled ? 'is-labeled' : ''}`} disabled={busy || pending} onClick={() => void perform()}
+      aria-label={labeled ? undefined : actionText} title={actionText}>
+      <span className="activity-action-icon" aria-hidden="true">{busy ? '⏳' : running ? activity.runningEmoji : active ? '📝' : activity.emoji}</span>
+      {labeled && <span className="activity-action-label">{actionText}</span>}
     </button>;
-  return <div id="paid-activity-panel" role="tabpanel" aria-label={activity.label} style={{ '--activity-color': activity.color } as CSSProperties} className={`paid-toilet activity-${activityKind} size-${size} is-${mode} ${settled ? 'has-settled' : ''}`} onAnimationEnd={event => { if (event.animationName === 'toilet-settled') setSettled(''); }}>
-    {size !== 's' && <div className="toilet-stage">
-      {size === 'tall' && <div className="toilet-lamp">{running ? `${activity.emoji} 计时中` : mode === 'off' ? '暂停营业' : '空闲'}</div>}
-      {activityKind === 'toilet' && size === 'wide' && <><Stall mode="running" decor seconds={0} coinEvery={0} flushing={false} /><Stall mode="idle" decor seconds={0} coinEvery={0} flushing={false} /></>}
-      {activityKind === 'toilet' ? <Stall mode={mode} seconds={seconds} coinEvery={coinEvery} flushing={!!settled} mine={size === 'wide'} iconSign={size === 'tall'} />
-        : <BreakScene kind={activityKind} mode={mode} settled={!!settled} />}
+  // Small cards have no scene, so the status chip carries the state; custom activities add their name.
+  const statusRow = size === 's' || activityKind === 'custom' ? <div className="activity-status-row">
+    {size === 's' && <span className={`toilet-chip is-${mode}`}>{activityKind === 'custom' ? '' : `${activity.emoji} `}{STATUS[mode]}</span>}
+    {activityKind === 'custom' && <>
+      <span className="activity-custom-name">{size === 's' ? `${activity.emoji} ` : ''}{activity.label}</span>
+      <button type="button" className="activity-custom-edit" aria-label="编辑自定义活动" title="编辑自定义活动" disabled={locked} onClick={() => setCustomEditor(true)}><PencilLine size={12} /></button>
+    </>}
+  </div> : null;
+  return <div ref={root} id="paid-activity-panel" role="tabpanel" aria-label={activity.label} style={{ '--activity-color': activity.color } as CSSProperties}
+    className={`paid-toilet activity-${activityKind} size-${size} is-${mode} ${paused ? 'is-paused' : ''}`}
+    onAnimationEnd={event => { if (event.animationName.startsWith('am-gain')) setGain(null); }}>
+    {size !== 's' && <div className="toilet-stage am-swap" key={activityKind}>
+      {size === 'm' ? <ActivityBadge activity={activity} mode={mode} phase={phase} />
+        : <ActivityScene kind={activityKind} activity={activity} mode={mode} phase={phase} gained={!!gain} mine={size === 'wide'} />}
     </div>}
     <div className="toilet-content">
-      {size === 's' && <span className="toilet-chip">{running ? `${activity.emoji} 计时中` : mode === 'off' ? '暂停营业' : mode === 'review' ? '待核对' : '空闲'}</span>}
+      {statusRow}
       <span className="m-label">{label}</span>
       <strong className="toilet-timer">{mode === 'review' ? '待核对' : duration(seconds)}</strong>
-      {error ? <span className="toilet-error" role="status">{error}</span>
+      {gain ? <span className="toilet-amount activity-gain" role="status">+{duration(gain.seconds)} · ¥{money(gain.amount)} 计入合计</span>
+        : error ? <span className="toilet-error" role="status">{error}</span>
         : <span className="toilet-amount">{active ? `本次约 ¥${money(currentDetail?.effectiveAmount ?? 0)}` : `约 ¥${money(number(summary?.amount))}`}</span>}
-      <span className="activity-total" title="三类活动重叠部分不重复计算">三项合计 {duration(number(snapshot?.toiletStolenSeconds))} · ¥{money(number(snapshot?.toiletStolenAmount))}</span>
-      <span className="toilet-copy">{mode === 'off' ? reason : line}</span>
+      <span ref={totalLine} className={`activity-total ${gain ? 'is-gained' : ''}`} title="活动重叠部分不重复计算"><span>活动合计 {duration(number(snapshot?.toiletStolenSeconds))}</span><span>¥{money(number(snapshot?.toiletStolenAmount))}</span></span>
+      <span className="toilet-copy">{mode === 'off' ? reason : running ? activity.running : activity.idle}</span>
     </div>
     <div className="toilet-actions">
       {main}
-      <Button size="sm" variant="ghost" aria-label={`${activity.label}记录详情`} title="记录详情" onClick={() => setOpen(true)}><History size={15} />{size === 'tall' || size === 'wide' ? '详情' : ''}</Button>
+      <Button size="sm" variant="ghost" aria-label={`${activity.label}记录详情`} title="记录详情" onClick={() => setOpen(true)}><History size={15} />{labeled ? '详情' : ''}</Button>
     </div>
     {size === 'l' && <button type="button" className="toilet-strip" onClick={() => setOpen(true)}>
-      <span>今天</span><span className="toilet-strip-poops" aria-hidden="true">{todayCount ? activity.emoji.repeat(Math.min(todayCount, 8)) : '·'}</span>
-      <span>{todayCount ? `${todayCount} 次${todayCount > 8 ? ' ↑' : ''}` : '暂无记录'}</span>
+      <span>今天</span>
+      <span className="toilet-strip-marks" aria-hidden="true">{todayCount ? activity.emoji.repeat(Math.min(todayCount, STRIP_MARKS)) : '·'}{todayCount > STRIP_MARKS && <small>+{todayCount - STRIP_MARKS}</small>}</span>
+      <span>{todayCount ? `${todayCount} 次` : '暂无记录'}</span>
     </button>}
     {open && <ToiletDetails state={state} initialKind={activityKind} onClose={() => setOpen(false)} />}
+    {customEditor && <CustomActivityEditor state={state} onClose={() => setCustomEditor(false)} />}
   </div>;
 }
 
@@ -215,6 +178,11 @@ function RecordEditor({ item, state, close }: { item: ToiletRecord; state: Snaps
   </form>;
 }
 
+function EmptyRecords({ kind, data }: { kind: ActivityKind | 'all'; data?: Snapshot['income']['toilet'] }) {
+  const Icon = kind === 'all' ? History : currentActivity(kind, data).Icon;
+  return <div className="toilet-empty" role="status"><Icon size={20} aria-hidden="true" /><span>这一天还没有记录。</span></div>;
+}
+
 function ToiletDetails({ state, onClose, initialKind }: { state: Snapshot; onClose: () => void; initialKind?: ActivityKind }) {
   const [kind, setKind] = useState<ActivityKind | 'all'>(initialKind ?? 'all');
   const active = activeRecord(state, kind === 'all' ? undefined : kind);
@@ -242,9 +210,10 @@ function ToiletDetails({ state, onClose, initialKind }: { state: Snapshot; onClo
     finally { setBusy(false); }
   };
   return <Modal open title="带薪活动 · 记录" onClose={onClose} className="toilet-details">
-    <div className="toilet-detail-toolbar"><select aria-label="活动记录分类" value={kind} onChange={event => { setKind(event.target.value as ActivityKind | 'all'); setEditing(''); setConfirm(''); }}>
-      <option value="all">全部活动</option>{Object.entries(ACTIVITIES).map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}
-      </select><DatePicker value={date} onChange={setDate} max={localDate(new Date(state.income.now))} />
+    <Segmented label="活动记录分类" value={kind} onChange={next => { setKind(next); setEditing(''); setConfirm(''); }}
+      options={[['all', '全部'], ...ACTIVITY_KEYS.map(key => { const item = currentActivity(key, data); return [key, <><item.Icon size={14} aria-hidden="true" /><span className="toilet-segment-label">{item.label}</span></>] as [ActivityKind, ReactNode]; })]} />
+    <div className="toilet-detail-toolbar">
+      <div className="toilet-detail-date"><DatePicker aria-label="记录日期" value={date} onChange={setDate} max={localDate(new Date(state.income.now))} /></div>
       {active && <Button size="sm" variant="ghost" onClick={() => { setDate(localDate(new Date(active.startAt))); setEditing(active.status === 'needs-review' ? active.id : ''); }}>查看未完成记录</Button>}
     </div>
     {unavailable && <p role="status">该月计价暂不可用，原始记录仍保留。</p>}
@@ -253,12 +222,13 @@ function ToiletDetails({ state, onClose, initialKind }: { state: Snapshot; onClo
       <Button size="sm" disabled={busy} onClick={() => { void command('retrySave').then(result => setMessage(result.message)); }}>重试保存</Button>
     </div>}
     {message && <p role="status">{message}</p>}
-    {!rows.length && !data?.error && <p className="muted">这一天还没有记录。</p>}
+    {!rows.length && !data?.error && <EmptyRecords kind={kind} data={data} />}
     <div className="toilet-records">{rows.map(item => {
       const summary = details.find(detail => detail.id === item.id && detail.date === date);
+      const activity = getActivity(item.kind, item.customActivity);
       const total = Math.max(0, ((item.endAt ?? state.income.now) - item.startAt) / 1000);
       return <article className="toilet-record" key={item.id}>
-        <div className="toilet-record-heading"><strong>{ACTIVITIES[item.kind].emoji} {ACTIVITIES[item.kind].label} · {time(item.startAt)} → {item.endAt === null ? item.status === 'running' ? '记录中' : '待核对' : `${localDate(new Date(item.endAt)) !== localDate(new Date(item.startAt)) ? localDate(new Date(item.endAt)) + ' ' : ''}${time(item.endAt)}`}</strong>
+        <div className="toilet-record-heading"><strong>{activity.emoji} {activity.label} · {time(item.startAt)} → {item.endAt === null ? item.status === 'running' ? '记录中' : '待核对' : `${localDate(new Date(item.endAt)) !== localDate(new Date(item.startAt)) ? localDate(new Date(item.endAt)) + ' ' : ''}${time(item.endAt)}`}</strong>
           <span>{item.endReason === 'lunch' ? '午休自动结束' : item.endReason === 'offwork' ? '下班自动结束' : item.endReason === 'schedule-end' ? '排班结束' : item.status === 'needs-review' ? '中断待核对' : ''}</span>
         </div>
         {item.status === 'needs-review' ? <p>上次记录尚未结束，请核对结束时间。核对前暂未计入。</p> : <div className="toilet-record-values">
@@ -266,7 +236,7 @@ function ToiletDetails({ state, onClose, initialKind }: { state: Snapshot; onClo
           <span>合计新增 <b>{unavailable ? '待计算' : duration(summary?.addedSeconds ?? 0)}</b></span><span>计入合计约 <b>{unavailable ? '待计算' : `¥${money(summary?.amount ?? 0)}`}</b></span>
         </div>}
         <div className="toilet-actions">
-          {item.status === 'running' && <Button size="sm" disabled={busy || data?.pendingSave} icon={<Square size={12} />} onClick={() => void act('end', item.id)}>{ACTIVITIES[item.kind].end}</Button>}
+          {item.status === 'running' && <Button size="sm" disabled={busy || data?.pendingSave} icon={<Square size={12} />} onClick={() => void act('end', item.id)}>{activity.end}</Button>}
           {item.status !== 'running' && <Button size="sm" disabled={busy || data?.pendingSave} onClick={() => setEditing(editing === item.id ? '' : item.id)}>{item.status === 'needs-review' ? '核对时间' : '修正结束时间'}</Button>}
           <Button variant="ghost" size="sm" disabled={busy || data?.pendingSave} icon={<Trash2 size={13} />} onClick={() => setConfirm(item.id)}>{item.status === 'completed' ? '删除' : '取消本次'}</Button>
         </div>
@@ -277,6 +247,6 @@ function ToiletDetails({ state, onClose, initialKind }: { state: Snapshot; onClo
         </div>}
       </article>;
     })}</div>
-    <details className="toilet-help"><summary>时间与金额怎么算</summary><p>三类活动可同时记录，分类显示各自有效时间价值，三项合计对重叠时间去重，因此分类金额不能直接相加。仅有效工作时段计入；与午休、请假及其他偷出区间重叠的部分不重复计算。对应金额是固定收入的时间价值，不增加工资，也不扣实际工时。金额分别舍入后可能有 0.01 元差异，以合计为准。</p></details>
+    <details className="toilet-help"><summary>时间与金额怎么算</summary><p>四类活动可同时记录，分类显示各自有效时间价值，活动合计对重叠时间去重，因此分类金额不能直接相加。仅有效工作时段计入；与午休、请假及其他偷出区间重叠的部分不重复计算。对应金额是固定收入的时间价值，不增加工资，也不扣实际工时。金额分别舍入后可能有 0.01 元差异，以合计为准。</p></details>
   </Modal>;
 }
