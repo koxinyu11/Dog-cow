@@ -1,3 +1,4 @@
+import { useDisplayIncome } from '../../display-income';
 import { useId, useRef, useState } from 'react';
 import { Check, ChevronDown, CircleHelp, Settings2 } from 'lucide-react';
 import type { ModuleCtx } from '../../board/modules';
@@ -61,6 +62,7 @@ export function ConverterCard({ ctx, busy, error, run }: { ctx: ModuleCtx; busy:
   const compact = size === 's' || size === 'wide';
   const [mode, setMode] = useState<ProductType>(() => fun.products[fun.product]?.type ?? 'treat');
   const [pending, setPending] = useState<number | null>(null);
+  const { money: incomeMoney } = useDisplayIncome();
   const earned = state.income.snapshot?.earnedToday;
   const month = state.income.snapshot?.expectedMonthIncome;
   const items = fun.products.map((p, i) => ({ p, i })).filter(x => (x.p.type ?? 'treat') === mode);
@@ -81,7 +83,7 @@ export function ConverterCard({ ctx, busy, error, run }: { ctx: ModuleCtx; busy:
         <button className="conv-edit" type="button" aria-label="管理商品" title="快乐价目表" disabled={busy} onClick={() => setOpen(true)}><Settings2 size={15} /><span>管理</span></button>
       </div>
     </div>
-    <div className="conv-basis">{mode === 'treat' ? `今日已赚 ¥${money(earned)}` : `预计月薪 ¥${money(month)}`}{(mode === 'treat' ? earned == null : month == null) && ' · 数据暂缺'}</div>
+    <div className="conv-basis">{mode === 'treat' ? `今日已赚 ¥${incomeMoney(earned)}` : `预计月薪 ¥${incomeMoney(month)}`}{(mode === 'treat' ? earned == null : month == null) && ' · 数据暂缺'}</div>
     {!items.length ? <div className="conv-empty"><span>{mode === 'treat' ? '第一份快乐，安排什么？' : '大件梦想，先挑一个'}</span><Button size="sm" onClick={() => setOpen(true)}>加点快乐</Button></div> : compare ?
       <div className="conv-comparison" aria-label="商品换算结果">{items.map(x => <button type="button" key={x.i} aria-pressed={x.i === fun.product} disabled={busy || pending !== null} onClick={() => void pick(x.i)}><ProductResult product={x.p} text={result(x.p, earned, month)} /></button>)}</div> : <>
         {size === 's' ? <div className="conv-small-result">

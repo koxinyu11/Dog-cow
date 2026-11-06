@@ -1,3 +1,4 @@
+import { displayIncome } from '../display-income';
 import { createContext, useContext } from 'react';
 import { Briefcase, CalendarDays, ChartColumn, Clock, Drama, Hourglass, Landmark, Sprout, Wallet, Zap, type LucideIcon } from 'lucide-react';
 import type { Snapshot } from '../../shared/contracts';
@@ -18,8 +19,9 @@ export const METRIC_ICON: Record<MetricId, LucideIcon> = {
   clock: Clock,
 };
 
-export function computeMetrics(state: Snapshot): Record<MetricId, string> {
+export function computeMetrics(state: Snapshot, multiplier = 1): Record<MetricId, string> {
   const s = state.income.snapshot;
+  const incomeMoney = (value: unknown) => money(displayIncome(value, multiplier));
   const now = new Date(state.income.now);
   const today = localDate(now);
   const todays = state.tasks.tasks.filter((t) => matchesDate(t, today));
@@ -27,15 +29,15 @@ export function computeMetrics(state: Snapshot): Record<MetricId, string> {
   const weekTasks = state.tasks.tasks.filter((t) => week.some((d) => matchesDate(t, d)));
   const num = (v: unknown) => (typeof v === 'number' ? v : undefined);
   return {
-    'income-today': `¥${money(s?.earnedToday)}`,
-    'income-month': `¥${money(s?.earnedMonth)}`,
-    'per-second': num(s?.perSecond) !== undefined ? `${num(s?.perSecond)!.toFixed(4)} 元/秒` : '—',
+    'income-today': `¥${incomeMoney(s?.earnedToday)}`,
+    'income-month': `¥${incomeMoney(s?.earnedMonth)}`,
+    'per-second': num(s?.perSecond) !== undefined ? `${(num(s?.perSecond)! * multiplier).toFixed(4)} 元/秒` : '—',
     countdown:
       s?.status === 'rest-day' ? '今日休息' : s?.status === 'after-work' ? '已下班' : duration(s?.remainingSeconds),
     'worked-today': duration(s?.elapsedSeconds),
     progress: `${todays.length ? Math.round((todays.filter((t) => t.done).length / todays.length) * 100) : 100}%`,
     'week-done': `${weekTasks.filter((t) => t.done).length}/${weekTasks.length}`,
-    'stolen-today': state.income.settings?.stealMode ? `¥${money(s?.stolenAmount)}` : '—',
+    'stolen-today': state.income.settings?.stealMode ? `¥${incomeMoney(s?.stolenAmount)}` : '—',
     date: `${now.getMonth() + 1}月${now.getDate()}日 ${weekNames[now.getDay()]}`,
     clock: now.toLocaleTimeString('zh-CN', { hour12: false }),
   };

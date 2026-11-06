@@ -1,3 +1,4 @@
+import { useDisplayIncome } from '../../display-income';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Briefcase, History, PencilLine, Square, Trash2 } from 'lucide-react';
 import { shouldCelebrateToilet, toiletRecordOnDate } from '../../../shared/toilet';
@@ -30,6 +31,7 @@ const STRIP_MARKS = 6;
 type Gain = { id: string; seconds: number; amount: number };
 
 export function PaidToilet({ state, size, openSettings, openClock, notify, activityKind = 'toilet' }: ModuleCtx) {
+  const { money } = useDisplayIncome();
   const activity = currentActivity(activityKind, state.income.toilet);
   const [customEditor, setCustomEditor] = useState(false);
   const [open, setOpen] = useState(false);

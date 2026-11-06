@@ -1,3 +1,4 @@
+import { useDisplayIncome } from '../display-income';
 import { PaidToilet } from '../features/toilet/PaidToilet';
 import { OwedModule } from '../features/owed/OwedModule';
 import { FunModule } from '../features/fun/FunModules';
@@ -7,7 +8,7 @@ import type { ActivityKind, Fields, Snapshot, Task } from '../../shared/contract
 import type { ModuleId, SizeKey } from '../../shared/board';
 import { getAttendanceDay } from '../../../app/income/src/attendance.js';
 import { addDays, localDate, matchesDate, weekDates } from '../../domain/tasks/model';
-import { dateLabel, duration, labels, money, time, weekNames } from '../format';
+import { dateLabel, duration, labels, time, weekNames } from '../format';
 import { command } from '../state';
 import { fx } from '../motion/fx';
 import {
@@ -58,6 +59,7 @@ const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0
 
 /* ---------------- 实时收入 ---------------- */
 function IncomeModule({ state, size, openSettings }: ModuleCtx) {
+  const { money, multiplier } = useDisplayIncome();
   const s = state.income.snapshot;
   const today = num(s?.earnedToday);
   const month = num(s?.earnedMonth);
@@ -87,7 +89,7 @@ function IncomeModule({ state, size, openSettings }: ModuleCtx) {
           <Rolling className="income-amount" text={`¥${money(today)}`} />
         </span>
         <span className="m-sub income-rate">
-          <Zap size={12} strokeWidth={2.4} /> 秒薪 {num(s?.perSecond).toFixed(4)} 元
+          <Zap size={12} strokeWidth={2.4} /> 秒薪 {(num(s?.perSecond) * multiplier).toFixed(4)} 元
         </span>
       </div>
       <div className="income-side">
@@ -489,6 +491,7 @@ function CalendarModule({ state, size, selected, select, today }: ModuleCtx) {
 
 /* ---------------- 偷出金额 ---------------- */
 function StolenModule({ state, size, openSettings }: ModuleCtx) {
+  const { money } = useDisplayIncome();
   const s = state.income.snapshot;
   const on = !!state.income.settings?.stealMode;
   if (!on)

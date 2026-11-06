@@ -1,3 +1,4 @@
+import { useDisplayIncome } from '../../display-income';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { CalendarDays, FileSignature, HandCoins, History, MessageSquareMore, Moon, Plus, Sunrise, Trash2 } from 'lucide-react';
 import type { OwedMessage, OwedView, Result } from '../../../shared/contracts';
@@ -29,6 +30,7 @@ function useOwedCommand(notify: (m: string) => void) {
 }
 
 export function OwedModule({ state, size, openSettings, notify }: ModuleCtx) {
+  const { money: incomeMoney } = useDisplayIncome();
   const owed = state.owed;
   const [history, setHistory] = useState(false);
   if (!state.income.settings || !owed)
@@ -43,7 +45,7 @@ export function OwedModule({ state, size, openSettings, notify }: ModuleCtx) {
     const before = owed.total;
     const result = await command('owed', { action: 'add', date: localDate(), minutes, note: '' }, 'income');
     const after = result.snapshot?.owed?.total;
-    notify(result.applied && typeof after === 'number' ? `+¥${money(after - before)} 已记账` : result.message);
+    notify(result.applied && typeof after === 'number' ? `+¥${incomeMoney(after - before)} 已记账` : result.message);
   };
   const exportIou = async () => {
     try {
@@ -55,7 +57,7 @@ export function OwedModule({ state, size, openSettings, notify }: ModuleCtx) {
       notify(error instanceof Error ? error.message : '未保存：欠条生成失败。');
     }
   };
-  const amount = `¥${money(owed.total)}`;
+  const amount = `¥${incomeMoney(owed.total)}`;
   const rich = size === 'l' || size === 'tall' || size === 'wide';
   const quick = (list: number[]) => list.map((minutes) => (
     <Button key={minutes} size="sm" disabled={!!owed.error} effect="coin" onClick={() => void quickAdd(minutes)}>+{minutes}分</Button>
@@ -70,7 +72,7 @@ export function OwedModule({ state, size, openSettings, notify }: ModuleCtx) {
     <div className="owed-main" style={{ '--owed-scale': `${70 / amount.length}cqw` } as CSSProperties}>
       {size !== 's' && <span className="m-label">本月老板欠我</span>}
       <Rolling className="m-big" text={amount} />
-      {size !== 's' && <span className="owed-today">今日 +¥{money(owed.today)}</span>}
+      {size !== 's' && <span className="owed-today">今日 +¥{incomeMoney(owed.today)}</span>}
     </div>
   );
   const stats = (
@@ -79,7 +81,7 @@ export function OwedModule({ state, size, openSettings, notify }: ModuleCtx) {
         <div key={key} className="owed-stat">
           {rich && <Icon size={14} aria-hidden="true" />}
           <span>{label}</span>
-          <strong>¥{money(owed.parts[key])}</strong>
+          <strong>¥{incomeMoney(owed.parts[key])}</strong>
         </div>
       ))}
     </div>
@@ -94,7 +96,7 @@ export function OwedModule({ state, size, openSettings, notify }: ModuleCtx) {
       {size === 'wide' ? <>
         <div className="owed-col">
           <div className="owed-wide-top">{label(title(owed))}<span className="m-label">本月老板欠我</span></div>
-          <div className="owed-wide-amount" style={{ '--owed-scale': `${40 / amount.length}cqw` } as CSSProperties}><Rolling className="m-big" text={amount} /><span className="owed-today">今日 +¥{money(owed.today)}</span></div>
+          <div className="owed-wide-amount" style={{ '--owed-scale': `${40 / amount.length}cqw` } as CSSProperties}><Rolling className="m-big" text={amount} /><span className="owed-today">今日 +¥{incomeMoney(owed.today)}</span></div>
         </div>
         <div className="owed-col">{stats}{notice}</div>
         <div className="owed-col owed-col-end">{actions}</div>
@@ -103,7 +105,7 @@ export function OwedModule({ state, size, openSettings, notify }: ModuleCtx) {
         <div className="owed-body">
           {size === 's' ? main : size === 'm' ? <>
             <div className="owed-inline" style={{ '--owed-scale': `${60 / amount.length}cqw` } as CSSProperties}>
-              <Rolling className="m-big" text={amount} /><span className="owed-today">今日 +¥{money(owed.today)}</span>
+              <Rolling className="m-big" text={amount} /><span className="owed-today">今日 +¥{incomeMoney(owed.today)}</span>
             </div>
             {stats}
           </> : <>{main}<div className="owed-ledger">{stats}{notice}</div></>}
