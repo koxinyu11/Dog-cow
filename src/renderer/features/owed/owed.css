@@ -54,4 +54,3 @@
 .owed-row-amount { padding-bottom: 8px; font-weight: 700; text-align: right; }
 .owed-row-actions { display: flex; gap: 4px; padding-bottom: 2px; }
 .owed-empty { margin: 8px 0; color: var(--c-muted); font-size: 13px; text-align: center; }
-@media (prefers-reduced-motion: reduce) { 
