@@ -23,6 +23,7 @@ import { Confetti } from './features/dashboard/Confetti';
 import { DataPanel } from './features/settings/DataPanel';
 import { IncomeSettingsPanel, RecordsPanel, ClockEditor } from './Income';
 import { Board } from './board/Board';
+import { wallpapersForTitles } from '../shared/wallpapers';
 import { Appearance, backgroundIsDark, backgroundStyle } from './board/Appearance';
 import { Scene } from './board/Scene';
 import { BoardContext, computeMetrics } from './board/metrics';
@@ -135,7 +136,8 @@ export function App() {
     if (!pendingTitles.length || receipt || toast.text || titleToast || state?.compact) return;
     const names = pendingTitles.map((id) => state?.titles?.items.find((card) => card.id === id)?.name).filter(Boolean);
     if (!names.length) return;
-    setTitleToast({ text: `解锁了新职称：${names[0]}${names.length > 1 ? ' 等' : ''}`, ids: pendingTitles });
+    const walls = wallpapersForTitles(pendingTitles).map((w) => w.name);
+    setTitleToast({ text: `解锁了新职称：${names[0]}${names.length > 1 ? ' 等' : ''}${walls.length ? `，🎉 并解锁隐藏壁纸「${walls.join('、')}」` : ''}`, ids: pendingTitles });
     void command('titles', { action: 'toast-shown', ids: pendingTitles });
     later('title-toast', 4000, () => setTitleToast(null));
   }, [pendingTitles.join(','), receipt, toast.text, titleToast, state?.compact]);
@@ -349,6 +351,7 @@ export function App() {
               <Appearance
                 background={board.background}
                 fun={board.fun}
+                titleIds={state.titles?.items.map((t) => t.id) ?? []}
                 setBackground={(background) => saveBoard({ ...board, background })}
                 resetBoard={() => void saveBoard({ ...board, items: defaultBoard().items }).then(() => fx('module-add', document.querySelector('.board')))}
                 notify={notify}

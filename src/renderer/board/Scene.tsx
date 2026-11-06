@@ -7,6 +7,15 @@ const layers: Partial<Record<PresetKey, ReactNode>> = {
   'cloud-rest': <><i className="sc-sun" /><i className="sc-cloud c1" /><i className="sc-cloud c2" /><i className="reward-float">🐮 ☁️</i><i className="reward-caption">今天也轻一点</i></>,
   'deep-rest': <><i className="reward-rays" /><i className="reward-bubbles">◦ ˚ ◦ ˚ ◦</i><i className="reward-jelly j1">🪼</i><i className="reward-jelly j2">🪼</i><i className="reward-seabed" /></>,
   'galaxy-off': <><i className="reward-stars" /><i className="reward-orbit" /><i className="reward-planet">🪐</i><i className="reward-ship">🐮 🚀</i></>,
+  'money-rain': <><i className="wp-rain r1">💰 🪙 💴 🪙 💰</i><i className="wp-rain r2">🪙 💴 💰 💴 🪙</i><i className="wp-rain r3">💴 💰 🪙 💰 💴</i><i className="wp-catcher">🐮</i><i className="wp-caption">工资在路上</i></>,
+  'milk-tea': <><i className="wp-pearls p1">● ● ●</i><i className="wp-pearls p2">● ● ●</i><i className="wp-pearls p3">● ●</i><i className="wp-cup">🧋</i><i className="wp-caption">少糖 · 去冰 · 自由</i></>,
+  'pi-vault': <><i className="wp-digits">3.14159265358979323846264338327950288419716939937510582097494459</i><i className="wp-safe">🔐</i><i className="wp-caption">金额非常圆，非常无理</i></>,
+  'run-offwork': <><i className="wp-clock">🕕</i><i className="wp-door">🚪</i><i className="wp-runner">🐮💨</i><i className="wp-floor" /></>,
+  'friday-resident': <><i className="reward-stars" /><i className="wp-firework f1">🎆</i><i className="wp-firework f2">🎇</i><i className="wp-beer">🍻</i><i className="wp-caption">本牛常住周五</i></>,
+  'monday-immune': <><i className="wp-calendar">MON</i><i className="wp-stamp">已免疫</i><i className="wp-mask">😷</i></>,
+  'ticket-shredder': <><i className="wp-scrap s1">📄</i><i className="wp-scrap s2">🧾</i><i className="wp-scrap s3">📄</i><i className="wp-shredder">🗂️</i><i className="wp-caption">需求已粉碎</i></>,
+  'overtime-hunter': <><i className="wp-sign">按时结账</i><i className="wp-holder">🐮</i><i className="wp-caption">加班费一分不少</i></>,
+  'forever-shareholder': <><i className="wp-chart" /><i className="wp-rocket">📈</i><i className="wp-holder gold">🐮</i><i className="wp-caption">持股 365 天</i></>,
   meadow: (
     <>
       <i className="sc-sun" />

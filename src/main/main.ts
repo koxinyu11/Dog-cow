@@ -11,6 +11,7 @@ import { buildFlexDay } from '../../app/income/src/flex.js';
 import { OWED_KEY, changeOwed, emptyOwed, owedSummary, parseOwed } from '../../app/income/src/owed.js';
 import { moodData, MOOD_REWARDS } from '../shared/mood.js';
 import { defaultFun, holidayStarts, rewardTask, seedHopes, updateFun, type HolidayStart } from '../shared/fun.js';
+import { isWallpaperUnlocked } from '../shared/wallpapers.js';
 import { ReleaseUpdater } from './release-updates.js';
 import { boundedCalendarFetch } from './calendar-network.js';
 import { loadHolidayYear } from '../../app/income/src/calendar.js';
@@ -731,7 +732,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     expected(p, 'home');
     if (!validBoard(p.board, Object.keys(copyDefaults))) throw Error('看板配置无效。');
     const requested = p.board.background;
-    if (requested.kind === 'preset' && MOOD_REWARDS.some(r => r.id === requested.value) && !moodData(board.fun ?? defaultFun()).wallpapers.includes(requested.value)) throw Error('这张壁纸还未解锁。');
+    if (requested.kind === 'preset' && !isWallpaperUnlocked(requested.value, board.fun ?? defaultFun(), titles.view().items.map(t => t.id))) throw Error('这张壁纸还未解锁。');
     board = { ...structuredClone(p.board), fun: board.fun };
     layoutWarning = '';
     repo.storage.setItem(BOARD_KEY, JSON.stringify(board));

@@ -176,3 +176,58 @@
 @keyframes reward-flight { to { translate:50cqw -12cqh; } }
 [data-theme='dark'] .sc-cloud-rest { background:linear-gradient(160deg,#322d3e,#203746 55%,#302b49); }
 [data-theme='dark'] .sc-cloud-rest .reward-caption { color:#b5c5db; }
+
+/* Title-earned scenes. Shared helpers prefixed wp-. */
+.wp-caption { bottom:10%; right:8%; font:600 2.5cqmin sans-serif; color:#7a6a52; letter-spacing:.2em; }
+.wp-holder { bottom:14%; left:16%; font-size:13cqmin; animation:reward-bob 6s ease-in-out infinite alternate; }
+.sc-money-rain { background:linear-gradient(180deg,#fff4d6,#fde7b0 60%,#f4d58a); }
+.wp-rain { top:0; left:0; width:100%; text-align:center; font-size:6cqmin; letter-spacing:8cqw; white-space:nowrap; animation:wp-fall 6s linear infinite; }
+.wp-rain.r2 { left:-6cqw; animation-delay:-2s; animation-duration:7s; }
+.wp-rain.r3 { left:5cqw; animation-delay:-4s; animation-duration:5.5s; }
+.wp-catcher { bottom:6%; left:44%; font-size:14cqmin; animation:wp-sway 3s ease-in-out infinite alternate; }
+@keyframes wp-fall { from { translate:0 -15cqh; opacity:0; } 10% { opacity:1; } 85% { opacity:1; } to { translate:0 95cqh; opacity:0; } }
+@keyframes wp-sway { from { translate:-12cqw 0; } to { translate:12cqw 0; } }
+.sc-milk-tea { background:linear-gradient(180deg,#f6e7d6,#e6c9a8 70%,#c9a07a); }
+.wp-pearls { bottom:-5%; color:#4a3226; font-size:4cqmin; letter-spacing:4cqw; animation:wp-rise 9s linear infinite; }
+.wp-pearls.p1 { left:15%; } .wp-pearls.p2 { left:55%; animation-delay:-3s; } .wp-pearls.p3 { left:80%; animation-delay:-6s; }
+.wp-cup { top:28%; left:40%; font-size:20cqmin; animation:reward-bob 8s ease-in-out infinite alternate; }
+@keyframes wp-rise { from { translate:0 0; opacity:0; } 15% { opacity:.8; } to { translate:2cqw -90cqh; opacity:0; } }
+.sc-pi-vault { background:#eef0e6; }
+.wp-digits { inset:4%; font:700 5cqmin/1.4 ui-monospace,monospace; color:#8a9a7b; opacity:.35; word-break:break-all; }
+.wp-safe { top:34%; left:40%; font-size:20cqmin; }
+.sc-run-offwork { background:linear-gradient(180deg,#ffd9b8,#ffb98a); }
+.wp-clock { top:10%; left:12%; font-size:12cqmin; }
+.wp-door { bottom:16%; right:8%; font-size:20cqmin; }
+.wp-runner { bottom:16%; left:5%; font-size:11cqmin; animation:wp-run 7s ease-in infinite; }
+.wp-floor { bottom:0; inset-inline:0; height:16%; background:#e08a5a; }
+@keyframes wp-run { from { translate:0 0; } 80% { translate:65cqw 0; opacity:1; } to { translate:70cqw 0; opacity:0; } }
+.sc-friday-resident { background:radial-gradient(ellipse at 50% 100%,#6b3d2a,#2a1f3d 60%,#161427); }
+.wp-firework { font-size:14cqmin; animation:wp-pop 4s ease-out infinite; }
+.wp-firework.f1 { top:10%; left:15%; } .wp-firework.f2 { top:16%; right:14%; animation-delay:-2s; }
+.wp-beer { bottom:12%; left:42%; font-size:16cqmin; animation:reward-bob 4s ease-in-out infinite alternate; }
+.sc-friday-resident .wp-caption, .sc-forever-shareholder .wp-caption { color:#f0d9a8; }
+@keyframes wp-pop { from { scale:.2; opacity:0; } 30% { scale:1; opacity:1; } to { scale:1.2; opacity:0; } }
+.sc-monday-immune { background:linear-gradient(160deg,#e6f1ee,#cfe3de); }
+.wp-calendar { top:16%; left:14%; width:30cqmin; padding:4cqmin 0; text-align:center; font:800 9cqmin sans-serif; color:#5b7d76; background:#fff; border-radius:2cqmin; box-shadow:0 1cqmin 3cqmin #0001; }
+.wp-stamp { top:24%; left:22%; font:800 4cqmin sans-serif; color:#c94a3c; border:.6cqmin solid #c94a3c; padding:.5cqmin 1.5cqmin; rotate:-15deg; opacity:.85; }
+.wp-mask { bottom:14%; right:16%; font-size:18cqmin; }
+.sc-ticket-shredder { background:linear-gradient(180deg,#eceef3,#d7dbe5); }
+.wp-shredder { bottom:12%; left:42%; font-size:16cqmin; }
+.wp-scrap { top:-10%; font-size:6cqmin; animation:wp-flutter 8s linear infinite; }
+.wp-scrap.s1 { left:20%; } .wp-scrap.s2 { left:50%; animation-delay:-3s; } .wp-scrap.s3 { left:75%; animation-delay:-5.5s; }
+@keyframes wp-flutter { from { translate:0 0; rotate:0deg; opacity:0; } 10% { opacity:1; } to { translate:6cqw 80cqh; rotate:540deg; opacity:0; } }
+.sc-overtime-hunter { background:linear-gradient(160deg,#fbe3dc,#f2c3b6); }
+.sc-overtime-hunter .wp-holder { animation:none; }
+.wp-sign { top:22%; left:30%; padding:2cqmin 4cqmin; font:800 7cqmin sans-serif; color:#fff; background:#c46a5a; border-radius:1.5cqmin; rotate:-6deg; box-shadow:0 1cqmin 2cqmin #0002; }
+.sc-forever-shareholder { background:linear-gradient(180deg,#1f1a2e,#2e2440 60%,#3c2e1e); }
+.wp-chart { inset:20% 8% 22% 8%; background:linear-gradient(135deg,transparent 48%,#e6b84a 49% 51%,transparent 52%); opacity:.6; }
+.wp-rocket { top:14%; right:12%; font-size:14cqmin; animation:reward-bob 5s ease-in-out infinite alternate; }
+.wp-holder.gold { filter:drop-shadow(0 0 2cqmin #e6b84a); }
+[data-theme='dark'] .sc-money-rain { background:linear-gradient(180deg,#3a3122,#2e2717); }
+[data-theme='dark'] .sc-milk-tea { background:linear-gradient(180deg,#352a22,#2a1f18); }
+[data-theme='dark'] .sc-pi-vault { background:#252a22; }
+[data-theme='dark'] .sc-run-offwork { background:linear-gradient(180deg,#3d2a22,#4a2c1c); }
+[data-theme='dark'] .sc-monday-immune { background:linear-gradient(160deg,#1f2c29,#1a2622); }
+[data-theme='dark'] .sc-ticket-shredder { background:linear-gradient(180deg,#24262d,#1c1e24); }
+[data-theme='dark'] .sc-overtime-hunter { background:linear-gradient(160deg,#3a2622,#2e1d1a); }
+[data-theme='dark'] .wp-caption { color:#d9c9ae; }
