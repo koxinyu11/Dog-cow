@@ -267,10 +267,17 @@ function summarizeDay(day, settings, now, leaves, attendance, toiletRecords = []
     const added = subtractIntervals(effective, attributed);
     attributed = [...attributed, ...added];
     if (record.startAt < dayEnd && (record.endAt ?? current) >= midnight) {
-      toiletDetails.push({ id: record.id, effectiveSeconds: intervalSeconds(effective), addedSeconds: intervalSeconds(added) });
+      toiletDetails.push({ id: record.id, kind: record.kind ?? 'toilet', effectiveSeconds: intervalSeconds(effective), addedSeconds: intervalSeconds(added) });
     }
   }
   const toiletStolenSeconds = intervalSeconds(attributed);
+  const activitySeconds = Object.fromEntries(['toilet', 'smoking', 'coffee'].map(kind => {
+    const intervals = toiletRecords.filter(record => (record.kind ?? 'toilet') === kind && record.status !== 'needs-review')
+      .flatMap(record => intersectIntervals([{ start: record.startAt, end: record.endAt ?? current }], toiletBounds));
+    const unique = [];
+    for (const interval of intervals) unique.push(...subtractIntervals([interval], unique));
+    return [kind, intervalSeconds(unique)];
+  }));
   const lunchStolenSeconds = intervalSeconds(lunch);
   const standardExpectedSeconds = intervalSeconds(expectedSoFar);
   // Boss-owes time only trusts real clock facts; estimates never create overtime.
@@ -293,7 +300,7 @@ function summarizeDay(day, settings, now, leaves, attendance, toiletRecords = []
     lateSeconds,
     earlySeconds,
     lunchStolenSeconds,
-    toiletStolenSeconds, toiletDetails,
+    toiletStolenSeconds, toiletDetails, activitySeconds,
     stolenSeconds: lateSeconds + earlySeconds + lunchStolenSeconds + toiletStolenSeconds,
     pendingClockIn: canSteal && clockEnabled && modeDay?.clockMode === true
       && !hasClockIn && standardExpectedSeconds > 0,
@@ -380,11 +387,12 @@ export function calculateSnapshot(settings, now = new Date(), context, leaves = 
       : activeBreak ? '午休中，暂不能开始。'
       : today.settled ? '今日已下班。'
       : clockEnabledForToilet(settings) && !started ? '上班打卡后可开始。' : '',
+    activitySummaries: Object.fromEntries(Object.entries(today.activitySeconds).map(([kind, seconds]) => [kind, { seconds, amount: incomeFor(seconds) }])),
     toiletStolenSeconds: today.toiletStolenSeconds,
     toiletStolenAmount: incomeFor(today.toiletStolenSeconds),
     toiletMonthAmount: incomeFor(sum('toiletStolenSeconds')),
-    toiletDetails: today.toiletDetails.map(item => ({ ...item, amount: incomeFor(item.addedSeconds) })),
-    toiletHistory: days.flatMap(day => day.toiletDetails.map(item => ({ ...item, date: day.date, amount: incomeFor(item.addedSeconds) }))),
+    toiletDetails: today.toiletDetails.map(item => ({ ...item, amount: incomeFor(item.addedSeconds), effectiveAmount: incomeFor(item.effectiveSeconds) })),
+    toiletHistory: days.flatMap(day => day.toiletDetails.map(item => ({ ...item, date: day.date, amount: incomeFor(item.addedSeconds), effectiveAmount: incomeFor(item.effectiveSeconds) }))),
     scheduledStartAt: today.start,
     scheduledEndAt: today.end,
     flexMode: today.attendanceDay && attendance?.days.find(d=>d.date===todayKey)?.flex?.mode || null,

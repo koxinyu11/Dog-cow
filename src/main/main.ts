@@ -360,7 +360,7 @@ async function maintainToilet(interruption?: 'sleep' | 'clock-change') {
   if (!data || data.error || !active || toiletPendingSave) return;
   let candidate;
   if (interruption || clockChanged) candidate = reviewToilet(data, interruption ?? 'clock-change').data;
-  else if (localDate(new Date(active.startAt)) !== localDate(new Date(wall))) candidate = reviewToilet(data, 'cross-day').data;
+  else if (data.records.some(item => item.status === 'running' && localDate(new Date(item.startAt)) !== localDate(new Date(wall)))) candidate = reviewToilet(data, 'cross-day').data;
   else {
     const endAt = Number(income.snapshot?.scheduledEndAt);
     if (Number.isFinite(endAt) && wall >= endAt && endAt > active.startAt) candidate = endToilet(data, endAt, 'schedule-end');
@@ -747,7 +747,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     const changed = changeToilet(data, p, Date.now(), reason, randomUUID);
     if ('errorCode' in changed) return { ...toiletFailure(changed.errorCode as keyof typeof TOILET_ERRORS, changed.message), snapshot: snapshot() };
     toiletPendingSave = true;
-    toiletPendingRecordId = String(p.recordId || changed.data.records.find((item: { status: string }) => item.status === 'running')?.id || '');
+    toiletPendingRecordId = String(p.recordId || changed.data.records.find((item: { status: string; kind: string }) => item.status === 'running' && item.kind === (p.kind ?? 'toilet'))?.id || '');
     result = controller.commitToilet(changed.data);
   } else if (method === 'owed') {
     expected(p, 'income');

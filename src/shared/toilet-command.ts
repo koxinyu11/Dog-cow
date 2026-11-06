@@ -1,5 +1,6 @@
 /** Stable UI-safe failures for the independent activity domain. */
 export const TOILET_ERRORS = {
+  TOILET_KIND_INVALID: '活动类型无效，请重新选择。',
   TOILET_DATA_INVALID: '记录读取失败，请先导出备份。',
   TOILET_NOT_AVAILABLE: '当前不能开始，请核对状态。',
   TOILET_CONFLICT: '记录已变化，请核对后重试。',

@@ -17,6 +17,10 @@ import { Badge, Button, Emoji, IconButton, useContextMenu, type MenuItem } from 
 import { Modal } from '../components/Modal';
 import { MODULES, type ModuleCtx } from './modules';
 
+import type { ActivityKind } from '../../shared/contracts';
+import { ActivityTabs } from '../features/toilet/ActivityTabs';
+import { ACTIVITIES } from '../features/toilet/activities';
+
 const CELL_H = 172;
 const GAP = 14;
 
@@ -64,6 +68,7 @@ export function Board({
   shelfOpen: boolean;
   closeShelf: () => void;
 }) {
+  const [activityKind, setActivityKind] = useState<ActivityKind>('toilet');
   const grid = useRef<HTMLDivElement>(null);
   const [narrow, setNarrow] = useState(false);
   const cols = narrow ? BOARD_COLUMNS / 2 : BOARD_COLUMNS;
@@ -377,10 +382,13 @@ export function Board({
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => setModuleEditor(p.id)}
                 >
-                  <Badge icon={def.icon} color={def.accent} size="sm" />
+                  <Badge icon={p.id === 'paid-toilet' ? ACTIVITIES[activityKind].Icon : def.icon} color={p.id === 'paid-toilet' ? ACTIVITIES[activityKind].color : def.accent} size="sm" />
                 </button>
                 <h2 className="mod-title" onPointerDown={(e) => e.target === e.currentTarget && beginDrag(e, p.id, 'board', p.size)}>
-                  {title(def.titleKey, def.name)}
+                  {p.id === 'paid-toilet' ? <span className="activity-heading">
+                    <ActivityTabs state={ctx.state} value={activityKind} onChange={setActivityKind} />
+                    <span className={`activity-module-name ${ctx.state.board?.bindings[def.titleKey] || (ctx.state.tasks.settings[def.titleKey] && ctx.state.tasks.settings[def.titleKey] !== def.name) ? '' : 'is-default'}`}>{title(def.titleKey, def.name)}</span>
+                  </span> : title(def.titleKey, def.name)}
                 </h2>
                 <button className="mod-size" aria-label={`${def.name} 大小：${SIZES[p.size].label}，点击更换`} onClick={(e) => sizeMenu(e, p.id, p.size)}>
                   {SIZES[p.size].label}
@@ -389,7 +397,7 @@ export function Board({
                   <X size={13} />
                 </button>
               </header>
-              <div className="mod-body">{def.render({ ...ctx, size: p.size })}</div>
+              <div className="mod-body">{def.render({ ...ctx, size: p.size, activityKind })}</div>
               <span
                 className="mod-resize"
                 title="拖动改变大小：小 · 中 · 大 · 长 · 竖"

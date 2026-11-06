@@ -111,3 +111,99 @@ test('cross-month records contribute only the effective slice to each month', ()
   assert.equal(oct.toiletMonthAmount / oct.perSecond, 300);
   assert.equal(nov.toiletStolenSeconds, 300);
 });
+
+test('three activity kinds run independently, with at most one unfinished record per kind', () => {
+  let data = empty();
+  for (const kind of ['toilet', 'smoking', 'coffee']) {
+    const result = changeToilet(data, { action: 'start', kind }, +at(10), '', () => kind);
+    assert.equal(result.ok, true);
+    data = result.data;
+    assert.equal(changeToilet(data, { action: 'start', kind }, +at(10, 1), '', () => `${kind}-duplicate`).errorCode, 'TOILET_CONFLICT');
+  }
+  assert.equal(data.records.length, 3);
+  assert.equal(changeToilet(data, { action: 'start', kind: 'unknown' }, +at(10), '', () => '').errorCode, 'TOILET_KIND_INVALID');
+  data = changeToilet(data, { action: 'end', recordId: 'coffee' }, +at(10, 5), '', () => '').data;
+  assert.equal(data.records.find(item => item.id === 'coffee').status, 'completed');
+  assert.equal(data.records.filter(item => item.status === 'running').length, 2);
+  const reviewed = reviewToilet(data, 'sleep').data;
+  assert.equal(reviewed.records.filter(item => item.status === 'needs-review').length, 2);
+  assert.equal(changeToilet(reviewed, { action: 'start', kind: 'smoking' }, +at(11), '', () => '').errorCode, 'TOILET_REVIEW_REQUIRED');
+  assert.equal(changeToilet(reviewed, { action: 'start', kind: 'coffee' }, +at(11), '', () => 'coffee-next').ok, true);
+});
+
+test('category values stay independent while combined income counts overlapping time once', () => {
+  const records = [
+    { ...record('toilet', at(10), at(10, 10)), kind: 'toilet' },
+    { ...record('smoke', at(10, 7), at(10, 12)), kind: 'smoking' },
+    { ...record('coffee', at(11), at(11, 6)), kind: 'coffee' },
+  ];
+  const result = calculate(records);
+  assert.equal(result.activitySummaries.toilet.seconds, 600);
+  assert.equal(result.activitySummaries.smoking.seconds, 300);
+  assert.equal(result.activitySummaries.coffee.seconds, 360);
+  assert.equal(result.toiletStolenSeconds, 1080);
+  assert.equal(result.toiletStolenAmount, result.perSecond * 1080);
+  assert.equal(result.activitySummaries.smoking.amount, result.perSecond * 300);
+  assert.equal(result.toiletDetails.find(item => item.id === 'smoke').addedSeconds, 120);
+  assert.equal(result.toiletDetails.find(item => item.id === 'smoke').effectiveAmount, result.perSecond * 300);
+  const withoutToilet = calculate(records.slice(1));
+  assert.equal(withoutToilet.activitySummaries.smoking.seconds, 300);
+  assert.equal(withoutToilet.toiletStolenSeconds, 660);
+  // Corrected historical records of the same kind may overlap too.
+  const sameKind = calculate([{ ...records[0], kind: 'coffee' }, { ...records[1], kind: 'coffee' }]);
+  assert.equal(sameKind.activitySummaries.coffee.seconds, 720);
+});
+
+test('all categories obey work boundaries and batch-ending preserves independent records', () => {
+  const records = ['toilet', 'smoking', 'coffee'].map(kind => ({ ...record(kind, at(8), at(10)), kind }));
+  const result = calculate(records);
+  for (const kind of ['toilet', 'smoking', 'coffee']) assert.equal(result.activitySummaries[kind].seconds, 3600);
+  assert.equal(result.toiletStolenSeconds, 3600);
+  const running = { version: 2, records: records.map(item => ({ ...item, startAt: +at(10), endAt: null, status: 'running' })) };
+  const ended = endToilet(running, +at(10, 8), 'lunch');
+  assert.equal(ended.records.filter(item => item.status === 'completed' && item.endReason === 'lunch').length, 3);
+  const restored = loadToilet({ getItem: () => JSON.stringify(running) });
+  assert.equal(restored.data.records.filter(item => item.status === 'needs-review').length, 3);
+  assert.equal(calculate(restored.data.records).toiletStolenSeconds, 0);
+});
+
+test('v1 migration preserves exact original bytes, record identity and valuation across saves', () => {
+  const legacy = JSON.stringify({ version: 1, records: [record('legacy')] }, null, 2);
+  const map = new Map([[TOILET_KEY, legacy]]);
+  const storage = { getItem: key => map.get(key) ?? null, setItem: (key, value) => map.set(key, value) };
+  const restored = loadToilet(storage);
+  assert.equal(restored.changed, true);
+  assert.equal(restored.data.version, 2);
+  assert.equal(restored.data.records[0].kind, 'toilet');
+  assert.equal(restored.data.legacyBackup, legacy);
+  assert.equal(storage.getItem(TOILET_KEY), legacy); // Reading alone never writes.
+  const before = calculate(JSON.parse(legacy).records);
+  assert.equal(calculate(restored.data.records).toiletStolenAmount, before.toiletStolenAmount);
+  const controller = createIncomeController({ storage, now: () => at(16), setIntervalImpl: () => 0, clearIntervalImpl: () => {} });
+  controller.updateSettings(settings());
+  const started = changeToilet(controller.getState().toilet, { action: 'start', kind: 'coffee' }, +at(15), '', () => 'new-coffee');
+  assert.equal(controller.commitToilet(started.data).persisted, true);
+  const disk = JSON.parse(storage.getItem(TOILET_KEY));
+  assert.equal(disk.version, 2);
+  assert.equal(disk.legacyBackup, legacy);
+  assert.equal(disk.records.length, 2);
+  controller.destroy();
+});
+
+test('failed migration writes preserve old storage and can be retried without losing backup', () => {
+  const legacy = JSON.stringify({ version: 1, records: [record('legacy')] });
+  const map = new Map([[TOILET_KEY, legacy]]);
+  let failWrites = true;
+  const storage = { getItem: key => map.get(key) ?? null, setItem: (key, value) => {
+    if (key === TOILET_KEY && failWrites) throw Error('disk full');
+    map.set(key, value);
+  } };
+  const controller = createIncomeController({ storage, now: () => at(16), setIntervalImpl: () => 0, clearIntervalImpl: () => {} });
+  assert.equal(storage.getItem(TOILET_KEY), legacy);
+  assert.equal(controller.updateSettings(settings()).persisted, false);
+  assert.equal(controller.getState().toilet.legacyBackup, legacy);
+  failWrites = false;
+  assert.equal(controller.retrySave().persisted, true);
+  assert.equal(JSON.parse(storage.getItem(TOILET_KEY)).legacyBackup, legacy);
+  controller.destroy();
+});

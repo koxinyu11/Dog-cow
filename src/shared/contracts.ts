@@ -144,7 +144,9 @@ export interface IncomeSettings {
   salaryMode: string;
   payroll: Payroll;
 }
+export type ActivityKind = 'toilet' | 'smoking' | 'coffee';
 export interface ToiletRecord {
+  kind: ActivityKind;
   id: string;
   startAt: number;
   endAt: number | null;
@@ -153,7 +155,8 @@ export interface ToiletRecord {
   interruption?: 'sleep' | 'restart' | 'cross-day' | 'clock-change';
 }
 export interface ToiletState {
-  version: 1;
+  version: 2;
+  legacyBackup?: string;
   records: ToiletRecord[];
   error: string;
   pendingSave?: boolean;

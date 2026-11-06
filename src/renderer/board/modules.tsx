@@ -3,7 +3,7 @@ import { OwedModule } from '../features/owed/OwedModule';
 import { FunModule } from '../features/fun/FunModules';
 import { defaultFun, estimateMealCalories } from '../../shared/fun';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import type { Fields, Snapshot, Task } from '../../shared/contracts';
+import type { ActivityKind, Fields, Snapshot, Task } from '../../shared/contracts';
 import type { ModuleId, SizeKey } from '../../shared/board';
 import { getAttendanceDay } from '../../../app/income/src/attendance.js';
 import { addDays, localDate, matchesDate, weekDates } from '../../domain/tasks/model';
@@ -24,6 +24,7 @@ import { TasksMedium, TasksSmall, TasksTall, TasksWide } from '../features/tasks
 export interface ModuleCtx {
   state: Snapshot;
   size: SizeKey;
+  activityKind?: ActivityKind;
   today: string;
   selected: string;
   select: (date: string) => void;
@@ -502,7 +503,7 @@ function StolenModule({ state, size, openSettings }: ModuleCtx) {
     ['lunchStolenAmount', '午休', UtensilsCrossed],
     ['lateAmount', '上班晚', Turtle],
     ['earlyAmount', '下班早', Rabbit],
-    ['toiletStolenAmount', '带薪拉屎', Briefcase],
+    ['toiletStolenAmount', '带薪活动', Briefcase],
   ];
   const compact = size === 's' || size === 'm';
   const amount = `¥${money(s?.stolenAmount)}`;

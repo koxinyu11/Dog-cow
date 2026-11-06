@@ -149,7 +149,7 @@ export function createIncomeController({
   function persist() {
     let toiletSaved = true;
     try {
-      const raw = JSON.stringify({ version: 1, records: state.toilet.records });
+      const raw = JSON.stringify({ version: 2, records: state.toilet.records, ...(state.toilet.legacyBackup === undefined ? {} : { legacyBackup: state.toilet.legacyBackup }) });
       if (!state.toilet.error && storage && (toiletNeedsWrite || raw !== persistedToilet)) {
         storage.setItem(TOILET_KEY, raw);
         persistedToilet = raw;

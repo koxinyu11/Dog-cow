@@ -116,3 +116,35 @@
 .toilet-pending { margin-bottom: 14px; }
 .toilet-help { margin-top: 18px; font-size: 12px; line-height: 1.6; }
 .toilet-help summary { cursor: pointer; }
+
+/* A single header controls the same activity panel in all card sizes. */
+.activity-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; cursor: default; }
+.activity-tabs { display: inline-flex; flex: none; align-items: center; gap: 2px; min-width: 0; }
+.activity-tabs button { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 30px; padding: 4px 7px; border: 0; border-radius: 8px; background: transparent; color: var(--c-muted); font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.activity-tabs button.is-selected { background: color-mix(in srgb, var(--module-accent) 14%, transparent); color: var(--c-ink); }
+.activity-tabs button:hover { background: color-mix(in srgb, var(--module-accent) 9%, transparent); }
+.activity-tabs button:focus-visible { outline: 2px solid var(--module-accent); outline-offset: 1px; }
+.activity-tab-dot { width: 5px; height: 5px; position: absolute; top: 2px; right: 2px; border-radius: 50%; background: #56865b; }
+.activity-tab-dot.is-review { background: #c57e20; }
+.activity-tab-dot.is-error { background: var(--c-danger, #c62828); }
+.activity-module-name { min-width: 0; max-width: 100%; font-size: 11px; white-space: normal; overflow-wrap: anywhere; }
+.activity-module-name .copy-edit > span:first-child { white-space: normal; overflow: visible; }
+.activity-module-name .copy-edit-trigger { opacity: .8; }
+.activity-module-name .copy-input { box-sizing: border-box; max-width: 100%; min-width: 0; width: 150px; }
+.activity-module-name.is-default .copy-edit > span { display: none; }
+.mod-paid-toilet .mod-title { overflow: visible; }
+.mod-paid-toilet.size-s .activity-tab-label { display: none; }
+.activity-total { font-size: 10px; opacity: .7; font-variant-numeric: tabular-nums; }
+.paid-toilet { --toilet-room: color-mix(in srgb, var(--activity-color, #56865b) 14%, transparent); }
+.break-scene.is-running .break-vapor { animation: break-vapor 2.8s ease-in-out infinite; }
+.break-scene.is-idle .break-vapor, .break-scene.is-off .break-vapor, .break-scene.is-review .break-vapor { opacity: 0; }
+.break-scene.is-running .break-ember { fill: #e78542; }
+.break-scene.is-settled { animation: break-settled 600ms ease-out; }
+.toilet-detail-toolbar select { font: inherit; color: inherit; background: var(--c-surface-solid); border: 1px solid var(--c-line); border-radius: 8px; padding: 6px 8px; }
+@keyframes break-vapor { 0%, 100% { transform: translateY(2px); opacity: .2; } 50% { transform: translateY(-4px); opacity: .6; } }
+@keyframes break-settled { 50% { transform: translateY(3px) scale(.96); opacity: .6; } }
+@container (max-width: 340px) {
+  .mod-paid-toilet .activity-tab-label { display: none; }
+  .mod-paid-toilet .activity-tabs button { padding: 4px 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .paid-toilet .break-vapor, .paid-toilet .break-scene { animation: none !important; } }
