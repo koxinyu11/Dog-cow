@@ -6,7 +6,7 @@
 
 给打工狗和上班牛的桌面搭子：记待办、养小牛，顺便看看今天赚了几口草。
 
-[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.0.14-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.14/DogCow-arm64-3.0.14.dmg)
+[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.0.16-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.16/DogCow-arm64-3.0.16.dmg)
 [![所有版本](https://img.shields.io/badge/所有版本-Releases-343b36?style=for-the-badge&logo=github&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases)
 
 [怎么安装](#下载安装) &nbsp; · &nbsp; [能做什么](#主要功能) &nbsp; · &nbsp; [最近更新](#最新版更新) &nbsp; · &nbsp; [常见问题](#常见问题) &nbsp; · &nbsp; [技术栈](#技术栈) &nbsp; · &nbsp; [隐私说明](#隐私说明)
@@ -15,20 +15,15 @@
 
 <br>
 
-## 未发布
-
-- 修复：更新下载请求统一使用 ASCII User-Agent，避免中文应用名导致安装包服务器返回 HTTP 400；保留下载来源及 SHA-256 校验。
-- 新增：在打卡卡片“更多 → 补录”或设置中的补录入口，选择日期补填、修改或删除午休时段；支持多段午休及仅记录午休的模式，保存后重算相关统计。时间冲突时保留原记录。
-
 ## 下载安装
 
-**Mac · Apple Silicon（M 系列芯片） · v3.0.14**
+**Mac · Apple Silicon（M 系列芯片） · v3.0.16**
 
 | 安装方式 | 下载 | 怎么装 |
 | :--- | :--- | :--- |
-| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.14/DogCow-arm64-3.0.14.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
-| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.14/DogCow-darwin-arm64-3.0.14.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
-| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.14/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
+| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.16/DogCow-arm64-3.0.16.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
+| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.16/DogCow-darwin-arm64-3.0.16.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
+| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.16/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
 
 > 本次仅提供 **Apple Silicon（arm64）** 安装包，暂不提供 Intel Mac 和 Windows 包。安装包采用本地测试签名，尚未完成 Apple Developer ID 签名和公证；若 macOS 阻止打开，请先确认来源，再查看“系统设置 → 隐私与安全性”的允许打开选项。
 
@@ -71,28 +66,37 @@ npm run dev
 
 <sub>工资换算卡片支持调整换算项目。收入与税费为估算；“偷出金额”是工作时间的价值拆分，不是额外工资。首页默认展示九类卡片，可调整大小、拖动排列或移除。</sub>
 
-## 源码新增：Mac 菜单栏状态面板
+## Mac 菜单栏状态面板
 
 菜单栏默认显示狗牛剪影，也可在“设置 → 外观 → 菜单栏”切换为今日收入或下班倒计时。点击入口可查看工作状态、今日/本月收入估算、已工作时长、任务完成度、下一项任务和盼头倒数日；更多盼头可展开，管理操作复用主窗口编辑器。
 
 面板与主窗口可同时显示。关闭主窗口后继续后台常驻，再次点击菜单栏入口或在面板内按 Esc 收起面板；需要结束应用时使用面板的退出图标或 Cmd+Q。显示选择本地保存，面板跟随明暗主题并支持减少动态效果。
 
-此功能已提交至源码（`126e010`），不据此认定包含在下方列出的正式安装包中；最终紧凑 UI 与实际体验仍待验收。实现范围与验证记录见[菜单栏计划归档](docs/feature-plans/implemented/menu-bar-status.md)。
+此功能自 v3.0.12 起包含在正式版中；实现范围与验证记录见[菜单栏计划归档](docs/feature-plans/implemented/menu-bar-status.md)。
 
-## 未发布：打工人隐藏壁纸
+## 打工人隐藏壁纸
 
-新增 9 张隐藏壁纸，获得对应称号后出现在“设置 → 外观 → 背景”，带 ✨ 的会动：带薪下钱雨 ✨、奶茶自由 ✨、无理小金库、到点跑路 ✨、周五永居 ✨、周一免疫、需求粉碎机 ✨、资本家克星、终身股东 ✨。解锁条件不公开，靠打工自己发现。新获得称号时，解锁提示会一起列出新壁纸；升级前已有的称号对应壁纸直接可用，不再提示。关闭动效或系统减少动态效果时显示静态画面。尚未包含在任何正式安装包中。
+新增 9 张隐藏壁纸，获得对应称号后出现在“设置 → 外观 → 背景”，带 ✨ 的会动：带薪下钱雨 ✨、奶茶自由 ✨、无理小金库、到点跑路 ✨、周五永居 ✨、周一免疫、需求粉碎机 ✨、资本家克星、终身股东 ✨。解锁条件不公开，靠打工自己发现。新获得称号时，解锁提示会一起列出新壁纸；升级前已有的称号对应壁纸直接可用，不再提示。关闭动效或系统减少动态效果时显示静态画面。自 v3.0.15 起包含在正式安装包中。
 
 ## 最新版更新
 
-当前正式版为 **v3.0.14**，提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。以下按已发布标签及对应提交整理；测试和维护版本单独注明，历史平台支持不代表当前安装包范围。
+当前正式版为 **v3.0.16**，提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。以下按已发布标签及对应提交整理；测试和维护版本单独注明，历史平台支持不代表当前安装包范围。
 
-### [v3.0.14](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.14) · 当前正式版
+### [v3.0.16](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.16) · 当前正式版
 
-修复正式安装包在未开启“减少动态效果”时全局样式失效的问题。
+- 新增：在打卡卡片“更多 → 补录”或设置中的补录入口，选择日期补填、修改或删除午休时段；支持多段午休及仅记录午休的模式，保存后重算相关统计。时间冲突时保留原记录。
+- 修复：更新下载请求统一使用 ASCII User-Agent，避免中文应用名导致安装包服务器返回 HTTP 400；保留下载来源及 SHA-256 校验。
 
 <details>
-<summary><strong>历史版本 · v3.0.13 及更早</strong></summary>
+<summary><strong>历史版本 · v3.0.15 及更早</strong></summary>
+
+### [v3.0.15](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.15) · 隐藏壁纸
+
+新增 9 张随称号解锁的隐藏壁纸，部分支持动态效果；已有称号对应壁纸升级后直接可用。
+
+### [v3.0.14](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.14) · 样式修复
+
+修复正式安装包在未开启“减少动态效果”时全局样式失效的问题。
 
 ### [v3.0.13](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.13) · 功能更新
 
@@ -221,7 +225,7 @@ v3.0.2 采用以下技术：
 <details>
 <summary><strong>下载链接打不开，或者下载失败怎么办？</strong></summary>
 
-可以从 [Releases 页面](https://github.com/koxinyu11/Dog-cow/releases) 展开对应版本的 Assets，选择 `DogCow-arm64-3.0.14.dmg` 或 `DogCow-darwin-arm64-3.0.14.zip`。下载中断时请重新下载并完整解压，仍有问题可在 Issues 反馈。
+可以从 [Releases 页面](https://github.com/koxinyu11/Dog-cow/releases) 展开对应版本的 Assets，选择 `DogCow-arm64-3.0.16.dmg` 或 `DogCow-darwin-arm64-3.0.16.zip`。下载中断时请重新下载并完整解压，仍有问题可在 Issues 反馈。
 
 </details>
 
@@ -247,14 +251,14 @@ macOS 可能同时识别“应用程序”中的正式版、挂载安装镜像�
 <details>
 <summary><strong>支持 Windows 和 Intel Mac 吗？</strong></summary>
 
-当前 v3.0.14 只提供 Apple Silicon（M 系列芯片）的 Mac 安装包。Intel Mac 与 Windows 安装包暂未发布，请勿下载 arm64 包用于这些设备。
+当前 v3.0.16 只提供 Apple Silicon（M 系列芯片）的 Mac 安装包。Intel Mac 与 Windows 安装包暂未发布，请勿下载 arm64 包用于这些设备。
 
 </details>
 
 <details>
 <summary><strong>旧版怎么升级到 3.0？</strong></summary>
 
-先在旧版导出备份，再下载安装 v3.0.14，通过“设置 → 迁移备份”导入并核对结果。新旧版本数据不会自动互通；确认迁移成功前，保留旧应用和原数据。当前未启用自动安装更新。
+先在旧版导出备份，再下载安装 v3.0.16，通过“设置 → 迁移备份”导入并核对结果。新旧版本数据不会自动互通；确认迁移成功前，保留旧应用和原数据。当前未启用自动安装更新。
 
 </details>
 
