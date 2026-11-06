@@ -6,7 +6,7 @@
 
 给打工狗和上班牛的桌面搭子：记待办、养小牛，顺便看看今天赚了几口草。
 
-[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.0.10-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.10/DogCow-arm64-3.0.10.dmg)
+[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.0.13-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.13/DogCow-arm64-3.0.13.dmg)
 [![所有版本](https://img.shields.io/badge/所有版本-Releases-343b36?style=for-the-badge&logo=github&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases)
 
 [怎么安装](#下载安装) &nbsp; · &nbsp; [能做什么](#主要功能) &nbsp; · &nbsp; [最近更新](#最新版更新) &nbsp; · &nbsp; [常见问题](#常见问题) &nbsp; · &nbsp; [技术栈](#技术栈) &nbsp; · &nbsp; [隐私说明](#隐私说明)
@@ -17,13 +17,13 @@
 
 ## 下载安装
 
-**Mac · Apple Silicon（M 系列芯片） · v3.0.10**
+**Mac · Apple Silicon（M 系列芯片） · v3.0.13**
 
 | 安装方式 | 下载 | 怎么装 |
 | :--- | :--- | :--- |
-| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.10/DogCow-arm64-3.0.10.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
-| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.10/DogCow-darwin-arm64-3.0.10.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
-| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.10/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
+| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.13/DogCow-arm64-3.0.13.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
+| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.13/DogCow-darwin-arm64-3.0.13.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
+| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.0.13/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
 
 > 本次仅提供 **Apple Silicon（arm64）** 安装包，暂不提供 Intel Mac 和 Windows 包。安装包采用本地测试签名，尚未完成 Apple Developer ID 签名和公证；若 macOS 阻止打开，请先确认来源，再查看“系统设置 → 隐私与安全性”的允许打开选项。
 
@@ -51,7 +51,7 @@ npm run dev
 
 早上打开狗牛，把今天要啃的活儿列好。做完一件，小牛就离草地近一点；忙累了，看看收入时钟和下班倒计时——今天的草料，心里有数。
 
-以下为 v3.0.2 功能。
+以下为当前正式版的主要功能。
 
 | | 狗牛能帮你 | 怎么用 |
 | :---: | :--- | :--- |
@@ -60,9 +60,11 @@ npm run dev
 | 💰 | **数数今天的草料** | 填好薪资和工作时间，看每秒收入、今日与本月累计，再瞄一眼离下班还有多久。 |
 | ☕ | **歇口气，也记一笔** | 上班、午休、下班点一下；忘打卡可以补，带薪、无薪请假也能记。 |
 | 🎨 | **自己的工位自己摆** | 想看任务就摆任务，想看收入就摆收入；模块顺序、标题随你改，也能收成小横条。 |
+| 🍱 | **午饭不再纠结** | 从 568 道菜中挑选午餐，或开个盲盒；卡片随尺寸调整布局。 |
+| 🧾 | **记下老板欠的账** | 查看打卡对应的加班时间，补记处理消息的时间，并导出欠条 PNG；加班费需在收入设置中开启，默认关闭。 |
 | 💾 | **小本本留在自己手里** | 任务和设置自动保存在本机，换版本前还能导出备份，给辛苦记下的事留个底。 |
 
-<sub>收入与税费为估算；“偷出金额”是工作时间的价值拆分，不是额外工资。首页默认展示九类卡片，可调整大小、拖动排列或移除。</sub>
+<sub>工资换算卡片支持调整换算项目。收入与税费为估算；“偷出金额”是工作时间的价值拆分，不是额外工资。首页默认展示九类卡片，可调整大小、拖动排列或移除。</sub>
 
 ## 源码新增：Mac 菜单栏状态面板
 
@@ -74,14 +76,28 @@ npm run dev
 
 ## 最新版更新
 
-当前正式版为 **v3.0.10**，提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。以下按已发布标签及对应提交整理；测试和维护版本单独注明，历史平台支持不代表当前安装包范围。
+当前正式版为 **v3.0.13**，提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。以下按已发布标签及对应提交整理；测试和维护版本单独注明，历史平台支持不代表当前安装包范围。
 
-### [v3.0.10](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.10) · 当前正式版
+### [v3.0.13](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.13) · 当前正式版
 
-修复了一些已知问题
+新增“老板欠我钱”模块：根据打卡记录计算加班时间，支持补记处理消息的时间及导出欠条 PNG；收入设置新增加班费开关（默认关闭）、倍率与起算分钟。职称库增加静默解锁的“讨薪进度”系列。
+
+午餐选择扩充为 568 道菜，加入盲盒及不同尺寸布局；重做工资换算卡片布局与控件。
 
 <details>
-<summary><strong>历史版本 · v3.0.9 及更早</strong></summary>
+<summary><strong>历史版本 · v3.0.12 及更早</strong></summary>
+
+### [v3.0.12](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.12) · 菜单栏状态面板
+
+新增 Mac 菜单栏状态面板，可查看工作状态、收入、任务和倒计时，并调整展示内容。
+
+### [v3.0.11](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.11) · 盼头倒计时
+
+盼头倒计时支持重复、预设及不同尺寸的卡片布局。
+
+### [v3.0.10](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.10) · 问题修复
+
+修复了一些已知问题。
 
 ### [v3.0.9](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.0.9) · 带薪如厕卡片
 
@@ -192,7 +208,7 @@ v3.0.2 采用以下技术：
 <details>
 <summary><strong>下载链接打不开，或者下载失败怎么办？</strong></summary>
 
-可以从 [Releases 页面](https://github.com/koxinyu11/Dog-cow/releases) 展开对应版本的 Assets，选择 `DogCow-arm64-3.0.10.dmg` 或 `DogCow-darwin-arm64-3.0.10.zip`。下载中断时请重新下载并完整解压，仍有问题可在 Issues 反馈。
+可以从 [Releases 页面](https://github.com/koxinyu11/Dog-cow/releases) 展开对应版本的 Assets，选择 `DogCow-arm64-3.0.13.dmg` 或 `DogCow-darwin-arm64-3.0.13.zip`。下载中断时请重新下载并完整解压，仍有问题可在 Issues 反馈。
 
 </details>
 
@@ -218,14 +234,14 @@ macOS 可能同时识别“应用程序”中的正式版、挂载安装镜像�
 <details>
 <summary><strong>支持 Windows 和 Intel Mac 吗？</strong></summary>
 
-当前 v3.0.10 只提供 Apple Silicon（M 系列芯片）的 Mac 安装包。Intel Mac 与 Windows 安装包暂未发布，请勿下载 arm64 包用于这些设备。
+当前 v3.0.13 只提供 Apple Silicon（M 系列芯片）的 Mac 安装包。Intel Mac 与 Windows 安装包暂未发布，请勿下载 arm64 包用于这些设备。
 
 </details>
 
 <details>
 <summary><strong>旧版怎么升级到 3.0？</strong></summary>
 
-先在旧版导出备份，再下载安装 v3.0.10，通过“设置 → 迁移备份”导入并核对结果。新旧版本数据不会自动互通；确认迁移成功前，保留旧应用和原数据。当前未启用自动安装更新。
+先在旧版导出备份，再下载安装 v3.0.13，通过“设置 → 迁移备份”导入并核对结果。新旧版本数据不会自动互通；确认迁移成功前，保留旧应用和原数据。当前未启用自动安装更新。
 
 </details>
 
