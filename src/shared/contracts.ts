@@ -178,7 +178,7 @@ export type Domain = 'tasks' | 'income' | 'home';
 export interface UpdateState {
   errorCode?: string;
   correlationId?: string;
-  status: 'idle' | 'checking' | 'downloading' | 'ready' | 'current' | 'error';
+  status: 'idle' | 'checking' | 'downloading' | 'ready' | 'current' | 'error' | 'preparing' | 'installing';
   version: string;
   progress: number;
   message: string;
@@ -252,6 +252,7 @@ export const methods = [
   'capsuleMenu',
   'checkUpdates',
   'openUpdate',
+  'installUpdate',
   'copyUpdateDiagnostics',
   'openSource',
   'quit',

@@ -36,6 +36,7 @@ const allowed = new Set([
   'capsuleMenu',
   'checkUpdates',
   'openUpdate',
+  'installUpdate',
   'copyUpdateDiagnostics',
   'openSource',
   'quit',

@@ -52,9 +52,13 @@ export class ReleaseUpdater {
   private set(patch: Partial<UpdateState>) { this.state = { ...this.state, ...patch }; this.options.changed(); }
   check(): Promise<void> {
     if (this.job) return this.job;
+    if (['preparing', 'installing'].includes(this.state.status)) return Promise.resolve();
     this.correlationId = randomUUID();
     this.job = this.runWithRetry().finally(() => { this.job = null; });
     return this.job;
+  }
+  installState(status: 'preparing' | 'installing' | 'ready' | 'error', message: string, errorCode?: string, correlationId?: string) {
+    this.set({ status, message, errorCode, correlationId });
   }
   private classify(error: unknown): UpdateError {
     if (error instanceof UpdateError) return error;

@@ -12,6 +12,8 @@ import { OWED_KEY, changeOwed, emptyOwed, owedSummary, parseOwed } from '../../a
 import { moodData, MOOD_REWARDS } from '../shared/mood.js';
 import { defaultFun, holidayStarts, rewardTask, seedHopes, updateFun, type HolidayStart } from '../shared/fun.js';
 import { isWallpaperUnlocked } from '../shared/wallpapers.js';
+import { UpdateInstaller, installRecovery } from './update-install.js';
+import { acknowledgeInstall, backupProfile, installFailure, INSTALL_MESSAGES, type InstallJob } from './update-helper.js';
 import { ReleaseUpdater } from './release-updates.js';
 import { boundedCalendarFetch } from './calendar-network.js';
 import { loadHolidayYear } from '../../app/income/src/calendar.js';
@@ -119,6 +121,8 @@ let panelError: { errorCode: string; correlationId: string } | undefined;
 let windows: WindowController;
 let windowStore: WindowStateStore;
 let quitting = false;
+let pendingInstall: InstallJob | null = null;
+let updateInstaller: UpdateInstaller | null = null;
 let quitPending: Promise<void> | null = null;
 let quitNonce = '';
 let acknowledgeFlush: ((ok: boolean) => void) | null = null;
@@ -470,8 +474,25 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     clipboard.writeText(`狗牛 ${app.getVersion()} · ${process.platform}/${process.arch}\n${state.errorCode}\n${state.correlationId ?? ''}\n${state.message}`);
     return toastResult('已复制更新诊断信息。');
   }
+  if (method === 'installUpdate') {
+    if (!app.isPackaged || process.platform !== 'darwin' || !releaseUpdater || !updateInstaller)
+      return toastResult('一键安装仅支持已安装的 Mac 正式版。');
+    if (releaseUpdater.state.status !== 'ready' || pendingInstall) return toastResult('请等待安装包就绪。');
+    releaseUpdater.installState('preparing', '正在准备安装…');
+    try {
+      const file = await releaseUpdater.installer();
+      pendingInstall = await updateInstaller.prepare(file, releaseUpdater.state.version);
+      setTimeout(() => void requestQuit(), 0);
+      return toastResult('新版已准备，正在保存并重启。');
+    } catch (error) {
+      const failure = installFailure(error), id = randomUUID();
+      console.error(JSON.stringify({ operation: 'install', stage: 'prepare', errorCode: failure.code, correlationId: id }));
+      releaseUpdater.installState('error', failure.message, failure.code, id);
+      return { ...toastResult(releaseUpdater.state.message), snapshot: snapshot() };
+    }
+  }
   if (method === 'openUpdate') {
-    if (!releaseUpdater || releaseUpdater.state.status !== 'ready') return toastResult('请先下载最新安装包。');
+    if (!releaseUpdater || !['ready', 'error'].includes(releaseUpdater.state.status)) return toastResult('请先下载最新安装包。');
     await releaseUpdater.openInstaller(file => shell.openPath(file));
     return toastResult('安装包已打开，请手动完成安装。');
   }
@@ -921,6 +942,13 @@ async function doQuit() {
   await commands;
   if (!repo.readError) titles.settle();
   const saved = (!repo.dirty || (await repo.flush())) && await windows.flush();
+  if (pendingInstall && (!flushed || !saved || repo.readError)) {
+    await updateInstaller!.cancel(pendingInstall);
+    pendingInstall = null;
+    releaseUpdater?.installState('ready', '保存未完成，已停止安装。请完成当前输入或重试保存后再安装。', 'UPDATE_SAVE_FAILED');
+    revealWindow();
+    return;
+  }
   if (!flushed || !saved) {
     revealWindow();
     const answer = await dialog.showMessageBox(win, {
@@ -933,6 +961,23 @@ async function doQuit() {
     });
     if (answer.response === 0) return;
     if (answer.response === 1) return doQuit();
+  }
+  if (pendingInstall) {
+    const job = pendingInstall;
+    try {
+      await backupProfile(profile, path.join(job.directory, 'data-backup'));
+      job.dataBackup = path.join(job.directory, 'data-backup');
+      await writeFile(path.join(job.directory, 'job.json'), JSON.stringify(job), { mode: 0o600 });
+      await updateInstaller!.launch(job);
+      releaseUpdater?.installState('installing', '正在退出并安装新版…');
+    } catch (error) {
+      await updateInstaller!.cancel(job);
+      pendingInstall = null;
+      const failure = installFailure(error);
+      releaseUpdater?.installState('error', failure.message, failure.code, job.id);
+      revealWindow();
+      return;
+    }
   }
   quitting = true;
   controller.destroy();
@@ -1190,7 +1235,17 @@ async function start() {
   if (app.isPackaged) {
     releaseUpdater = new ReleaseUpdater({ current: app.getVersion(), platform: process.platform, arch: process.arch,
       directory: path.join(app.getPath('userData'), 'updates'), fetch: createUpdateFetch(net), changed: broadcast });
-    const startup = setTimeout(() => void releaseUpdater?.check(), 10000);
+    if (process.platform === 'darwin') {
+      updateInstaller = new UpdateInstaller({ application: path.resolve(process.execPath, '../../..'), profile, executable: process.execPath });
+      const acknowledgment = process.argv.find(value => value.startsWith('--dogcow-update-job='));
+      if (acknowledgment && !repo.readError) {
+        try { await acknowledgeInstall(acknowledgment.slice('--dogcow-update-job='.length), path.resolve(process.execPath, '../../..'), app.getVersion()); }
+        catch { console.warn('[install] startup acknowledgment rejected'); }
+      }
+      const recovery = await installRecovery(profile);
+      if (recovery) releaseUpdater.installState('error', INSTALL_MESSAGES[recovery.code] ?? INSTALL_MESSAGES.UPDATE_INSTALL_FAILED, recovery.code, recovery.id);
+    }
+    const startup = setTimeout(() => { if (!releaseUpdater?.state.errorCode) void releaseUpdater?.check(); }, 10000);
     const interval = setInterval(() => void releaseUpdater?.check(), 4 * 60 * 60 * 1000);
     startup.unref(); interval.unref();
     app.once('will-quit', () => { clearTimeout(startup); clearInterval(interval); });

@@ -3,6 +3,8 @@ import { promisify } from 'node:util';
 import { setTimeout as delay } from 'node:timers/promises';
 import {
   cp,
+  copyFile,
+  chmod,
   lstat,
   mkdir,
   mkdtemp,
@@ -77,6 +79,9 @@ export async function makeDmg({ app, output, name = '狗牛' }) {
       recursive: true,
       verbatimSymlinks: true,
     });
+    const installer = path.join(contents, '安装或替换狗牛.command');
+    await copyFile(new URL('../assets/install-dogcow.command', import.meta.url), installer);
+    await chmod(installer, 0o755);
     await symlink('/Applications', path.join(contents, 'Applications'));
     await createDmgImage({ contents, image, name });
     await run('/usr/bin/hdiutil', ['verify', image], { timeout: 120_000 });

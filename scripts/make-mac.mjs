@@ -1,6 +1,7 @@
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import path from 'node:path';
+import { copyFile } from 'node:fs/promises';
 import { makeDmg } from './make-dmg.mjs';
 const run = promisify(execFile);
 const arch = process.argv[2] || process.arch;
@@ -28,6 +29,7 @@ async function forge(command, extra = []) {
 }
 await forge('package');
 const application = path.resolve(`out/狗牛-darwin-${arch}/狗牛.app`);
+await copyFile('dist-electron/src/main/update-helper.js', path.join(application, 'Contents/Resources/update-helper.mjs'));
 await run('/usr/bin/codesign', ['--force', '--deep', '--sign', '-', application], {
   timeout: 120_000,
 });

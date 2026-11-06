@@ -4,7 +4,7 @@ import { Button } from '../../ui';
 
 export function DataPanel({ notify }: { notify: (message: string) => void }) {
   const update = useAppState()?.updates;
-  const busy = update?.status === 'checking' || update?.status === 'downloading';
+  const busy = update?.status === 'checking' || update?.status === 'downloading' || update?.status === 'preparing' || update?.status === 'installing';
   const [preview, setPreview] = useState<{
     token: string;
     message: string;
@@ -58,7 +58,9 @@ export function DataPanel({ notify }: { notify: (message: string) => void }) {
       )}
       <div className="actions">
         <Button disabled={busy} onClick={() => void command('checkUpdates').then((r) => notify(r.message))}>{busy ? '正在处理…' : update?.status === 'error' ? '重试更新' : '检查更新'}</Button>
-        {update?.status === 'ready' && <Button variant="primary" onClick={() => void flushDrafts().then((ok) => ok ? command('openUpdate').then((r) => notify(r.message)) : notify('请先完成并保存当前输入。'))}>打开安装包</Button>}
+        {update?.status === 'ready' && <Button variant="primary" onClick={() => void flushDrafts().then((ok) => ok ? command('installUpdate').then((r) => notify(r.message)) : notify('请先完成并保存当前输入。'))}>安装并重启</Button>}
+        {update?.version && ['ready', 'error'].includes(update.status) && <Button variant="ghost" onClick={() => void command('openUpdate').then((r) => notify(r.message))}>打开安装包手动安装</Button>}
+        {['preparing', 'installing'].includes(update?.status ?? '') && <Button disabled>正在准备或安装…</Button>}
         <Button variant="ghost" onClick={() => void command('openSource')}>官方下载页</Button>
       </div>
     </section>
