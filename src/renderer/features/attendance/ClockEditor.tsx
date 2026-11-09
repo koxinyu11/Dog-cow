@@ -169,7 +169,14 @@ export function ClockEditor({
         </p>
         <div className="dialog-actions">
           <Button variant="ghost" onClick={onClose}>取消</Button>
-          {income.toilet?.pendingSave && <Button disabled={busy} onClick={() => void command('retrySave').then(result => { if (!result.persisted) setError(result.message); else onClose(); })}>重试保存</Button>}
+          {(income.toilet?.pendingSave || income.attendancePendingSave) && <Button disabled={busy} onClick={async () => {
+            setBusy(true);
+            try {
+              const result = await command('retrySave');
+              if (!result.persisted) setError(result.message); else onClose();
+            } catch { setError('重试保存未完成，请保留窗口后再试。'); }
+            finally { setBusy(false); }
+          }}>重试保存</Button>}
           <Button variant="primary" type="submit" disabled={busy || income.toilet?.pendingSave || income.attendancePendingSave} icon={isStart ? <LogIn size={15} /> : draft.action === 'finish' ? <LogOut size={15} /> : <Save size={15} />}>
             {draft.action === 'finish' ? '确认下班' : '确认并保存'}
           </Button>

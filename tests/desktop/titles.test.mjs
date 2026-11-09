@@ -215,3 +215,29 @@ test('撤回修正当天资格、保留其他日期和已解锁职称，金额�
   assert.equal(loaded.moneyLedgers().steal[localDate()], 123);
   assert.equal(loaded.moneyLedgers().owed[localDate()], 12);
 });
+
+test('完整月份账本会清零消失的日期，不影响其他月份与已解锁职称', () => {
+  const values = new Map([[TITLES_KEY, JSON.stringify(emptyTitles('2026-01-01'))]]);
+  const store = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
+  const titles = new Titles(store, () => null); titles.load();
+  titles.record({ kind: 'owed', days: { '2026-10-31': 100, '2026-11-01': 90, '2026-11-02': 10 } }, true);
+  const unlocked = titles.view().items;
+  titles.record({ kind: 'owed', month: '2026-11', days: { '2026-11-02': 5 } }, true);
+  assert.deepEqual(titles.moneyLedgers().owed, { '2026-10-31': 10000, '2026-11-01': 0, '2026-11-02': 500 });
+  titles.record({ kind: 'owed', month: '2026-11', days: {} }, true);
+  const restored = new Titles(store, () => null); restored.load();
+  assert.deepEqual(restored.moneyLedgers().owed, { '2026-10-31': 10000, '2026-11-01': 0, '2026-11-02': 0 });
+  assert.deepEqual(restored.view().items, unlocked);
+});
+
+test('sub-yuan deletion settles to disk without restoring stale exchangeable cents after reload', () => {
+  const values = new Map([[TITLES_KEY, JSON.stringify(emptyTitles('2026-01-01'))]]);
+  const store = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
+  const titles = new Titles(store, () => null); titles.load();
+  titles.record({ kind: 'owed', days: { '2026-11-01': 0.12, '2026-10-31': 1 } }, true);
+  titles.record({ kind: 'owed', month: '2026-11', days: {} });
+  titles.settle();
+  const reloaded = new Titles(store, () => null); reloaded.load();
+  assert.equal(reloaded.moneyLedgers().owed['2026-11-01'], 0);
+  assert.equal(reloaded.moneyLedgers().owed['2026-10-31'], 100);
+});

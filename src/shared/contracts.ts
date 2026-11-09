@@ -215,6 +215,7 @@ export interface Snapshot {
   version: string;
 }
 export interface Result {
+  coinOutcome?: import('./coins.js').CoinOutcome;
   trayPanel?: import('./tray.js').TrayPanelData;
   offwork?: { income: IncomeState; date: string };
 

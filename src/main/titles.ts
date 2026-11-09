@@ -18,7 +18,7 @@ export type TitleEvent =
   | { kind: 'fun'; action: unknown; after: FunState }
   | { kind: 'open' }
   | { kind: 'steal'; amount: unknown }
-  | { kind: 'owed'; days: Record<string, number> };
+  | { kind: 'owed'; days: Record<string, number>; month?: string };
 
 const STEAL_STEP = 100; // cents; smaller changes wait for the next forced write
 const MONEY_LEDGERS = ['steal', 'owed'] as const;
@@ -104,7 +104,7 @@ export class Titles {
       case 'fun': return funSignals(event.action, event.after, today);
       case 'open': { const facts = this.dayFacts(today); return openSignals(today, facts ? !facts.workday : null, view); }
       case 'steal': return stealSignals(today, event.amount);
-      case 'owed': return owedSignals(event.days);
+      case 'owed': return owedSignals(event.days, event.month, view.ledger('owed'));
     }
   }
 

@@ -113,3 +113,24 @@ test('profile backup works inside updates and excludes that entire subtree witho
     assert.equal((await lstat(destination)).mode & 0o077, 0);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
+
+test('recovery ignores resolved errors only for the same target with a later successful version', mac, () => fixture(async ({ root, jobs, target, prepare }) => {
+  const old = await prepare();
+  const success = await prepare();
+  const latest = await prepare();
+  const state = (job, phase, time) => writeFile(path.join(job.directory, 'status.json'), JSON.stringify({ phase, time, code: 'UPDATE_LAUNCH_UNCONFIRMED' }));
+  await state(old, 'failed', '2026-11-01T00:00:00Z');
+  await state(success, 'completed', '2026-11-02T00:00:00Z');
+  assert.equal(await recoverInstallJobs(jobs), undefined);
+  await state(latest, 'failed', '2026-11-03T00:00:00Z');
+  assert.equal((await recoverInstallJobs(jobs)).id, latest.id);
+  // A success for another install location cannot hide this target's latest failure.
+  const manifest = JSON.parse(await readFile(path.join(success.directory, 'job.json'), 'utf8'));
+  manifest.target = path.join(root, 'other/狗牛.app');
+  await mkdir(path.dirname(manifest.target));
+  manifest.stage = path.join(path.dirname(manifest.target), `.dogcow-new-${manifest.id}.app`);
+  manifest.backup = path.join(path.dirname(manifest.target), `.dogcow-old-${manifest.id}.app`);
+  await writeFile(path.join(success.directory, 'job.json'), JSON.stringify(manifest));
+  await state(success, 'completed', '2026-11-04T00:00:00Z');
+  assert.equal((await recoverInstallJobs(jobs, target)).id, latest.id);
+}));

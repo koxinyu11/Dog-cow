@@ -1,10 +1,11 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import type { CoinSource, CoinsView } from '../../../shared/coins';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import type { CoinOutcome, CoinSource, CoinsView } from '../../../shared/coins';
 import { command } from '../../state';
 import { Button, Rolling } from '../../ui';
 import { Modal } from '../../components/Modal';
 import { COIN_WALLPAPERS, coinItem } from '../../../shared/wallpapers';
 import './coins.css';
+import { CoinSaveNotice } from './CoinSaveNotice';
 
 const SOURCES: { id: CoinSource; name: string; icon: string }[] = [
   { id: 'steal', name: '偷来的钱', icon: '🎭' },
@@ -49,25 +50,37 @@ export function CoinDialog({ open, coins, onClose }: { open: boolean; coins: Coi
 
   useLayoutEffect(() => { if (!open) { setError(''); setGain(0); setFlyers([]); setShown(null); setHistory(false); } }, [open]);
 
-  const locked = !coins || !!coins.error;
+  const locked = !coins || !!coins.error || !!coins.pendingSave;
   const total = coins ? coins.pending.steal.coins + coins.pending.owed.coins : 0;
   const balance = shown ?? coins?.balance ?? 0;
+
+  useEffect(() => {
+    const saved = (event: Event) => {
+      const outcome = (event as CustomEvent<CoinOutcome>).detail;
+      if (!open || outcome.kind !== 'exchange') return;
+      setError('');
+      setGain(outcome.coins);
+      window.setTimeout(() => setGain(0), FLY_MS + 1800);
+      if (reducedMotion()) { setBusy(false); return; }
+      setBusy(true); setShown(outcome.balanceBefore);
+      setFlyers(launch(outcome.sources));
+      if (outcome.sources.includes('owed')) setStamp(true);
+      window.setTimeout(() => setShown(null), FLY_MS * 0.75);
+      window.setTimeout(() => { setFlyers([]); setStamp(false); setBusy(false); }, FLY_MS + 200);
+    };
+    window.addEventListener('dogcow:coins-saved', saved);
+    return () => window.removeEventListener('dogcow:coins-saved', saved);
+  }, [open, coins]);
 
   async function exchange() {
     if (busy || locked || !total) return;
     setBusy(true); setError('');
-    const before = coins!.balance;
-    const plan = SOURCES.filter((s) => coins!.pending[s.id].coins > 0).map((s) => s.id);
-    const result = await command('coins', { action: 'exchange' });
-    if (!result.applied) { setError(result.message || '兑换失败，请稍后再试。'); setBusy(false); return; }
-    const gained = Number(result.message.replace(/\D/g, '')) || total;
-    window.setTimeout(() => setGain(0), FLY_MS + 1800);
-    if (reducedMotion()) { setGain(gained); setBusy(false); return; }
-    setShown(before);
-    setFlyers(launch(plan));
-    if (plan.includes('owed')) setStamp(true);
-    window.setTimeout(() => { setShown(null); setGain(gained); }, FLY_MS * 0.75);
-    window.setTimeout(() => { setFlyers([]); setStamp(false); setBusy(false); }, FLY_MS + 200);
+    try {
+      const result = await command('coins', { action: 'exchange' });
+      if (!result.applied || !result.persisted) {
+        setError(result.message || '兑换尚未保存，请重试。'); setBusy(false);
+      }
+    } catch { setError('未收到兑换结果，请核对钱包后重试。'); setBusy(false); }
   }
 
   /** Up to 12 decorative coins arc from each source card into the piggy bank. */
@@ -90,7 +103,7 @@ export function CoinDialog({ open, coins, onClose }: { open: boolean; coins: Coi
   return (
     <Modal open={open} title="狗牛币" onClose={onClose} className="coin-dialog">
       <div className="coin-body" ref={body}>
-        {locked ? <div className="banner is-error">{coins?.error || '钱包数据异常，已锁定保护。'}</div> : <>
+        {!coins || coins.error ? <div className="banner is-error">{coins?.error || '钱包数据异常，已锁定保护。'}</div> : <>
           <header className="coin-vault">
             <span className={`coin-bank${flyers.length ? ' is-eating' : ''}`} ref={bank} aria-hidden="true">🐷<i>🐮</i></span>
             <div>
@@ -115,7 +128,8 @@ export function CoinDialog({ open, coins, onClose }: { open: boolean; coins: Coi
             })}
           </div>
 
-          <Button variant="primary" className="coin-go" disabled={busy || !total} onClick={() => void exchange()}>
+          <CoinSaveNotice coins={coins} />
+          <Button variant="primary" className="coin-go" disabled={busy || locked || !total} onClick={() => void exchange()}>
             {total ? `全部兑换 · +${total} 币` : '暂无可兑换'}
           </Button>
           {error && <p className="coin-error" role="alert">{error}</p>}

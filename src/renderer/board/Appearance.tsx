@@ -1,9 +1,10 @@
 import { setSelfDeception, useDisplayIncome } from '../display-income';
 import { coinWallpaper, isWallpaperUnlocked } from '../../shared/wallpapers';
-import type { CoinsView } from '../../shared/coins';
+import type { CoinOutcome, CoinsView } from '../../shared/coins';
+import { CoinSaveNotice } from '../features/coins/CoinSaveNotice';
 import { CoinSwatch } from '../features/coins/CoinSwatch';
 import { defaultFun, type FunState } from '../../shared/fun';
-import { useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { ANIMATED_PRESETS, BACKGROUND_PRESETS, DARK_PRESETS, MAX_IMAGE_LENGTH, type Background, type PresetKey } from '../../shared/board';
 import { isDark } from './Board';
 import { Scene } from './Scene';
@@ -69,6 +70,16 @@ export function Appearance({
     await setBackground(bg);
     fx('background', anchor);
   };
+  useEffect(() => {
+    const saved = (event: Event) => {
+      const outcome = (event as CustomEvent<CoinOutcome>).detail;
+      if (outcome.kind !== 'purchase' || !outcome.item.startsWith('wallpaper:')) return;
+      const wall = coinWallpaper(outcome.item.slice('wallpaper:'.length));
+      if (wall) void choose({ kind: 'preset', value: wall.id }, document.querySelector('.bg-grid'));
+    };
+    window.addEventListener('dogcow:coins-saved', saved);
+    return () => window.removeEventListener('dogcow:coins-saved', saved);
+  }, [setBackground]);
   return (
     <div className="appearance">
       <section>
@@ -93,9 +104,10 @@ export function Appearance({
       </section>
       <section>
         <h3><Palette size={16} /> 背景</h3>
+        <CoinSaveNotice coins={coins} />
         <div className="bg-grid">
           {(Object.keys(BACKGROUND_PRESETS) as PresetKey[]).filter(key=>coinWallpaper(key) || isWallpaperUnlocked(key, fun ?? defaultFun(), titleIds, coins?.owned)).map((key) => !isWallpaperUnlocked(key, fun ?? defaultFun(), titleIds, coins?.owned) ? (
-            <CoinSwatch key={key} preset={key} coins={coins} notify={notify} onBought={(anchor) => void choose({ kind: 'preset', value: key }, anchor)} />
+            <CoinSwatch key={key} preset={key} coins={coins} notify={notify} />
           ) : (
             <button
               key={key}

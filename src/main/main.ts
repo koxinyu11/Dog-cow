@@ -326,7 +326,7 @@ function owedView(): OwedView {
 function recordOwed() {
   if (owedError || !income?.settings || income.calculationError || !income.snapshot) return;
   const view = owedView();
-  if (view.ready) titles.record({ kind: 'owed', days: view.days });
+  if (view.ready) titles.record({ kind: 'owed', days: view.days, month: view.month });
 }
 function recordOpen() {
   titles.record({ kind: 'open' });
@@ -384,8 +384,14 @@ async function maintainToilet(interruption?: 'sleep' | 'clock-change') {
 }
 
 async function finish(result: Result): Promise<Result> {
+  // Business commands persist even sub-yuan ledger corrections at the same disk boundary.
+  if (result.applied) titles?.settle();
   result.persisted = result.applied ? await repo.flush() : false;
-  if (result.persisted) attendancePendingSave = false;
+  if (result.persisted) {
+    attendancePendingSave = false;
+    const outcome = coins?.confirmSaved();
+    if (outcome) result.coinOutcome = outcome;
+  }
   if (result.applied && !result.persisted && attendancePendingSave) {
     result.errorCode = 'ATTENDANCE_SAVE_FAILED';
     result.correlationId = randomUUID();
@@ -397,6 +403,11 @@ async function finish(result: Result): Promise<Result> {
     const failure = toiletFailure('TOILET_SAVE_FAILED');
     result.errorCode = failure.errorCode;
     result.correlationId = failure.correlationId;
+  }
+  if (result.applied && !result.persisted && coins?.view().pendingSave) {
+    result.errorCode = 'COINS_SAVE_FAILED';
+    result.correlationId = randomUUID();
+    console.error(JSON.stringify({ operation: 'coins', stage: 'flush', errorCode: result.errorCode, correlationId: result.correlationId }));
   }
   if (result.persisted && pendingToiletOffwork) {
     const current = income.attendance.days.find(day => day.date === pendingToiletOffwork!.date)?.clockOut;
@@ -845,7 +856,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
       if (!income.calculationError && income.snapshot) titles.record({ kind: 'steal', amount: income.snapshot.stolenAmount }, true);
       const owed = owedView();
       if (!owedError && !income.calculationError && owed.ready)
-        titles.record({ kind: 'owed', days: { [String(p.date)]: 0, ...owed.days } }, true);
+        titles.record({ kind: 'owed', days: owed.days, month: owed.month }, true);
       titles.settle();
       result.message = '已撤回下班。';
     }

@@ -34,8 +34,14 @@ export interface CoinsState {
 }
 export type MoneyLedgers = Partial<Record<CoinSource, Record<string, number | string>>>;
 
+/** Returned only after the shared repository confirms the wallet write. */
+export type CoinOutcome =
+  | { kind: 'exchange'; coins: number; balanceBefore: number; sources: CoinSource[] }
+  | { kind: 'purchase'; item: string };
+
 export interface CoinSourceView { yuan: number; coins: number; todayYuan: number }
 export interface CoinsView {
+  pendingSave?: CoinOutcome;
   error: string;
   balance: number;
   rates: Record<CoinSource, number>;

@@ -233,13 +233,32 @@ async function prunePreviousBackup(current: InstallJob) {
 /** Only restore a missing application during the rename gap. Never overwrite a launched app or its data. */
 export async function recoverInstallJobs(jobs: string, target?: string) {
   await mkdir(jobs, { recursive: true, mode: 0o700 });
-  const failures: { code: string; id: string }[] = [];
+  const records: { job: InstallJob; state: { phase: string; code?: string }; time: number }[] = [];
   for (const name of await readdir(jobs)) {
     if (!name.startsWith('install-job-')) continue;
     try {
       const job = await readJob(path.join(jobs, name));
       if (target && job.target !== target) continue;
-      const state = JSON.parse(await readFile(path.join(job.directory, 'status.json'), 'utf8'));
+      const statusFile = path.join(job.directory, 'status.json');
+      const state = JSON.parse(await readFile(statusFile, 'utf8'));
+      // Old journals may lack time. Their file timestamp is a conservative ordering fallback.
+      const recorded = typeof state.time === 'string' ? Date.parse(state.time) : NaN;
+      const time = Number.isFinite(recorded) ? recorded : (await lstat(statusFile)).mtimeMs;
+      records.push({ job, state, time });
+    } catch { console.warn('[install] unreadable recovery manifest retained'); }
+  }
+  const failures: { code: string; id: string }[] = [];
+  const atLeastVersion = (left: string, right: string) => {
+    const a = left.split('.').map(Number), b = right.split('.').map(Number);
+    const different = a.findIndex((part, i) => part !== b[i]);
+    return different < 0 || a[different] > b[different];
+  };
+  // Never rely on random job-directory names or filesystem enumeration order.
+  for (const { job, state, time } of records.sort((a, b) => a.time - b.time)) {
+    try {
+      const superseded = records.some(next => next.job.target === job.target && next.state.phase === 'completed'
+        && next.time > time && atLeastVersion(next.job.version, job.version));
+      if (superseded && (state.phase === 'failed' || (state.phase === 'replacing' && await exists(job.target)))) continue;
       if (state.phase === 'replacing') {
         if (!await exists(job.target) && await exists(job.backup)) {
           await inspectApplication(job.backup);
@@ -247,7 +266,7 @@ export async function recoverInstallJobs(jobs: string, target?: string) {
           await journal(job, 'failed', 'UPDATE_RESTORED');
           failures.push({ code: 'UPDATE_RESTORED', id: job.id });
         } else failures.push({ code: 'UPDATE_LAUNCH_UNCONFIRMED', id: job.id });
-      } else if (state.phase === 'failed') failures.push({ code: state.code, id: job.id });
+      } else if (state.phase === 'failed') failures.push({ code: state.code ?? 'UPDATE_INSTALL_FAILED', id: job.id });
     } catch { console.warn('[install] unreadable recovery manifest retained'); }
   }
   return failures.at(-1);

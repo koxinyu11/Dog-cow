@@ -10,8 +10,8 @@ import './coins.css';
 const SHATTER_MS = 700;
 
 /** A coin wallpaper not yet bought: locked preview, two-step purchase, or a shortcut to the exchange when short. */
-export function CoinSwatch({ preset, coins, onBought, notify }: {
-  preset: PresetKey; coins: CoinsView | undefined; onBought: (anchor: Element | null) => void; notify: (message: string) => void;
+export function CoinSwatch({ preset, coins, notify }: {
+  preset: PresetKey; coins: CoinsView | undefined; notify: (message: string) => void;
 }) {
   const wall = coinWallpaper(preset)!;
   const [confirm, setConfirm] = useState(false);
@@ -20,26 +20,28 @@ export function CoinSwatch({ preset, coins, onBought, notify }: {
   const [exchange, setExchange] = useState(false);
   const balance = coins?.balance ?? 0;
   const short = wall.price - balance;
-  const locked = !coins || !!coins.error;
+  const locked = !coins || !!coins.error || !!coins.pendingSave;
 
   useEffect(() => { if (!confirm) return; const t = window.setTimeout(() => setConfirm(false), 4000); return () => window.clearTimeout(t); }, [confirm]);
 
-  async function click(target: HTMLButtonElement) {
+  async function click() {
     if (busy || locked) return;
     if (short > 0) { setExchange(true); return; }
     if (!confirm) { setConfirm(true); return; }
     setBusy(true);
     // The snapshot that confirms the purchase swaps this swatch for a normal one, so the shatter plays first.
     if (!reducedMotion()) { setShatter(true); await new Promise((r) => window.setTimeout(r, SHATTER_MS)); }
-    const result = await command('coins', { action: 'buy-wallpaper', id: wall.id });
-    if (!result.applied) { notify(result.message || '购买失败，请稍后再试。'); setShatter(false); setBusy(false); setConfirm(false); return; }
-    onBought(target.isConnected ? target : document.querySelector('.bg-grid'));
+    try {
+      const result = await command('coins', { action: 'buy-wallpaper', id: wall.id });
+      if (!result.applied || !result.persisted) notify(result.message || '购买尚未保存，请重试。');
+    } catch { notify('未收到购买结果，请核对钱包后重试。'); }
+    finally { setShatter(false); setBusy(false); setConfirm(false); }
   }
 
   return (
     <>
-      <button type="button" className={`bg-swatch coin-swatch${shatter ? ' is-shatter' : ''}${confirm ? ' is-confirm' : ''}`} disabled={busy && !shatter}
-        aria-label={`${wall.name}，${wall.price} 狗牛币${short > 0 ? `，还差 ${short}` : ''}`} onClick={(e) => void click(e.currentTarget)}>
+      <button type="button" className={`bg-swatch coin-swatch${shatter ? ' is-shatter' : ''}${confirm ? ' is-confirm' : ''}`} disabled={busy || locked}
+        aria-label={`${wall.name}，${wall.price} 狗牛币${short > 0 ? `，还差 ${short}` : ''}`} onClick={() => void click()}>
         <Scene preset={preset} />
         <span className="coin-lock" aria-hidden="true">
           <span className="coin-lock-icon">🔒</span>

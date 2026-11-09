@@ -69,6 +69,7 @@ test('wallet service persists and refuses an empty exchange', () => {
   const wallet = new Coins(store, ledgers);
   wallet.load();
   assert.equal(wallet.exchange(TODAY), 383);
+  wallet.confirmSaved();
   assert.throws(() => wallet.exchange(TODAY), /暂无/);
   const reloaded = new Coins(store, ledgers);
   reloaded.load();
@@ -117,4 +118,47 @@ test('coin wallpapers unlock only by purchase, at the shared price', () => {
   assert.equal(isWallpaperUnlocked(mint.id, undefined, [], bought.owned), true);
   assert.equal(isWallpaperUnlocked(iou.id, undefined, [], bought.owned), false);
   assert.throws(() => spendCoins(bought, coinItem(iou.id), iou.price, 3), /不足/);
+});
+
+test('wallet candidate stays locked and undisplayed until the repository confirms save', () => {
+  const values = new Map();
+  const wallet = new Coins({ getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) }, ledgers);
+  wallet.load();
+  assert.equal(wallet.exchange(TODAY), 383);
+  assert.equal(wallet.view(TODAY).balance, 0);
+  assert.equal(wallet.view(TODAY).pendingSave.coins, 383);
+  assert.throws(() => wallet.exchange(TODAY), /尚未保存/);
+  assert.throws(() => wallet.spend('wallpaper:test', 1), /尚未保存/);
+  assert.deepEqual(wallet.confirmSaved(), { kind: 'exchange', coins: 383, balanceBefore: 0, sources: ['steal', 'owed'] });
+  assert.equal(wallet.view(TODAY).balance, 383);
+  wallet.spend('wallpaper:test', 300);
+  assert.equal(wallet.view(TODAY).balance, 383);
+  assert.equal(wallet.owns('wallpaper:test'), false);
+  assert.deepEqual(wallet.confirmSaved(), { kind: 'purchase', item: 'wallpaper:test' });
+  assert.equal(wallet.owns('wallpaper:test'), true);
+  assert.equal(wallet.view(TODAY).balance, 83);
+  assert.equal(wallet.confirmSaved(), undefined);
+});
+
+test('wallet save failure and retry preserve one exchange and one purchase on disk', async t => {
+  const { mkdir, readFile } = await import('node:fs/promises');
+  const dir = await mkdtemp(path.join(tmpdir(), 'dogcow-coins-retry-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const repo = new Repository(dir); await repo.load();
+  const wallet = new Coins(repo.storage, ledgers); wallet.load();
+  for (const kind of ['exchange', 'purchase']) {
+    if (kind === 'exchange') wallet.exchange(TODAY); else wallet.spend('wallpaper:test', 300);
+    await rm(repo.file, { force: true }); await mkdir(repo.file);
+    assert.equal(await repo.flush(), false);
+    assert.equal(wallet.view(TODAY).pendingSave.kind, kind);
+    assert.throws(() => wallet.exchange(TODAY), /尚未保存/);
+    await rm(repo.file, { recursive: true });
+    assert.equal(await repo.flush(), true);
+    assert.equal(wallet.confirmSaved().kind, kind);
+    assert.equal(wallet.confirmSaved(), undefined);
+  }
+  const saved = JSON.parse(JSON.parse(await readFile(repo.file, 'utf8')).values[COINS_KEY]);
+  assert.equal(saved.balance, 83);
+  assert.equal(saved.entries.length, 2);
+  assert.deepEqual(saved.owned, ['wallpaper:test']);
 });
