@@ -34,6 +34,8 @@ export interface ModuleCtx {
   patch: (id: string, fields: Fields) => Promise<void>;
   openNew: () => void;
   openWeekly: () => void;
+  undoClockOut: () => Promise<void>;
+  undoClockOutBusy: boolean;
   openClock: (action: string) => void;
   openSettings: (tab: string) => void;
   notify: (message: string) => void;
@@ -235,7 +237,7 @@ function WeekModule({ state, size, selected, select, today }: ModuleCtx) {
 }
 
 /* ---------------- 打卡 ---------------- */
-function ClockModule({ state, size, openClock, openSettings, notify }: ModuleCtx) {
+function ClockModule({ state, size, openClock, openSettings, notify, undoClockOut, undoClockOutBusy }: ModuleCtx) {
   const income = state.income;
   const date = localDate(new Date(income.now));
   const day = income.attendance.days.find((d) => d.date === date);
@@ -279,6 +281,7 @@ function ClockModule({ state, size, openClock, openSettings, notify }: ModuleCtx
           )}
           {day?.flex && <span className="m-label">{day.flex.mode==='shift'?'晚到晚走':'只免迟到'} · 下班 {time(day.flex.endAt)}</span>}
           <div className="clock-actions">
+            {day?.clockOut && <Button size="sm" disabled={undoClockOutBusy || income.attendancePendingSave || income.toilet?.pendingSave} onClick={() => void undoClockOut()}>撤回下班</Button>}
             {clockMode && income.settings?.flexEnabled && !day?.clockIn && <Button size="sm" disabled={unavailable} icon={<Clock size={14} />} onClick={()=>openClock('flex-start')}>弹性打卡</Button>}
             {canPause && main.tone !== 'pause' && (
               <Button size="sm" icon={<UtensilsCrossed size={14} />} onClick={(e) => pauseResume('pause', e.currentTarget)}>午休</Button>

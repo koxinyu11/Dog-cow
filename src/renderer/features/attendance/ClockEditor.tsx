@@ -170,8 +170,8 @@ export function ClockEditor({
         <div className="dialog-actions">
           <Button variant="ghost" onClick={onClose}>取消</Button>
           {income.toilet?.pendingSave && <Button disabled={busy} onClick={() => void command('retrySave').then(result => { if (!result.persisted) setError(result.message); else onClose(); })}>重试保存</Button>}
-          <Button variant="primary" type="submit" disabled={busy || income.toilet?.pendingSave} icon={isStart ? <LogIn size={15} /> : draft.action === 'finish' ? <LogOut size={15} /> : <Save size={15} />}>
-            确认并保存
+          <Button variant="primary" type="submit" disabled={busy || income.toilet?.pendingSave || income.attendancePendingSave} icon={isStart ? <LogIn size={15} /> : draft.action === 'finish' ? <LogOut size={15} /> : <Save size={15} />}>
+            {draft.action === 'finish' ? '确认下班' : '确认并保存'}
           </Button>
         </div>
       </form>

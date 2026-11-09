@@ -180,6 +180,22 @@ export function setModeDay(attendance, modes, now = new Date()) {
   return { ok: true, attendance: prepared.attendance };
 }
 
+/** Correct today's departure without rebuilding any other attendance facts. */
+export function undoClockOut(attendance, target, now = new Date()) {
+  const prepared = prepareChange(attendance, now);
+  if (!prepared.ok) return prepared;
+  if (target?.date !== prepared.date) return failure('undo-date', '只能撤回今天的下班记录，历史日期请修改实际时间。');
+  const day = prepared.attendance.days.find((item) => item.date === target.date);
+  if (!day?.clockOut) return failure('undo-missing', '今天的下班记录已撤回，请查看最新状态。');
+  const expected = target.expectedClockOut;
+  if (!expected || day.clockOut.at !== expected.at || day.clockOut.updatedAt !== expected.updatedAt)
+    return failure('undo-conflict', '下班时间已变化，请查看最新记录后再撤回。');
+  day.clockOut = null;
+  const checked = validateAttendance(prepared.attendance);
+  return checked.valid ? { ok: true, attendance: checked.attendance }
+    : failure('undo-invalid', '考勤记录存在冲突，未撤回下班。');
+}
+
 export function setAttendanceTimes(attendance, values, now = new Date()) {
   const prepared = prepareChange(attendance, now);
   if (!prepared.ok) return prepared;

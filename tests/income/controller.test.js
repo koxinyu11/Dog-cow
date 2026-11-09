@@ -415,3 +415,56 @@ test('daily mode survives reload and a bad daily draft cannot replace valid inco
   assert.equal(h.controller.getState().payrollResult, null);
   assert.equal(h.controller.getState().calculationError.code, 'daily-income-overflow');
 });
+
+test('撤回使用实时计算且保存重启后不复活下班结算', async (t) => {
+  const { undoClockOut } = await import('../../app/income/src/attendance.js');
+  const h = harness({ initialNow: at(8) });
+  t.after(() => h.controller.destroy());
+  h.controller.updateSettings({ ...base, stealMode: true, clockMode: true });
+  h.advance(at(15));
+  const finished = setAttendanceTimes(h.controller.getState().attendance, {
+    date: '2026-11-04', startAt: +at(8), endAt: +at(15), source: 'recorded',
+  }, at(15));
+  h.controller.commitAttendance(finished.attendance);
+  closeTo(h.controller.getState().snapshot.earnedToday, 400);
+  h.advance(at(15, 10));
+  const undo = undoClockOut(h.controller.getState().attendance, {
+    date: '2026-11-04', expectedClockOut: finished.attendance.days[0].clockOut,
+  }, at(15, 10));
+  assert.equal(undo.ok, true, undo.message);
+  const result = h.controller.commitAttendance(undo.attendance);
+  assert.equal(result.persisted, true);
+  const state = h.controller.getState();
+  closeTo(state.snapshot.earlyAmount, 0);
+  assert.ok(state.snapshot.earnedToday < 400);
+  assert.equal(state.snapshot.attendanceState, 'working');
+  const restored = harness({ initialNow: at(15, 10), items: [[SETTINGS_KEY, h.values.get(SETTINGS_KEY)]] });
+  t.after(() => restored.controller.destroy());
+  assert.equal(restored.controller.getState().attendance.days[0].clockOut, null);
+  closeTo(restored.controller.getState().snapshot.earnedToday, state.snapshot.earnedToday);
+});
+
+test('撤回保存失败保留内存更正，重试只保存更正后的记录', async (t) => {
+  const { undoClockOut } = await import('../../app/income/src/attendance.js');
+  const enabled = { ...base, stealMode: true, clockMode: true };
+  const finished = setAttendanceTimes(createAttendance(at(8)), {
+    date: '2026-11-04', startAt: +at(9), endAt: +at(15), source: 'recorded',
+  }, at(15));
+  const original = saved(enabled, finished.attendance);
+  const h = harness({ initialNow: at(16), failWrite: true, items: [[SETTINGS_KEY, original]] });
+  t.after(() => h.controller.destroy());
+  const undo = undoClockOut(h.controller.getState().attendance, {
+    date: '2026-11-04', expectedClockOut: finished.attendance.days[0].clockOut,
+  }, at(16));
+  const result = h.controller.commitAttendance(undo.attendance);
+  assert.equal(result.applied, true);
+  assert.equal(result.persisted, false);
+  assert.equal(h.controller.getState().attendance.days[0].clockOut, null);
+  assert.equal(h.values.get(SETTINGS_KEY), original);
+  h.allowWrite();
+  assert.equal(h.controller.retrySave().persisted, true);
+  const restored = harness({ initialNow: at(16), items: [[SETTINGS_KEY, h.values.get(SETTINGS_KEY)]] });
+  t.after(() => restored.controller.destroy());
+  assert.equal(restored.controller.getState().attendance.days[0].clockOut, null);
+  assert.equal(restored.controller.getState().snapshot.earlyAmount, 0);
+});

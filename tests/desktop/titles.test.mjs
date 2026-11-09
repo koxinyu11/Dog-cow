@@ -192,3 +192,26 @@ test('boss-owes series unlocks silently: no toast, no unseen, no auto-wear', () 
   assert.ok(titlesView(state).items.some((item) => item.id === 'owed-100' && item.series === 'owed'));
   assert.deepEqual(owedSignals({ '2026-11-05': -1, '2026-11-06': Number.NaN }), []);
 });
+
+test('撤回修正当天资格、保留其他日期和已解锁职称，金额下降后可持久化', async () => {
+  const { correctDeparture } = await import('../../dist-electron/src/shared/titles/index.js');
+  const original = run([key('ontime', '2026-11-05'), key('ontime', '2026-11-04'), key('friday', '2026-11-05'), key('clockin', '2026-11-05')]).state;
+  const corrected = correctDeparture(original, '2026-11-05', T);
+  assert.deepEqual(corrected.keys.ontime, ['2026-11-04']);
+  assert.deepEqual(corrected.keys.friday, []);
+  assert.deepEqual(corrected.keys.clockin, ['2026-11-05']);
+  assert.deepEqual(corrected.unlocked, original.unlocked);
+  assert.deepEqual(corrected.worn, original.worn);
+  assert.deepEqual(original.keys.ontime, ['2026-11-05', '2026-11-04']);
+  const values = new Map();
+  const store = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
+  const titles = new Titles(store, () => null);
+  titles.load();
+  titles.record({ kind: 'steal', amount: 100 }, true);
+  titles.record({ kind: 'steal', amount: 1.23 }, true);
+  titles.record({ kind: 'owed', days: { [localDate()]: 0.12 } });
+  titles.settle();
+  const loaded = new Titles(store, () => null); loaded.load();
+  assert.equal(loaded.moneyLedgers().steal[localDate()], 123);
+  assert.equal(loaded.moneyLedgers().owed[localDate()], 12);
+});

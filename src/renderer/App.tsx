@@ -1,3 +1,5 @@
+import type { ClockOutTarget } from '../shared/contracts';
+import { receiptIsCurrent } from '../shared/offwork';
 import { useDisplayIncome } from './display-income';
 import { HopeManagerLauncher } from './features/fun/HopeManagerLauncher';
 import { TraySettings } from './features/tray/TraySettings';
@@ -186,6 +188,25 @@ export function App() {
   const patch = async (id: string, fields: Fields) => {
     await runTask({ action: 'update', id, patch: fields });
   };
+  const [undoClockOutBusy, setUndoClockOutBusy] = useState(false);
+  const undoInFlight = useRef(false);
+  useEffect(() => {
+    if (receipt && state && !receiptIsCurrent(receipt.income, receipt.date, state.income)) setReceipt(null);
+  }, [receipt, state]);
+  const undoDeparture = async (target: ClockOutTarget) => {
+    if (undoInFlight.current) return;
+    undoInFlight.current = true;
+    setUndoClockOutBusy(true);
+    try {
+      const result = await command('undoClockOut', { ...target }, 'income');
+      notify(result.applied && !result.persisted ? '已撤回下班，但本机保存失败，请重试保存。' : result.message, result.persisted ? 'ok' : 'error');
+    } finally { undoInFlight.current = false; setUndoClockOutBusy(false); }
+  };
+  const undoTodayDeparture = async () => {
+    const date = localDate(new Date(state!.income.now));
+    const fact = state!.income.attendance.days.find(day => day.date === date)?.clockOut;
+    if (fact) await undoDeparture({ date, expectedClockOut: fact });
+  };
   const openClock = async (action: string, date?: string) => {
     const result = await command('prepareClock', { action });
     if (result.code) setClock({ action, date, token: result.code, at: Number(result.errors?.at) });
@@ -319,6 +340,8 @@ export function App() {
               patch,
               openNew: () => setNew(true),
               openWeekly: () => setWeekly(true),
+              undoClockOut: undoTodayDeparture,
+              undoClockOutBusy,
               openClock: (action) => void openClock(action),
               openSettings,
               notify,
@@ -381,7 +404,12 @@ export function App() {
           <NewTask open={newTask} date={selected} onClose={() => setNew(false)} run={runTask} />
           <WeeklyDialog open={weekly} date={selected} onClose={() => setWeekly(false)} run={runTask} />
           {clock && <ClockEditor draft={clock} income={state.income} onClose={() => setClock(null)} notify={notify} onFinished={(income, date, completedTasks) => setReceipt({ income, date, completedTasks })} />}
-          {receipt && <OffworkReceipt income={receipt.income} date={receipt.date} completedTasks={receipt.completedTasks} onClose={() => {
+          {receipt && receiptIsCurrent(receipt.income, receipt.date, state.income) && <OffworkReceipt income={receipt.income} date={receipt.date} completedTasks={receipt.completedTasks}
+            undoBusy={undoClockOutBusy || state.income.attendancePendingSave || state.income.toilet?.pendingSave}
+            onUndo={receipt.date === localDate(new Date(state.income.now)) ? async () => {
+              const fact = receipt.income.attendance.days.find(day => day.date === receipt.date)?.clockOut;
+              if (fact) await undoDeparture({ date: receipt.date, expectedClockOut: fact });
+            } : undefined} onClose={() => {
             setReceipt(null);
             requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('.clock-main')?.focus());
           }} />}

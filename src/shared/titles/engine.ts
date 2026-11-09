@@ -49,6 +49,14 @@ export function applySignals(previous: TitlesState, signals: Signal[], now: numb
   return { state, unlocked, changed: changed || unlocked.length > 0 };
 }
 
+/** Correct departure eligibility while retaining every previously unlocked title. */
+export function correctDeparture(previous: TitlesState, date: string, now: number) {
+  const state = structuredClone(previous);
+  for (const signal of ['ontime', 'friday'] as const)
+    if (state.keys[signal]) state.keys[signal] = state.keys[signal]!.filter((key) => key !== date);
+  return applySignals(state, [], now).state;
+}
+
 /** Unlocks satisfied titles in place, repeating so meta titles see earlier unlocks. */
 function evaluate(state: TitlesState, now: number, titles: readonly TitleDef[]): TitleId[] {
   const fresh: TitleId[] = [];

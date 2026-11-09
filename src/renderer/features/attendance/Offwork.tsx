@@ -23,7 +23,7 @@ export function OffworkNotice({ income, openClock }: { income: IncomeState; open
   </aside>;
 }
 
-export function OffworkReceipt({ income, date, completedTasks, celebrate = true, onClose }: { income: IncomeState; date: string; completedTasks: number; celebrate?: boolean; onClose: () => void }) {
+export function OffworkReceipt({ income, date, completedTasks, celebrate = true, onClose, onUndo, undoBusy = false }: { income: IncomeState; date: string; completedTasks: number; celebrate?: boolean; onClose: () => void; onUndo?: () => Promise<void>; undoBusy?: boolean }) {
   const s = income.snapshot!;
   const day = income.attendance.days.find((item) => item.date === date)!;
   const animated = motionAllowed();
@@ -52,7 +52,7 @@ export function OffworkReceipt({ income, date, completedTasks, celebrate = true,
       </section>
     </div>
     {feedback && <p className="offwork-save-feedback" role="status">{feedback}</p>}
-    <div className="offwork-actions"><Button disabled={saving} onClick={async () => {
+    <div className="offwork-actions">{onUndo && <Button variant="ghost" disabled={saving || undoBusy} onClick={() => void onUndo()}>误触了，撤回下班</Button>}<Button disabled={saving || undoBusy} onClick={async () => {
       setSaving(true); setFeedback('');
       try {
         const result = await command('receiptImage', { png: receiptPng(date, `¥${money(s.earnedToday)}`, rows) });

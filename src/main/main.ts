@@ -62,7 +62,7 @@ import {
   type TaskState,
 } from '../shared/contracts.js';
 import { createController, type IncomeController } from './legacy-adapter.js';
-import { applyAttendanceAction, setAttendanceTimes } from '../../app/income/src/attendance.js';
+import { undoClockOut, applyAttendanceAction, setAttendanceTimes } from '../../app/income/src/attendance.js';
 import { HOME_MODULES } from '../../app/income/src/home-layout.js';
 import { BOARD_KEY, defaultBoard, validBoard, retireReceiptModule, type Board } from '../shared/board.js';
 import {
@@ -131,8 +131,9 @@ let acknowledgeFlush: ((ok: boolean) => void) | null = null;
 let commands: Promise<unknown> = Promise.resolve();
 let incomeBatch = false;
 let toiletPendingSave = false;
+let attendancePendingSave = false;
 let toiletPendingRecordId = '';
-let pendingToiletOffwork: { date: string } | null = null;
+let pendingToiletOffwork: { date: string; at: number; updatedAt: number } | null = null;
 let lastToiletWall = Date.now();
 let lastToiletMono = performance.now();
 let lastToiletZone = new Date().getTimezoneOffset();
@@ -188,7 +189,7 @@ function snapshot(): Snapshot {
     titles: titles?.view(),
     coins: coins?.view(),
     owed: income ? owedView() : undefined,
-    income: { ...structuredClone(income), ...(income.toilet ? { toilet: { ...structuredClone(income.toilet), pendingSave: toiletPendingSave, pendingRecordId: toiletPendingRecordId } } : {}) },
+    income: { ...structuredClone(income), attendancePendingSave, ...(income.toilet ? { toilet: { ...structuredClone(income.toilet), pendingSave: toiletPendingSave, pendingRecordId: toiletPendingRecordId } } : {}) },
     save: { dirty: repo.dirty, error: repo.error, readError: repo.readError },
     version: app.getVersion(),
     updates: releaseUpdater ? { ...releaseUpdater.state } : undefined,
@@ -384,6 +385,12 @@ async function maintainToilet(interruption?: 'sleep' | 'clock-change') {
 
 async function finish(result: Result): Promise<Result> {
   result.persisted = result.applied ? await repo.flush() : false;
+  if (result.persisted) attendancePendingSave = false;
+  if (result.applied && !result.persisted && attendancePendingSave) {
+    result.errorCode = 'ATTENDANCE_SAVE_FAILED';
+    result.correlationId = randomUUID();
+    console.error(JSON.stringify({ operation: 'attendance', stage: 'flush', errorCode: result.errorCode, correlationId: result.correlationId }));
+  }
   if (result.persisted && toiletPendingSave) { toiletPendingSave = false; toiletPendingRecordId = ''; }
   if (result.applied && !result.persisted && (toiletPendingSave || income.toilet?.records.some(item => item.status !== 'completed'))) {
     toiletPendingSave = true;
@@ -392,7 +399,9 @@ async function finish(result: Result): Promise<Result> {
     result.correlationId = failure.correlationId;
   }
   if (result.persisted && pendingToiletOffwork) {
-    result.offwork = { date: pendingToiletOffwork.date, income: structuredClone(income) };
+    const current = income.attendance.days.find(day => day.date === pendingToiletOffwork!.date)?.clockOut;
+    if (current?.at === pendingToiletOffwork.at && current.updatedAt === pendingToiletOffwork.updatedAt)
+      result.offwork = { date: pendingToiletOffwork.date, income: structuredClone(income) };
     pendingToiletOffwork = null;
   }
   broadcast();
@@ -607,7 +616,9 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     const result = await finish({ applied: true, persisted: false, message: '当前修改已保存。' });
     return result;
   }
-  if (toiletPendingSave && ['toilet', 'clock', 'settings', 'leave', 'removeLeave'].includes(method))
+  if (attendancePendingSave && ['undoClockOut', 'clock', 'settings', 'leave', 'removeLeave', 'toilet'].includes(method))
+    return { applied: false, persisted: false, message: '考勤修改尚未保存，请先重试保存。', errorCode: 'ATTENDANCE_SAVE_FAILED', snapshot: snapshot() };
+  if (toiletPendingSave && ['undoClockOut', 'toilet', 'clock', 'settings', 'leave', 'removeLeave'].includes(method))
     return { ...toiletFailure('TOILET_SAVE_FAILED'), snapshot: snapshot() };
   const requestId = typeof p.requestId === 'string' ? p.requestId : '';
   if (!requestId) throw Error('操作编号缺失，请重新提交。');
@@ -817,6 +828,27 @@ async function invoke(method: string, p: Fields): Promise<Result> {
   } else if (method === 'refreshCalendar') {
     await controller.refreshCalendar(true);
     return { ...toastResult('调休日历已检查。'), snapshot: snapshot() };
+  } else if (method === 'undoClockOut') {
+    expected(p, 'income');
+    const change = undoClockOut(income.attendance, p, new Date());
+    if (!change.ok || !('attendance' in change)) {
+      const correlationId = randomUUID();
+      const errorCode = 'ATTENDANCE_UNDO_REJECTED';
+      console.error(JSON.stringify({ operation: method, stage: 'validate', errorCode, correlationId, reason: 'code' in change ? change.code : 'invalid' }));
+      return { applied: false, persisted: false, message: 'message' in change ? String(change.message) : '考勤记录无效，未撤回下班。', errorCode, correlationId, snapshot: snapshot() };
+    }
+    result = controller.commitAttendance(change.attendance) as Result;
+    if (result.applied) {
+      attendancePendingSave = true;
+      pendingToiletOffwork = null;
+      titles.undoDeparture(String(p.date));
+      if (!income.calculationError && income.snapshot) titles.record({ kind: 'steal', amount: income.snapshot.stolenAmount }, true);
+      const owed = owedView();
+      if (!owedError && !income.calculationError && owed.ready)
+        titles.record({ kind: 'owed', days: { [String(p.date)]: 0, ...owed.days } }, true);
+      titles.settle();
+      result.message = '已撤回下班。';
+    }
   } else if (method === 'prepareClock') {
     const token = randomUUID();
     const action = String(p.action);
@@ -923,6 +955,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     if (toilet) { toiletPendingSave = true; toiletPendingRecordId = active!.id; }
     result = controller.commitAttendance(change.attendance, toilet) as Result;
     if (result.applied) {
+      attendancePendingSave = true;
       titles.record({ kind: 'clock', before: attendanceBefore, after: income.attendance });
       if (action === 'finish') recordSteal(true);
     }
@@ -935,7 +968,10 @@ async function invoke(method: string, p: Fields): Promise<Result> {
   const completed = await finish(result);
   if (!completed.persisted && result.applied && method === 'clock' && p.action === 'finish'
     && p.method === 'recorded' && p.date === localDate() && toiletPendingSave)
-    pendingToiletOffwork = { date: String(p.date) };
+    {
+      const fact = income.attendance.days.find(day => day.date === p.date)?.clockOut;
+      if (fact) pendingToiletOffwork = { date: String(p.date), at: fact.at, updatedAt: fact.updatedAt };
+    }
   return completed;
 }
 function requestQuit(): Promise<void> {

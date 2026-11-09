@@ -346,3 +346,47 @@ test('仅午休可补录且保留进行中的午休', () => {
   assert.equal(ended.attendance.days[0].clockIn, null);
   assert.equal(ended.attendance.days[0].breaks[0].end.source, 'backfill');
 });
+
+// Undo is a correction of one fact, not a restore of an old day snapshot.
+test('撤回下班保留上班、午休、模式事实；午休中误下班恢复午休', async () => {
+  const { undoClockOut } = await import('../../app/income/src/attendance.js');
+  let a = action(empty(), 'start', time(9));
+  a = action(a, 'pause', time(12));
+  a = action(a, 'finish', time(13));
+  const before = structuredClone(a);
+  const result = undoClockOut(a, { date, expectedClockOut: a.days[0].clockOut }, time(14));
+  assert.equal(result.ok, true, result.message);
+  assert.deepEqual(a, before);
+  assert.deepEqual(result.attendance, { ...before, days: [{ ...before.days[0], clockOut: null }] });
+  assert.equal(getAttendanceDay(result.attendance, date, time(14)).state, 'paused');
+  assert.equal(getAttendanceDay(result.attendance, date, time(14)).breakSeconds, 7200);
+  assert.equal(undoClockOut(result.attendance, { date, expectedClockOut: before.days[0].clockOut }, time(14)).code, 'undo-missing');
+});
+
+test('撤回拒绝历史日期、过期目标及损坏数据，不更改原记录', async () => {
+  const { undoClockOut } = await import('../../app/income/src/attendance.js');
+  const a = clocks(empty(), time(9).getTime(), time(15).getTime());
+  const target = { date, expectedClockOut: a.days[0].clockOut };
+  const before = structuredClone(a);
+  assert.equal(undoClockOut(a, target, time(16, 0, 5)).code, 'undo-date');
+  assert.equal(undoClockOut(a, { ...target, expectedClockOut: { ...target.expectedClockOut, updatedAt: 1 } }, time(19)).code, 'undo-conflict');
+  assert.equal(undoClockOut({}, target, time(19)).ok, false);
+  assert.deepEqual(a, before);
+});
+
+test('撤回弹性下班保留冻结排班，之后可按新时间再次下班', async () => {
+  const { undoClockOut } = await import('../../app/income/src/attendance.js');
+  const { buildFlexDay } = await import('../../app/income/src/flex.js');
+  const { validateSettings } = await import('../../app/income/src/calculator.js');
+  const settings = validateSettings({ monthlySalary: 8400, startTime: '09:00', endTime: '17:00', workdays: [1,2,3,4,5], calendarMode: 'weekly', stealMode: true, clockMode: true, flexEnabled: true, flexMode: 'shift' }).settings;
+  const { flex } = buildFlexDay(settings, date, +time(10));
+  assert.ok(flex);
+  const finished = setAttendanceTimes(empty(), { date, startAt: +time(10), endAt: +time(15), source: 'recorded', flex }, time(15));
+  assert.equal(finished.ok, true, finished.message);
+  const undone = undoClockOut(finished.attendance, { date, expectedClockOut: finished.attendance.days[0].clockOut }, time(16));
+  assert.equal(undone.ok, true, undone.message);
+  assert.deepEqual(undone.attendance.days[0].flex, flex);
+  const again = action(undone.attendance, 'finish', time(18));
+  assert.equal(again.days[0].clockOut.at, +time(18));
+  assert.deepEqual(again.days[0].flex, flex);
+});

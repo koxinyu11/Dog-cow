@@ -167,7 +167,12 @@ export interface ToiletState {
   pendingSave?: boolean;
   pendingRecordId?: string;
 }
+export interface ClockOutTarget {
+  date: string;
+  expectedClockOut: Pick<Fact, 'at' | 'updatedAt'>;
+}
 export interface IncomeState {
+  attendancePendingSave?: boolean;
   toilet?: ToiletState;
   settings: IncomeSettings | null;
   leaves: Leave[];
@@ -240,6 +245,7 @@ export const methods = [
   'toilet',
   'titles',
   'coins',
+  'undoClockOut',
   'prepareClock',
   'clock',
   'refreshCalendar',

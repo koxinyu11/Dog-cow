@@ -23,6 +23,12 @@ export function offworkNotice(income: IncomeState) {
   };
 }
 
+export function receiptIsCurrent(receipt: IncomeState, date: string, current: IncomeState) {
+  const expected = receipt.attendance.days.find(day => day.date === date)?.clockOut;
+  const actual = current.attendance.days.find(day => day.date === date)?.clockOut;
+  return !!expected && !!actual && expected.at === actual.at && expected.updatedAt === actual.updatedAt;
+}
+
 export function shouldCelebrateOffwork(action: string, method: string, date: string, before: IncomeState, result: Result) {
   const after = result.snapshot?.income;
   return action === 'finish' && method === 'recorded' && result.applied && result.persisted && !!after?.snapshot

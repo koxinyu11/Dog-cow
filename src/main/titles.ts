@@ -1,5 +1,5 @@
 import {
-  TITLES_KEY, applySignals, catalogProblems, changeTitles, clockSignals, funSignals, openSignals, owedSignals, parseTitles, stealSignals,
+  TITLES_KEY, correctDeparture, applySignals, catalogProblems, changeTitles, clockSignals, funSignals, openSignals, owedSignals, parseTitles, stealSignals,
   taskSignals, titlesView, viewOf, type DayFacts, type Signal, type TitleId, type TitlesAction, type TitlesState, type TitlesView,
 } from '../shared/titles/index.js';
 import type { Attendance, Task } from '../shared/contracts.js';
@@ -71,6 +71,13 @@ export class Titles {
     const money = event.kind === 'steal' || event.kind === 'owed';
     if (!money || force || result.unlocked.length || this.moneyMoved()) this.write();
     return result.unlocked;
+  }
+
+  /** A correction changes eligibility, never ownership or the user's worn title. */
+  undoDeparture(date: string) {
+    if (!this.state) return;
+    this.state = correctDeparture(this.state, date, Date.now());
+    this.write();
   }
 
   /** Flushes any in-memory steal amount not yet written (quit, day change). */

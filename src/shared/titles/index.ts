@@ -1,7 +1,7 @@
 export * from './types.js';
 export * from './signals.js';
 export { TITLES, SERIES, RULES_VERSION, RETIRED_IDS, catalogProblems, titleById, seriesById, rarityOf } from './catalog/index.js';
-export { applySignals, changeTitles, met, titlesView, viewOf, type TitlesAction } from './engine.js';
+export { correctDeparture, applySignals, changeTitles, met, titlesView, viewOf, type TitlesAction } from './engine.js';
 export { TITLES_KEY, emptyTitles, parseTitles } from './storage.js';
 export { taskSignals } from './collectors/task.js';
 export { clockSignals, type DayFacts } from './collectors/clock.js';
