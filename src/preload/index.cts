@@ -4,6 +4,8 @@ import type { Bridge, Method, Snapshot } from '../shared/contracts.js';
 const allowed = new Set([
   'appearance',
   'bootstrap',
+  'openPlayground',
+  'copyPlaygroundDiagnostics',
   'task',
   'copy',
   'layout',
@@ -44,6 +46,11 @@ const allowed = new Set([
   'quit',
 ]);
 const bridge: Bridge = {
+  playgroundError(callback) {
+    const handler = (_event: Electron.IpcRendererEvent, value: { message: string; correlationId: string }) => callback(value);
+    ipcRenderer.on('dogcow:playground-error', handler);
+    return () => ipcRenderer.removeListener('dogcow:playground-error', handler);
+  },
   openHopes(callback) {
     const handler = () => callback();
     ipcRenderer.on('dogcow:open-hopes', handler);

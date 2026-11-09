@@ -34,7 +34,7 @@ import { BoardContext, computeMetrics } from './board/metrics';
 import { fx } from './motion/fx';
 import { OffworkNotice, OffworkReceipt } from './features/attendance/Offwork';
 import type { IncomeState } from '../shared/contracts';
-import { BadgeCheck, CircleAlert, ClipboardList, LayoutGrid, Package, Palette, PanelTopClose, PanelTopOpen, Plus, Settings, Wallet, Wand2 } from 'lucide-react';
+import { BadgeCheck, CircleAlert, ClipboardList, LayoutGrid, Package, Palette, FerrisWheel, PanelTopClose, PanelTopOpen, Plus, Settings, Wallet, Wand2 } from 'lucide-react';
 import { Button, Emoji, IconButton, MenuProvider, Segmented, Toast } from './ui';
 
 const COPY_LABELS: Record<string, string> = {
@@ -71,6 +71,7 @@ export function App() {
     return () => { document.body.style.removeProperty('--capsule-window-surface'); };
   }, [capsuleSurface]);
   useEffect(installWindowTransition, []);
+  const [playgroundOpening, setPlaygroundOpening] = useState(false);
   const [bootDone, setBootDone] = useState(false);
   useEffect(() => {
     if (state) document.title = state.tasks.settings.appTitle;
@@ -83,6 +84,16 @@ export function App() {
   const [newTask, setNew] = useState(false);
   const [weekly, setWeekly] = useState(false);
   const [toast, setToast] = useState<{ text: string; tone?: 'ok' | 'error' }>({ text: '' });
+  useEffect(() => window.dogcow.playgroundError(({ message, correlationId }) => setToast({ text: `${message} 问题编号：${correlationId}`, tone: 'error' })), []);
+  const openPlayground = async () => {
+    if (playgroundOpening) return;
+    setPlaygroundOpening(true);
+    try {
+      const result = await window.dogcow.invoke('openPlayground');
+      if (!result.applied) setToast({ text: `${result.message || '游乐场打开失败，请重试。'}${result.correlationId ? ` 问题编号：${result.correlationId}` : ''}`, tone: 'error' });
+    } catch { setToast({ text: '游乐场打开失败，请重试。', tone: 'error' }); }
+    finally { setPlaygroundOpening(false); }
+  };
   const [celebrating, setCelebrating] = useState('');
   const [confetti, setConfetti] = useState(0);
   const [clock, setClock] = useState<{ action: string; date?: string; token: string; at: number } | null>(null);
@@ -255,6 +266,18 @@ export function App() {
           {!state.compact && board.background.kind === 'preset' && <Scene preset={board.background.value} />}
         </div>
         <div className="app-drag" aria-hidden="true" />
+        <IconButton
+          hidden={state.compact}
+          className="window-playground-toggle"
+          label="狗牛游乐场"
+          onContextMenu={event => { event.preventDefault(); void window.dogcow.invoke('copyPlaygroundDiagnostics').then(result => setToast({ text: result.message })).catch(() => setToast({ text: '诊断复制失败，请重试。', tone: 'error' })); }}
+          variant="ghost"
+          disabled={playgroundOpening}
+          aria-busy={playgroundOpening}
+          onClick={() => void openPlayground()}
+        >
+          <FerrisWheel size={17} />
+        </IconButton>
         <IconButton
           hidden={state.compact}
           className="window-compact-toggle"

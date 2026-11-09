@@ -1,3 +1,5 @@
+import { PlaygroundDiagnostics } from './playground-diagnostics.js';
+import { PlaygroundController } from './playground-controller.js';
 import { traySummary } from '../shared/tray-summary.js';
 import { TrayPanelController } from './tray-panel-controller.js';
 import { TrayController } from './tray-controller.js';
@@ -103,6 +105,8 @@ if (!app.requestSingleInstanceLock()) {
   void start();
 }
 let win: BrowserWindow | null = null;
+let playground: PlaygroundController | undefined;
+let playgroundDiagnostics: PlaygroundDiagnostics;
 let repo: Repository;
 let sequence = 0;
 let tasks: TaskState = emptyTasks();
@@ -453,6 +457,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
       return toastResult('显示模式无效。');
     nativeTheme.themeSource = p.mode === 'auto' ? 'system' : p.mode as 'light' | 'dark';
     win?.setBackgroundColor(windowBackground(p.resolved === 'dark'));
+    playground?.publishTheme();
     return toastResult('');
   }
   if (method === 'bootstrap') return { ...toastResult(''), snapshot: snapshot() };
@@ -1048,7 +1053,9 @@ async function doQuit() {
       return;
     }
   }
+  await playgroundDiagnostics?.read();
   quitting = true;
+  playground?.dispose();
   controller.destroy();
   trayPanel?.dispose();
   trayController?.dispose();
@@ -1139,6 +1146,43 @@ async function start() {
   win.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) =>
     callback(false),
   );
+  playgroundDiagnostics = new PlaygroundDiagnostics(path.join(profile, 'diagnostics'));
+  await playgroundDiagnostics.load();
+  let playgroundBuildId = 'development';
+  if (!devUrl) {
+    try { playgroundBuildId = JSON.parse(await readFile(path.join(root, 'build-info.json'), 'utf8')).buildId; }
+    catch { playgroundBuildId = 'unknown-build'; }
+  }
+  playground = new PlaygroundController({
+    environment: { version: app.getVersion(), buildId: playgroundBuildId },
+    record: (report, context) => playgroundDiagnostics.record(report, context),
+    preload: path.join(app.getAppPath(), 'dist-electron/src/preload/playground.cjs'),
+    url: devUrl ? `${devUrl}/playground.html` : 'dogcow://app/playground.html',
+    theme: () => nativeTheme.shouldUseDarkColors ? 'dark' : 'light',
+    failed: (message, correlationId) => {
+      if (win && !win.isDestroyed()) win.webContents.send('dogcow:playground-error', { message, correlationId });
+    },
+  });
+  ipcMain.handle('dogcow:playground', async (event, command: unknown, payload: unknown) => {
+    playground!.authorize(event.sender, event.senderFrame, command);
+    try {
+      if (command === 'report') return await playgroundDiagnostics.record(payload, playground!.context());
+      if (command === 'diagnostics') return await playgroundDiagnostics.read(payload);
+      if (command === 'copyDiagnostics') {
+        const data = await playgroundDiagnostics.read(payload);
+        if (payload && !data.entries.length) throw Error('未找到该问题编号。');
+        await clipboard.writeText(JSON.stringify(data, null, 2));
+        return;
+      }
+      return playground!.command(event.sender, event.senderFrame, command);
+    } catch (error) {
+      const id = playground!.diagnose(command === 'copyDiagnostics' ? 'clipboard' : 'ipc', error);
+      throw Error(`操作失败，问题编号：${id}`);
+    }
+  });
+  const playgroundTheme = () => playground?.publishTheme();
+  nativeTheme.on('updated', playgroundTheme);
+  app.once('will-quit', () => { nativeTheme.removeListener('updated', playgroundTheme); playground?.dispose(); });
   for (const method of methods)
     ipcMain.handle(`dogcow:${method}`, async (event, payload: unknown) => {
       const url = event.senderFrame?.url ?? '';
@@ -1186,6 +1230,22 @@ async function start() {
       if (method === 'quit' && record(payload) && payload.nonce === quitNonce && acknowledgeFlush) {
         acknowledgeFlush(payload.ready === true);
         return toastResult('');
+      }
+      // Native window readiness must never hold the serialized business queue.
+      if (method === 'copyPlaygroundDiagnostics') {
+        try {
+          const data = await playgroundDiagnostics.read();
+          await clipboard.writeText(JSON.stringify(data, null, 2));
+          return toastResult(data.warning ?? '已复制游乐场诊断信息。');
+        } catch (error) {
+          const id = playground!.diagnose('clipboard', error);
+          return { ...toastResult(`诊断复制失败，请重试。问题编号：${id}`), errorCode: 'PLAYGROUND_CLIPBOARD_FAILED', correlationId: id };
+        }
+      }
+      if (method === 'openPlayground') {
+        if (quitting || quitPending) return toastResult('正在退出，请稍后重试。');
+        const opened = await playground?.open();
+        return { ...toastResult(opened ? '' : playground?.lastFailure?.message ?? '游乐场打开失败，请点击摩天轮重试。'), applied: !!opened, ...(!opened ? { errorCode: playground?.lastFailure?.errorCode, correlationId: playground?.lastFailure?.correlationId } : {}) };
       }
       if (windows.phase === 'applying' || windows.phase === 'restoring') return toastResult('窗口正在切换，请稍后重试。');
       const job = commands

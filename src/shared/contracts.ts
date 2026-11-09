@@ -232,6 +232,8 @@ export interface Result {
 export const methods = [
   'appearance',
   'bootstrap',
+  'openPlayground',
+  'copyPlaygroundDiagnostics',
   'task',
   'copy',
   'layout',
@@ -273,6 +275,7 @@ export const methods = [
 ] as const;
 export type Method = (typeof methods)[number];
 export interface Bridge {
+  playgroundError(callback: (value: { message: string; correlationId: string }) => void): () => void;
   openHopes(callback: () => void): () => void;
   openIncomeSettings(callback: () => void): () => void;
   trayPanel(callback: (value: import('./tray.js').TrayPanelEvent) => void): () => void;

@@ -1,0 +1,43 @@
+body { margin: 0; background: var(--c-page); color: var(--c-ink); font-family: var(--f-sans); }
+.pg-app, .pg-app * { box-sizing: border-box; }
+.pg-app { min-height: 100vh; background: radial-gradient(ellipse at 80% 15%, color-mix(in srgb, var(--c-brand-2) 60%, transparent), transparent 65%); }
+.pg-titlebar { height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 0 26px; -webkit-app-region: drag; color: var(--c-muted); font-size: 11px; }
+.is-mac .pg-titlebar { padding-left: 98px; }
+.pg-titlebar > span { display: inline-flex; align-items: center; gap: 8px; }
+.pg-local { letter-spacing: .08em; }
+.pg-app main { max-width: 1120px; margin: auto; padding: 36px 48px 24px; }
+.pg-heading h1 { font: 600 clamp(30px, 4.6vw, 46px)/1.25 var(--f-display); margin: 15px 0 12px; letter-spacing: -.035em; }
+.pg-heading p { color: var(--c-muted); font-size: 14px; margin: 0; }
+.pg-eyebrow { color: var(--c-brand); font-size: 11px; font-weight: 600; letter-spacing: .12em; display: flex; gap: 8px; align-items: center; }
+.pg-eyebrow > span { width: 6px; height: 6px; border-radius: 50%; background: var(--c-brand); }
+.pg-empty { margin-top: 27px; border: 1px solid var(--c-line); border-radius: 24px; overflow: hidden; background: var(--c-surface); text-align: center; }
+.pg-park { display: block; margin: 0 auto; width: min(100%, 680px); height: clamp(180px, 32vh, 260px); color: var(--c-brand); }
+.pg-wheel { transform-origin: 360px 145px; animation: pg-turn 90s linear infinite; }
+.pg-empty-copy { padding: 0 20px 28px; }
+.pg-ticket { display: inline-flex; gap: 7px; align-items: center; color: var(--c-brand); background: var(--c-brand-2); border: 1px dashed color-mix(in srgb, var(--c-brand) 30%, transparent); border-radius: 7px; font-size: 11px; padding: 6px 12px; }
+.pg-empty h2 { font-size: 21px; font-weight: 600; margin: 15px 0 8px; }
+.pg-empty p { color: var(--c-muted); font-size: 13px; margin: 0; }
+.pg-footer { display: flex; justify-content: center; gap: 8px; align-items: center; color: var(--c-muted); font-size: 11px; padding-top: 22px; }
+.pg-catalog { margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
+.pg-game-card { font: inherit; text-align: left; cursor: pointer; color: var(--c-ink); padding: 24px; background: var(--c-surface); border: 1px solid var(--c-line); border-radius: 20px; }
+.pg-game-card:hover { border-color: var(--c-brand); }
+.pg-game-icon { display: block; font-size: 40px; margin-bottom: 22px; }
+.pg-game-card small, .pg-game-card p { color: var(--c-muted); font-size: 12px; }
+.pg-game-card h2 { font-size: 20px; }
+.pg-play { display: flex; align-items: center; gap: 6px; color: var(--c-brand); font-size: 13px; margin-top: 24px; }
+.pg-game-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
+.pg-game-bar h2 { flex: 1; margin: 0; font-size: 18px; }
+.pg-stage { position: relative; min-height: 360px; }
+.pg-pause { position: absolute; inset: 0; display: grid; place-items: center; background: var(--c-backdrop); border-radius: 18px; }
+.pg-feedback { min-height: 300px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+.pg-feedback h1, .pg-feedback h2, .pg-feedback p { margin: 0; }
+.pg-app button:focus-visible { outline: 3px solid var(--c-brand); outline-offset: 4px; }
+@keyframes pg-turn { to { transform: rotate(360deg); } }
+@media (max-width: 760px) { .pg-app main { padding: 24px 26px; } .pg-park { height: 190px; } .pg-footer { font-size: 10px; } }
+@media (prefers-reduced-motion: reduce) { .pg-wheel { animation: none; } }
+
+.pg-diagnostics { margin-top: 20px; font-size: 11px; color: var(--c-muted); }
+.pg-diagnostics summary { cursor: pointer; padding: 8px 0; overflow-wrap: anywhere; }
+.pg-diagnostics pre { max-height: 260px; overflow: auto; padding: 12px; background: var(--c-surface); color: var(--c-ink); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.pg-diagnostic-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.pg-diagnostic-actions input { flex: 1; min-width: 240px; padding: 8px; border: 1px solid var(--c-line); border-radius: 8px; background: var(--c-surface); color: var(--c-ink); }
