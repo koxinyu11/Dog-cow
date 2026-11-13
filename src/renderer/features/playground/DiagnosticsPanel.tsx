@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Activity } from 'lucide-react';
 import { Button } from '../../ui';
 import { validDiagnosticId, type DiagnosticReceipt, type DiagnosticView, type PlaygroundReport } from '../../../shared/playground-diagnostics';
 import { localDiagnostics } from './game-diagnostics';
@@ -22,14 +23,16 @@ export function DiagnosticsPanel() {
     return () => window.removeEventListener('playground:diagnostic', listen);
   }, []);
   return <aside className="pg-diagnostics">
-    {notice && <p role="alert">{notice}</p>}
+    {notice && <p className="pg-diagnostic-notice" role="alert">{notice}<button aria-label="关闭" onClick={() => setNotice('')}>×</button></p>}
     <details onToggle={event => { if (event.currentTarget.open) void refresh(); }}>
-      <summary>错误诊断</summary>
+      <summary aria-label="错误诊断" title="错误诊断"><Activity size={14} aria-hidden="true" /></summary>
+      <div className="pg-diagnostic-pop">
       <div className="pg-diagnostic-actions"><input aria-label="问题编号" placeholder="问题编号（留空查看最近记录）" value={id} onChange={e => setId(e.target.value)} /><Button size="sm" onClick={() => void refresh()}>查询</Button><Button size="sm" onClick={() => void window.playground.copyDiagnostics(id || undefined).then(() => setMessage('已复制诊断信息。')).catch(() => setMessage('复制失败，请先查询后复制展开的记录。'))}>复制诊断</Button></div>
       {message && <p role="status">{message}</p>}
       {data.storageError && <details><summary>诊断存储失败原因</summary><pre>{JSON.stringify(data.storageError, null, 2)}</pre></details>}
       {data.entries.map(entry => <details key={entry.correlationId}><summary>{entry.time} · {entry.gameId ?? '窗口/未归属游戏'} · {entry.stage} · {entry.correlationId}</summary><pre>{JSON.stringify(entry, null, 2)}</pre></details>)}
       {!data.entries.length && localDiagnostics().length > 0 && <details><summary>当前页面暂存记录</summary><pre>{JSON.stringify(localDiagnostics(), null, 2)}</pre></details>}
+      </div>
     </details>
   </aside>;
 }
