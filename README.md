@@ -6,7 +6,7 @@
 
 给打工狗和上班牛的桌面搭子：记待办、养小牛，顺便看看今天赚了几口草。
 
-[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.1.0-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.1.0/DogCow-arm64-3.1.0.dmg)
+[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.2.0-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.0/DogCow-arm64-3.2.0.dmg)
 [![所有版本](https://img.shields.io/badge/所有版本-Releases-343b36?style=for-the-badge&logo=github&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases)
 
 [怎么安装](#下载安装) &nbsp; · &nbsp; [能做什么](#主要功能) &nbsp; · &nbsp; [最近更新](#最新版更新) &nbsp; · &nbsp; [常见问题](#常见问题) &nbsp; · &nbsp; [技术栈](#技术栈) &nbsp; · &nbsp; [隐私说明](#隐私说明)
@@ -17,13 +17,13 @@
 
 ## 下载安装
 
-**Mac · Apple Silicon（M 系列芯片） · v3.1.0**
+**Mac · Apple Silicon（M 系列芯片） · v3.2.0**
 
 | 安装方式 | 下载 | 怎么装 |
 | :--- | :--- | :--- |
-| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.1.0/DogCow-arm64-3.1.0.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
-| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.1.0/DogCow-darwin-arm64-3.1.0.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
-| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.1.0/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
+| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.0/DogCow-arm64-3.2.0.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
+| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.0/DogCow-darwin-arm64-3.2.0.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
+| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.0/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
 
 > 本次仅提供 **Apple Silicon（arm64）** 安装包，暂不提供 Intel Mac 和 Windows 包。安装包采用本地测试签名，尚未完成 Apple Developer ID 签名和公证；若 macOS 阻止打开，请先确认来源，再查看“系统设置 → 隐私与安全性”的允许打开选项。
 
@@ -51,7 +51,7 @@ npm run dev
 
 早上打开狗牛，把今天要啃的活儿列好。做完一件，小牛就离草地近一点；忙累了，看看收入时钟和下班倒计时——今天的草料，心里有数。
 
-以下为源码版本的主要功能；正式安装包当前仍为 v3.1.0，新增功能将在下一次发布后提供。
+以下为当前正式版的主要功能。
 
 | | 狗牛能帮你 | 怎么用 |
 | :---: | :--- | :--- |
@@ -83,9 +83,9 @@ npm run dev
 
 ## 最新版更新
 
-当前正式版为 **v3.1.0**，提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。以下按已发布标签及对应提交整理；测试和维护版本单独注明，历史平台支持不代表当前安装包范围。
+当前正式版为 **v3.2.0**，提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。以下按已发布标签及对应提交整理；测试和维护版本单独注明，历史平台支持不代表当前安装包范围。
 
-### v3.2.0 · 发布候选，尚未上线
+### [v3.2.0](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.2.0) · 当前正式版
 
 工位上多一点乐子，桌面上少漏一件事。
 
@@ -96,9 +96,7 @@ npm run dev
 - **工资能买啥**：各尺寸采用独立布局，新增快乐货架与月份格子。
 - **保存与恢复**：新增游戏数据随本机快照保存并纳入备份；德州兑换在结果不确定时核对原操作，重试不另建扣款请求。异常存档会保留原数据并停止操作。
 
-发布前请先导出备份。当前下载按钮仍指向已发布的 v3.1.0；本次已指定 v3.2.0，由发布工作流完成构建与附件校验。新版本附件校验及公开发布成功后，再切换下载链接。
-
-### [v3.1.0](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.1.0) · 当前正式版
+### [v3.1.0](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.1.0)
 
 新增下班撤回、自定义带薪活动、狗牛币与动态壁纸、Mac 一键安装更新和自欺欺人显示模式；修复金额账本及保存恢复问题。
 
@@ -287,7 +285,7 @@ v3.0.2 采用以下技术：
 <details>
 <summary><strong>下载链接打不开，或者下载失败怎么办？</strong></summary>
 
-可以从 [Releases 页面](https://github.com/koxinyu11/Dog-cow/releases) 展开对应版本的 Assets，选择 `DogCow-arm64-3.1.0.dmg` 或 `DogCow-darwin-arm64-3.1.0.zip`。下载中断时请重新下载并完整解压，仍有问题可在 Issues 反馈。
+可以从 [Releases 页面](https://github.com/koxinyu11/Dog-cow/releases) 展开对应版本的 Assets，选择 `DogCow-arm64-3.2.0.dmg` 或 `DogCow-darwin-arm64-3.2.0.zip`。下载中断时请重新下载并完整解压，仍有问题可在 Issues 反馈。
 
 </details>
 
