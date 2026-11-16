@@ -25,4 +25,8 @@ export interface LocalGame {
   load(): Promise<{ default: ComponentType<GameProps> }>;
 }
 /** Explicit, offline catalog. Add a game directory and one lazy import here. */
-export const games: readonly LocalGame[] = [];
+export const games: readonly LocalGame[] = [{
+  id: 'desk-fishing', title: '工位钓鱼', description: '抛一竿，等一点水下的动静。收集小鱼，逛逛河边杂货铺。',
+  icon: '🎣', category: '休闲', accent: 'grass', minutes: 1, controls: 'mouse', addedAt: '2026-11-14',
+  tags: ['钓鱼', '养老', '收集', '图鉴'], load: () => import('./games/desk-fishing'),
+}];

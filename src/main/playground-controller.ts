@@ -139,8 +139,8 @@ export class PlaygroundController {
     this.lastFailure = { message: PLAYGROUND_ERRORS[code], correlationId, errorCode: code };
     this.deps.failed(this.lastFailure.message, correlationId);
   }
-  diagnose(stage: DiagnosticStage, cause: unknown) {
-    const report: PlaygroundReport = { correlationId: randomUUID(), runId: this.sessionId, stage, errors: errorDetails(cause) };
+  diagnose(stage: DiagnosticStage, cause: unknown, gameId?: string) {
+    const report: PlaygroundReport = { correlationId: randomUUID(), runId: this.sessionId, stage, errors: errorDetails(cause), ...(gameId ? { gameId } : {}) };
     if (this.deps.record) void this.deps.record(report, this.context()).catch(() => console.error('游乐场诊断暂时无法保存。'));
     else console.error(JSON.stringify({ ...report, ...this.context() }));
     return report.correlationId;

@@ -1,3 +1,5 @@
+import { Fishing, FishingError } from './fishing.js';
+import { FISHING_KEY, type FishingRequest, type FishingReply } from '../shared/fishing.js';
 import { PlaygroundDiagnostics } from './playground-diagnostics.js';
 import { PlaygroundController } from './playground-controller.js';
 import { traySummary } from '../shared/tray-summary.js';
@@ -154,6 +156,7 @@ let unsubscribe: (() => void) | null = null;
 let income: IncomeState;
 let titles: Titles;
 let coins: Coins;
+let fishing: Fishing;
 let owedData = emptyOwed();
 let owedError = '';
 let stealDay = '';
@@ -295,6 +298,7 @@ function restoreModels() {
   titles.load();
   coins = new Coins(repo.storage, () => titles.moneyLedgers());
   coins.load();
+  fishing = new Fishing(repo.storage, coins);
   try {
     owedData = parseOwed(repo.storage.getItem(OWED_KEY));
     owedError = '';
@@ -392,6 +396,7 @@ async function finish(result: Result): Promise<Result> {
   if (result.applied) titles?.settle();
   result.persisted = result.applied ? await repo.flush() : false;
   if (result.persisted) {
+    fishing?.confirmSaved();
     attendancePendingSave = false;
     const outcome = coins?.confirmSaved();
     if (outcome) result.coinOutcome = outcome;
@@ -592,12 +597,14 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     const backup = await repo.backup('before-import');
     // An older pack without a wallet keeps the current one, so restored ledgers cannot be exchanged twice.
     const currentCoins = repo.storage.getItem(COINS_KEY);
+    const currentFishing = repo.storage.getItem(FISHING_KEY);
     repo.values = new Map(
       Object.entries(pending.values).filter(
         (pair): pair is [string, string] => typeof pair[1] === 'string',
       ),
     );
     if (typeof pending.values[COINS_KEY] !== 'string' && currentCoins !== null) repo.values.set(COINS_KEY, currentCoins);
+    if (typeof pending.values[COINS_KEY] !== 'string' && currentFishing !== null) repo.values.set(FISHING_KEY, currentFishing);
     repo.readError = '';
     repo.revision++;
     repo.migration = {
@@ -1166,6 +1173,35 @@ async function start() {
   ipcMain.handle('dogcow:playground', async (event, command: unknown, payload: unknown) => {
     playground!.authorize(event.sender, event.senderFrame, command);
     try {
+      if (command === 'fishing') {
+        const job = commands.then(async (): Promise<FishingReply> => {
+          try {
+            if (!record(payload) || typeof payload.action !== 'string') throw new FishingError('FISHING_RULE', '操作参数无效。');
+            if (quitting || quitPending || repo.migration?.phase === 'pending' || repo.readError) throw new FishingError('FISHING_UNAVAILABLE', '本机数据暂不可用，请先在主界面处理。');
+            const request = payload as unknown as FishingRequest;
+            if (request.action === 'retry') await finish({ applied: true, persisted: false, message: '' });
+            else {
+              // Snapshot and wallet writes run in the same queue as all existing business commands.
+              fishing.execute(request);
+              if (request.action !== 'view') await finish({ applied: true, persisted: false, message: '' });
+            }
+            const view = fishing.view();
+            if (view.pending) {
+              const correlationId = playground!.diagnose('persistence', Error('钓鱼操作快照保存失败'), 'desk-fishing');
+              return { view, errorCode: 'FISHING_SAVE_FAILED', error: '本次操作尚未保存，请保留窗口并重试保存。', correlationId };
+            }
+            return { view };
+          } catch (error) {
+            const correlationId = playground!.diagnose('ipc', error, 'desk-fishing');
+            let view;
+            try { view = fishing.view(); } catch { /* Invalid saves stay locked and untouched. */ }
+            return { view, errorCode: error instanceof FishingError ? error.code : 'FISHING_FAILED',
+              error: error instanceof FishingError ? error.message : '钓鱼记录暂不可用，原始数据保留，请重试或查看诊断。', correlationId };
+          }
+        });
+        commands = job;
+        return job;
+      }
       if (command === 'report') return await playgroundDiagnostics.record(payload, playground!.context());
       if (command === 'diagnostics') return await playgroundDiagnostics.read(payload);
       if (command === 'copyDiagnostics') {
