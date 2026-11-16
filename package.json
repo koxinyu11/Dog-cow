@@ -20,6 +20,7 @@
     "test:legacy": "node --test tests/app.test.cjs tests/income/*.test.js && python3 tests/auto_sync_test.py",
     "test:migration": "node --test tests/migration/*.test.js",
     "postinstall": "node scripts/patch-build-dependencies.mjs",
+    "test:desktop-notes": "npm run build && node --test tests/desktop/desktop-notes*.test.mjs && node scripts/test-desktop-notes-drafts.mjs && node scripts/test-desktop-notes.mjs",
     "test:playground": "npm run build && node scripts/test-playground.mjs"
   },
   "engines": {

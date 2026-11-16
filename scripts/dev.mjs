@@ -2,6 +2,9 @@ import { spawn } from 'node:child_process';
 import { watch } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 const children = new Set();
+const entry = process.argv.includes('--desktop-notes-prototype')
+  ? 'dist-electron/src/main/desktop-notes-prototype.js'
+  : '.';
 const start = (args, env = {}) => {
   const child = spawn(process.execPath, args, {
     stdio: 'inherit',
@@ -39,7 +42,7 @@ if (!ready) {
   stop();
   throw Error('Vite 未能就绪。');
 }
-let electron = start(['node_modules/electron/cli.js', '.'], {
+let electron = start(['node_modules/electron/cli.js', entry], {
   DOGCOW_DEV_URL: 'http://127.0.0.1:5180',
 });
 let timer;
@@ -55,7 +58,7 @@ const watcher = watch('src', { recursive: true }, (_event, file) => {
     compile.on('exit', (code) => {
       if (code !== 0) return;
       electron.once('exit', () => {
-        electron = start(['node_modules/electron/cli.js', '.'], {
+        electron = start(['node_modules/electron/cli.js', entry], {
           DOGCOW_DEV_URL: 'http://127.0.0.1:5180',
         });
       });

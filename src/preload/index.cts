@@ -7,6 +7,7 @@ const allowed = new Set([
   'openPlayground',
   'copyPlaygroundDiagnostics',
   'task',
+  'desktopNotes',
   'copy',
   'layout',
   'board',
@@ -46,6 +47,11 @@ const allowed = new Set([
   'quit',
 ]);
 const bridge: Bridge = {
+  openDesktopNotes(callback) {
+    const listener = (_event: Electron.IpcRendererEvent, id?: string) => callback(id);
+    ipcRenderer.on('dogcow:open-desktop-notes', listener);
+    return () => ipcRenderer.removeListener('dogcow:open-desktop-notes', listener);
+  },
   playgroundError(callback) {
     const handler = (_event: Electron.IpcRendererEvent, value: { message: string; correlationId: string }) => callback(value);
     ipcRenderer.on('dogcow:playground-error', handler);

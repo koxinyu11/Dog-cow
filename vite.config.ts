@@ -42,6 +42,8 @@ export default defineConfig(({ command }) => {
         input: {
           main: fileURLToPath(new URL('./src/renderer/index.html', import.meta.url)),
           playground: fileURLToPath(new URL('./src/renderer/playground.html', import.meta.url)),
+          desktopNotes: fileURLToPath(new URL('./src/renderer/desktop-notes.html', import.meta.url)),
+          notesPrototype: fileURLToPath(new URL('./src/renderer/desktop-notes-prototype.html', import.meta.url)),
         },
       },
     },

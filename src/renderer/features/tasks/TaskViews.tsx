@@ -3,7 +3,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { Fields, Task } from '../../../shared/contracts';
 import { addDays, matchesDate, weekDates } from '../../../domain/tasks/model';
 import { dateLabel, weekNames } from '../../format';
-import { ArrowLeft, ArrowRight, ArrowRightToLine, CalendarRange, Clock, Plus, Sprout, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowRightToLine, CalendarRange, Clock, Plus, Sprout, StickyNote, Trash2 } from 'lucide-react';
 import { Button, Check, Chip, Emoji, IconButton } from '../../ui';
 import { CowProgress } from './CowProgress';
 
@@ -40,6 +40,10 @@ function Toggle({ task, act }: { task: Task; act: TaskViewProps['act'] }) {
       onChange={() => void act('toggle', task.id, {}, node(task.id))}
     />
   );
+}
+
+function Pin({ task, act }: { task: Task; act: TaskViewProps['act'] }) {
+  return <IconButton className="dn-pin" size="sm" variant="ghost" label={`贴到桌面：${task.title}`} onClick={() => void act('desktop-pin', task.id)}><StickyNote size={13}/></IconButton>;
 }
 
 function Empty({ openNew, locked }: { openNew: () => void; locked: boolean }) {
@@ -123,6 +127,7 @@ export function TasksMedium({ tasks, selected, today, select, act, celebrating, 
                 </div>
                 <CowProgress variant="slim" task={task} act={act} celebrating={celebrating === task.id} />
               </div>
+              <Pin task={task} act={act}/>
             </div>
           ))
         )}
@@ -166,7 +171,7 @@ export function TasksWide({ tasks, selected, today, select, act, celebrating, op
             <article key={task.id} className={`tv-card ${task.done ? 'is-done' : ''}`} data-task-id={task.id}>
               <div className="tv-card-head">
                 <Toggle task={task} act={act} />
-                <b>{task.title}</b>
+                <b>{task.title}</b><Pin task={task} act={act}/>
               </div>
               <div className="tv-card-meta">
                 <Chip tone={tone(task.priority)}>{task.priority}</Chip>
@@ -230,7 +235,7 @@ export function TasksTall({ tasks, selected, today, select, act, celebrating, op
                   {task.dueDate && !task.done && task.dueDate <= today && <Chip tone="high">{task.dueDate < today ? '逾期' : '今天截止'}</Chip>}
                 </div>
                 <CowProgress variant="slim" task={task} act={act} celebrating={celebrating === task.id} />
-                <div className="tv-step-actions">
+                <div className="tv-step-actions"><Pin task={task} act={act}/>
                   {!task.done && (
                     <IconButton size="sm" variant="ghost" label="顺延到下一天" onClick={() => void act('move', task.id)}>
                       <ArrowRightToLine size={13} />

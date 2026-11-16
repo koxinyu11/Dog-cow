@@ -1,0 +1,30 @@
+.desktop-notes-manager { width: min(860px, 94vw); }
+.dn-toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 0 16px; flex-wrap: wrap; border-bottom: 1px solid var(--c-line); }
+.dn-message, .dn-pending { color: var(--c-danger); font-size: 12px; padding: 10px 0; }
+.dn-pending { display: flex; gap: 12px; align-items: center; }
+.dn-list { padding: 8px 0 16px; }
+.dn-row { display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--c-line); }
+.dn-row > svg { flex: none; color: var(--c-brand); }
+.dn-row-title { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.dn-row-title strong { font-size: 13px; overflow-wrap: anywhere; }
+.dn-row-title span, .dn-pick-row time { font-size: 11px; color: var(--c-muted); }
+.dn-empty { padding: 30px 12px; color: var(--c-muted); text-align: center; font-size: 13px; }
+.dn-empty svg { margin: auto; }
+.dn-editor { padding: 16px 0; }
+.dn-editor-title { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.dn-editor-title input, .dn-search { border: 1px solid var(--c-line); padding: 9px 11px; background: var(--c-surface-solid); color: var(--c-ink); border-radius: 6px; font: inherit; }
+.dn-editor-title input { flex: 1; min-width: 0; }
+.dn-editor-title span { color: var(--c-muted); font-size: 12px; }
+.dn-members { padding: 0; list-style: none; max-height: 200px; overflow: auto; margin: 0 0 16px; }
+.dn-members li { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; border-bottom: 1px solid var(--c-line); padding: 7px 0; }
+.dn-members li > span { min-width: 0; overflow-wrap: anywhere; }
+.dn-members li > div { display: flex; flex: none; gap: 4px; }
+.dn-done { text-decoration: line-through; color: var(--c-muted); }
+.dn-search { width: 100%; margin-bottom: 8px; }
+.dn-picker { max-height: 280px; overflow: auto; }
+.dn-pick-row { display: flex; align-items: center; gap: 12px; justify-content: space-between; border-bottom: 1px solid var(--c-line); padding: 9px 2px; }
+.dn-pick-row > :first-child { flex: 1; min-width: 0; }
+.dn-pick-row time { flex: none; }
+.dn-editor-foot { display: flex; justify-content: flex-end; gap: 10px; padding-top: 18px; }
+.dn-pin { opacity: .45; }
+.dn-pin:hover, .dn-pin:focus-visible { opacity: 1; }

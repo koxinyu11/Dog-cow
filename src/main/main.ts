@@ -1,4 +1,7 @@
 import { Fishing, FishingError } from './fishing.js';
+import { DesktopNotesStore } from './desktop-notes-store.js';
+import { createDesktopNotesController, type DesktopNotesController } from './desktop-notes-controller.js';
+import { projectTasks } from '../shared/desktop-notes.js';
 import { FISHING_KEY, type FishingRequest, type FishingReply } from '../shared/fishing.js';
 import { PlaygroundDiagnostics } from './playground-diagnostics.js';
 import { PlaygroundController } from './playground-controller.js';
@@ -108,6 +111,8 @@ if (!app.requestSingleInstanceLock()) {
 }
 let win: BrowserWindow | null = null;
 let playground: PlaygroundController | undefined;
+let notesStore: DesktopNotesStore;
+let noteWindows: DesktopNotesController | undefined;
 let playgroundDiagnostics: PlaygroundDiagnostics;
 let repo: Repository;
 let sequence = 0;
@@ -182,6 +187,7 @@ function hopeHolidays() {
 function snapshot(): Snapshot {
   const windowState = windows?.snapshot() ?? { ...windowStore.value, phase: 'idle' as const, dirty: windowStore.dirty, warning: windowStore.warning };
   return {
+    desktopNotes: notesStore ? { ...notesStore.view(repo.dirty), alwaysOnTop: noteWindows?.alwaysOnTop ?? false, layoutPending: noteWindows?.layoutPending, windowError: noteWindows?.windowError, layoutError: noteWindows?.layoutError } : undefined,
     tray: trayController ? { ...trayController.state, ...panelError } : undefined,
     compact: windowState.mode === 'capsule',
     window: windowState,
@@ -212,6 +218,7 @@ function panelData(): TrayPanelData {
     theme: nativeTheme.shouldUseDarkColors ? 'dark' : 'light' };
 }
 function broadcast() {
+  noteWindows?.refresh();
   if (trayController && income) trayController.update(trayView({ income, tasks, taskError }, windowStore.value.tray?.display ?? 'icon'));
   trayPanel?.publish();
   if (win && !win.isDestroyed()) win.webContents.send('dogcow:state', snapshot());
@@ -246,6 +253,8 @@ function restoreModels() {
     tasks = emptyTasks();
     taskError = '任务数据读取失败，任务编辑已锁定；原数据未被覆盖。';
   }
+  notesStore = new DesktopNotesStore(repo.storage);
+  notesStore.load();
   layout = {
     version: 1,
     order: [...moduleIds],
@@ -360,6 +369,7 @@ function expected(payload: Fields, domain: keyof typeof revisions) {
 }
 function persistTask() {
   repo.storage.setItem(taskKey, JSON.stringify(tasks));
+  notesStore?.prune(tasks.tasks);
   revisions.tasks++;
 }
 function toiletFailure(errorCode: keyof typeof TOILET_ERRORS, message: string = TOILET_ERRORS[errorCode]): Result {
@@ -637,6 +647,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     throw Error('导入尚未完成校验，业务写入暂停，请重新打开应用。');
   if (method === 'retrySave') {
     const result = await finish({ applied: true, persisted: false, message: '当前修改已保存。' });
+    if (noteWindows && !await noteWindows.flush()) return { ...result, persisted: false, message: noteWindows.layoutError ?? '便签位置尚未保存。', snapshot: snapshot() };
     return result;
   }
   if (attendancePendingSave && ['undoClockOut', 'clock', 'settings', 'leave', 'removeLeave', 'toilet'].includes(method))
@@ -648,7 +659,20 @@ async function invoke(method: string, p: Fields): Promise<Result> {
   if (repo.receipts.includes(requestId))
     return { applied: true, persisted: !repo.dirty && !repo.readError, message: repo.dirty ? '操作已处理，请重试保存。' : '操作已处理。', snapshot: snapshot() };
   let result: Result = { applied: true, persisted: false, message: '已保存。' };
-  if (method === 'task') {
+  let notePreferenceSaved = true;
+  if (method === 'desktopNotes') {
+    if (p.action === 'alwaysOnTop') {
+      if (typeof p.enabled !== 'boolean' || !noteWindows) throw Error('置顶选项无效，请重试。');
+      notePreferenceSaved = await noteWindows.setAlwaysOnTop(p.enabled);
+    } else if (p.action === 'positions') {
+      if (noteWindows && !await noteWindows.resetPositions()) throw Error(noteWindows.layoutError || noteWindows.windowError || '位置重置未完成。');
+    } else {
+      if (taskError && ['pin', 'create', 'update'].includes(String(p.action))) throw Error(taskError);
+      const id = notesStore.execute(p, tasks.tasks);
+      if (id && (p.action === 'pin' || p.action === 'create' || p.action === 'visible' && p.visible === true)) setImmediate(() => noteWindows?.reveal(id));
+      if (p.action === 'line' && p.visible === true) setImmediate(() => noteWindows?.reveal());
+    }
+  } else if (method === 'task') {
     expected(p, 'tasks');
     if (taskError) throw Error(taskError);
     const before = structuredClone(tasks);
@@ -989,6 +1013,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     repo.dirty = true;
   }
   const completed = await finish(result);
+  if (!notePreferenceSaved) return { ...completed, persisted: false, message: noteWindows?.layoutError || '置顶选项尚未保存，请重试保存。', snapshot: snapshot() };
   if (!completed.persisted && result.applied && method === 'clock' && p.action === 'finish'
     && p.method === 'recorded' && p.date === localDate() && toiletPendingSave)
     {
@@ -1022,7 +1047,7 @@ async function doQuit() {
   });
   await commands;
   if (!repo.readError) titles.settle();
-  const saved = (!repo.dirty || (await repo.flush())) && await windows.flush();
+  const saved = (!repo.dirty || (await repo.flush())) && await windows.flush() && (!noteWindows || await noteWindows.flush());
   if (pendingInstall && (!flushed || !saved || repo.readError)) {
     await updateInstaller!.cancel(pendingInstall);
     pendingInstall = null;
@@ -1062,6 +1087,7 @@ async function doQuit() {
   }
   await playgroundDiagnostics?.read();
   quitting = true;
+  noteWindows?.dispose();
   playground?.dispose();
   controller.destroy();
   trayPanel?.dispose();
@@ -1076,6 +1102,7 @@ async function checkUpdates(): Promise<Result> {
 
 async function start() {
   await app.whenReady();
+  console.info(JSON.stringify({ operation: 'appStartup', stage: 'app-ready' }));
   let runtimeIcon: Electron.NativeImage | undefined;
   try {
     const image = nativeImage.createFromPath(path.join(app.getAppPath(), 'assets', '狗牛.png'));
@@ -1121,8 +1148,17 @@ async function start() {
     );
     if (url.hostname !== 'app' || !requested.startsWith(`${root}${path.sep}`))
       return new Response('Forbidden', { status: 403 });
-    return net.fetch(pathToFileURL(requested).href);
+    const page = url.pathname === '/index.html' ? 'main' : url.pathname === '/desktop-notes.html' ? 'note' : 'asset';
+    if (page !== 'asset') console.info(JSON.stringify({ operation: 'appStartup', stage: 'protocol-request', page }));
+    return net.fetch(pathToFileURL(requested).href).then(response => {
+      if (page !== 'asset') console.info(JSON.stringify({ operation: 'appStartup', stage: 'protocol-response', page, status: response.status }));
+      return response;
+    }).catch(error => {
+      console.error(JSON.stringify({ operation: 'appStartup', stage: 'protocol-fetch', page, cause: error instanceof Error ? error.name : 'unknown' }));
+      throw error;
+    });
   });
+  console.info(JSON.stringify({ operation: 'appStartup', stage: 'protocol-ready' }));
   const bounds = windowStore.value.expanded.bounds;
   win = new BrowserWindow({
     ...bounds,
@@ -1142,12 +1178,54 @@ async function start() {
       sandbox: true,
     },
   });
+  win.webContents.on('dom-ready', () => console.info(JSON.stringify({ operation: 'appStartup', stage: 'main-dom-ready' })));
+  win.webContents.on('did-finish-load', () => console.info(JSON.stringify({ operation: 'appStartup', stage: 'main-loaded' })));
+  win.webContents.on('preload-error', () => console.error(JSON.stringify({ operation: 'appStartup', stage: 'main-preload', errorCode: 'MAIN_PRELOAD_FAILED' })));
+  win.webContents.on('did-fail-load', (_event, code, _description, _url, isMainFrame) => {
+    if (isMainFrame) console.error(JSON.stringify({ operation: 'appStartup', stage: 'main-load', code }));
+  });
   windows = new WindowController(win, windowStore, {
     broadcast, saveData: async () => !repo.readError && await repo.flush(),
     enqueue: <T>(work: () => Promise<T>) => { const job = commands.then(work); commands = job.catch(() => {}); return job; },
     quitting: () => quitting || !!quitPending,
   });
   await windows.initialize();
+  const enqueueNotes = (work: () => Promise<void>) => {
+    const job = commands.then(work);
+    commands = job.catch(() => {});
+    return job;
+  };
+  noteWindows = createDesktopNotesController({
+    profile, preload: path.join(app.getAppPath(), 'dist-electron/src/preload/desktop-notes.cjs'),
+    url: devUrl ? `${devUrl}/desktop-notes.html` : 'dogcow://app/desktop-notes.html',
+    data: () => {
+      const view = notesStore.view(repo.dirty);
+      return { notes: view.notes.map(note => ({ id: note.id, kind: note.kind, title: note.title, visible: note.visible, tasks: projectTasks(note, tasks.tasks) })),
+        lineVisible: view.lineVisible, revision: revisions.tasks, pending: repo.dirty,
+        error: view.error || taskError || repo.readError || (repo.dirty ? repo.error : '') };
+    },
+    toggle: (noteId, taskId, revision, requestId) => enqueueNotes(async () => {
+      const note = notesStore.get(noteId);
+      if (!note?.visible || !note.taskIds.includes(taskId) || notesStore.view().error) throw Error('这项任务已不在当前便签中。');
+      if (quitting || quitPending) throw Error('正在退出，请稍后重试。');
+      const result = await invoke('task', { action: 'toggle', id: taskId, expectedRevision: revision, requestId });
+      if (!result.applied || !result.persisted) throw Error(result.message || '任务尚未保存，请重试保存。');
+    }),
+    retry: () => enqueueNotes(async () => {
+      const result = await finish({ applied: true, persisted: false, message: '' });
+      if (!result.persisted) throw Error(result.message);
+    }),
+    hide: id => enqueueNotes(async () => {
+      const p = id === 'line' ? { action: 'line', visible: false } : { action: 'visible', id, visible: false };
+      const result = await invoke('desktopNotes', { ...p, expectedNotesRevision: notesStore.view().revision, requestId: randomUUID() });
+      if (!result.persisted) throw Error(result.message);
+    }),
+    manage: id => { revealWindow(); void windows.request('expanded').then(() => win?.webContents.send('dogcow:open-desktop-notes', id)); },
+    changed: broadcast,
+  });
+  // Window loading and renderer handshakes never occupy the task command queue.
+  void noteWindows.initialize().catch(error => console.error('[desktopNotes:startup]', error instanceof Error ? error.name : 'unknown'));
+  app.once('will-quit', () => noteWindows?.dispose());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (event) => event.preventDefault());
   win.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) =>
@@ -1395,6 +1473,7 @@ async function start() {
     win?.show();
     broadcast();
   });
+  console.info(JSON.stringify({ operation: 'appStartup', stage: 'main-load-start', source: devUrl ? 'dev' : 'local' }));
   if (devUrl) await win.loadURL(devUrl);
   else await win.loadURL('dogcow://app/index.html');
   if (app.isPackaged) {
