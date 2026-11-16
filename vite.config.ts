@@ -6,7 +6,6 @@ import { mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 export default defineConfig(({ command }) => {
   const buildId = command === 'serve' ? 'development' : randomUUID();
-  const output = fileURLToPath(new URL('./dist-renderer', import.meta.url));
   return {
     plugins: [
       react(),
@@ -15,8 +14,9 @@ export default defineConfig(({ command }) => {
         generateBundle() {
           this.emitFile({ type: 'asset', fileName: 'build-info.json', source: JSON.stringify({ buildId }) });
         },
-        async closeBundle() {
-          if (command === 'serve') return;
+        async writeBundle(options) {
+          if (!options.dir) throw Error('诊断归档缺少构建输出目录。');
+          const output = path.resolve(options.dir);
           const archive = fileURLToPath(new URL(`./build/diagnostics/${buildId}/assets`, import.meta.url));
           await mkdir(archive, { recursive: true });
           for (const name of await readdir(path.join(output, 'assets'))) {
