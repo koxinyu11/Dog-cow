@@ -14,7 +14,8 @@ class GameBoundary extends Component<{ diagnostics: GameDiagnostics; children: R
     return this.state.failed ? <div className="pg-feedback" role="alert"><h2>游戏暂时开小差了</h2><p>可以重新开始，或回大厅看看。</p><Button onClick={this.props.exit}>返回大厅</Button><small>问题编号：{this.state.correlationId}</small></div> : this.props.children;
   }
 }
-export function GameHost({ game, exit }: { game: LocalGame; exit(): void }) {
+/** Every game fills the window below one title bar that carries the host controls. */
+export function GameHost({ game, exit, status }: { game: LocalGame; exit(): void; status?: ReactNode }) {
   const [paused, setPaused] = useState(!document.hasFocus());
   const [round, setRound] = useState(0);
   const diagnostics = useMemo(() => createGameDiagnostics(game.id), [game.id, round]);
@@ -29,9 +30,14 @@ export function GameHost({ game, exit }: { game: LocalGame; exit(): void }) {
     return () => { window.removeEventListener('blur', pause); document.removeEventListener('visibilitychange', visibility); };
   }, [game]);
   return <section className="pg-game">
-    <header className="pg-game-bar"><Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={exit}>大厅</Button><h2>{game.title}</h2>
-      <Button icon={<RotateCcw size={15} />} onClick={() => { setRound(v => v + 1); setPaused(false); }}>重新开始</Button>
-      <Button icon={<Pause size={15} />} onClick={() => setPaused(true)}>暂停</Button></header>
+    <header className="pg-titlebar pg-game-bar">
+      <span className="pg-game-nav"><Button size="sm" variant="ghost" icon={<ArrowLeft size={15} />} onClick={exit}>大厅</Button><h2>{game.title}</h2></span>
+      <span className="pg-game-actions">
+        <Button size="sm" variant="ghost" icon={<RotateCcw size={14} />} onClick={() => { setRound(v => v + 1); setPaused(false); }}>重新开始</Button>
+        <Button size="sm" variant="ghost" icon={<Pause size={14} />} onClick={() => setPaused(true)}>暂停</Button>
+        {status}
+      </span>
+    </header>
     <div className="pg-stage" ref={stage} tabIndex={-1}>
       <GameBoundary key={`${game.id}:${round}`} diagnostics={diagnostics} exit={exit}><Suspense fallback={<div className="pg-feedback" role="status">正在打开游戏…</div>}><Game paused={paused} diagnostics={diagnostics} /></Suspense></GameBoundary>
       {paused && <div className="pg-pause"><Button variant="primary" icon={<Play size={18} />} onClick={() => { setPaused(false); stage.current?.focus(); }}>继续游戏</Button></div>}

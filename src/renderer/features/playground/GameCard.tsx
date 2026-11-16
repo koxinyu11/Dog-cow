@@ -6,7 +6,7 @@ export function GameCard({ game, compact = false, onOpen }: { game: LocalGame; c
   const ControlIcon = game.controls === 'keyboard' ? Keyboard : game.controls === 'mouse' ? Mouse : null;
   const meta = [game.category, game.minutes ? `${game.minutes} 分钟` : ''].filter(Boolean).join(' · ');
   return <button className={`pg-game-card${compact ? ' is-compact' : ''}`} data-accent={game.accent ?? 'brand'} onClick={onOpen}>
-    <span className="pg-cover" aria-hidden="true"><span className="pg-game-icon">{game.icon}</span></span>
+    <span className={`pg-cover${game.cover ? ' has-art' : ''}`} aria-hidden="true">{game.cover ? <game.cover /> : <span className="pg-game-icon">{game.icon}</span>}</span>
     {!compact && isNewGame(game) && <span className="pg-badge">新</span>}
     <span className="pg-card-body">
       <span className="pg-card-title">{game.title}</span>

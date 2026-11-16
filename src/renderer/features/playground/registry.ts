@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import type { GameDiagnostics } from './game-diagnostics';
+import { DeskFishingCover } from './covers/DeskFishingCover';
 /** Games receive lifecycle state, not the main app's business bridge. */
 export interface GameProps { paused: boolean; diagnostics: GameDiagnostics }
 /** Cover tint; maps to theme tokens so both light and dark themes stay legible. */
@@ -10,6 +11,8 @@ export interface LocalGame {
   title: string;
   description: string;
   icon: string;
+  /** Optional small illustrated cover; the emoji icon is shown when absent. Keep it a lightweight SVG component. */
+  cover?: ComponentType;
   /** Prefer a shared short label such as 益智 / 反应 / 休闲 so filters stay small. */
   category: string;
   accent?: GameAccent;
@@ -27,6 +30,6 @@ export interface LocalGame {
 /** Explicit, offline catalog. Add a game directory and one lazy import here. */
 export const games: readonly LocalGame[] = [{
   id: 'desk-fishing', title: '工位钓鱼', description: '抛一竿，等一点水下的动静。收集小鱼，逛逛河边杂货铺。',
-  icon: '🎣', category: '休闲', accent: 'grass', minutes: 1, controls: 'mouse', addedAt: '2026-11-14',
+  icon: '🎣', cover: DeskFishingCover, category: '休闲', accent: 'grass', minutes: 1, controls: 'mouse', addedAt: '2026-11-14',
   tags: ['钓鱼', '养老', '收集', '图鉴'], load: () => import('./games/desk-fishing'),
 }];

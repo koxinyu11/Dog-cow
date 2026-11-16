@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyFishing, parseFishing, rollRound, breakChance, FISHING_KEY, fishingView } from '../../dist-electron/src/shared/fishing.js';
+import { emptyFishing, parseFishing, rollRound, breakChance, wearChance, durabilityLeft, FISHING_KEY, fishingView, categories, species, EMPTY_SHARE, TINY_SHARE } from '../../dist-electron/src/shared/fishing.js';
 import { emptyCoins, COINS_KEY, parseCoins } from '../../dist-electron/src/shared/coins.js';
 import { Coins } from '../../dist-electron/src/main/coins.js';
 import { Fishing } from '../../dist-electron/src/main/fishing.js';
@@ -22,11 +22,11 @@ function setup(balance = 1000, random = () => .5, initial = emptyFishing()) {
 
 test('signal hides fish and junk outcomes, including on persisted reload', () => {
   const state = emptyFishing();
-  state.round = rollRound(state, 'round', sequence(.1));
+  state.round = rollRound(state, 'round', sequence(.05));
   assert.equal(state.round.result.kind, 'empty');
   assert.equal(fishingView(state, 0).state.round.result, undefined);
   assert.deepEqual(parseFishing(JSON.stringify(state)), state);
-  const junk = rollRound(emptyFishing(), 'junk', sequence(.15, .1));
+  const junk = rollRound(emptyFishing(), 'junk', sequence(.82, .1));
   assert.equal(junk.result.species, 'badge');
 });
 test('rods within capacity never break, overload rises gradually and is bounded', () => {
@@ -35,7 +35,7 @@ test('rods within capacity never break, overload rises gradually and is bounded'
   assert.ok(breakChance(6, 2) > breakChance(3, 2));
   assert.equal(breakChance(100, 2), .95);
   const state = emptyFishing(); state.spot = 'river';
-  assert.equal(rollRound(state, 'big', sequence(.8, .999, .99, 0)).result.kind, 'broken');
+  assert.equal(rollRound(state, 'big', sequence(.9, .999, .99, 0)).result.kind, 'broken');
 });
 test('failed save keeps the old public bag and retries the same catch exactly once', () => {
   const x = setup();
@@ -128,4 +128,101 @@ test('fish and coins persist together and reload through repository whitelist', 
     assert.equal(game.view().state.rods.wood, 2);
     assert.equal(await readFile(repo.file, 'utf8'), previous);
   } finally { await rm(dir, { recursive: true, force: true }); }
+});
+test('catalog shares sum to one and every category has entries at both spots', () => {
+  const total = EMPTY_SHARE + TINY_SHARE + categories.reduce((sum, c) => sum + c.share, 0);
+  assert.ok(Math.abs(total - 1) < 1e-9);
+  for (const c of categories) for (const spot of ['pond', 'river']) assert.ok(species.some(s => s.category === c.id && (s.spot === spot || s.spot === 'any') && s.weight > 0), `${c.id}@${spot}`);
+  assert.equal(new Set(species.map(s => s.id)).size, species.length);
+  assert.equal(species.length, 34);
+});
+test('creatures and objects enter bag and book; visitors only enter book; treasure never breaks', () => {
+  const creature = rollRound(emptyFishing(), 'c', sequence(.76, 0, .5));
+  assert.equal(creature.result.kind, 'creature');
+  assert.equal(creature.result.species, 'crayfish');
+  const river = emptyFishing(); river.spot = 'river';
+  const otter = rollRound(river, 'o', sequence(.76, .999, .5));
+  assert.equal(otter.result.species, 'otter');
+  assert.equal(otter.result.value, undefined);
+  const treasure = rollRound(river, 't', sequence(.837, .5, .5, 0));
+  assert.equal(treasure.result.kind, 'treasure');
+  assert.equal(treasure.result.species, 'compass');
+  const state = emptyFishing();
+  state.round = { ...otter, rod: 'bamboo' };
+  const x = setup(0, undefined, state);
+  x.run('reel', undefined, 'o'); x.saved();
+  assert.equal(x.fishing.view().state.bag.length, 0);
+  assert.equal(x.fishing.view().state.book.otter.count, 1);
+  assert.equal(x.fishing.view().state.total, 0);
+});
+test('river unlock counts discovered fish only, and legacy saves still parse', () => {
+  const initial = emptyFishing();
+  initial.book = Object.fromEntries(['crayfish', 'snail', 'badge', 'key', 'wish', 'crucian', 'minnow', 'perch', 'salt'].map(id => [id, { count: 1, largest: .1 }]));
+  const x = setup(0, undefined, initial);
+  assert.throws(() => x.run('spot', 'river'), /5 种/);
+  const legacy = { ...emptyFishing(), bag: [{ id: 'b', species: 'bottle', kg: .1, value: 2, locked: false }], last: { kind: 'junk', name: '旧工牌', species: 'badge', kg: .05, value: 1 } };
+  assert.equal(parseFishing(JSON.stringify(legacy)).bag[0].species, 'bottle');
+});
+test('tiny fish dominates, big fish stay rare, and some mussels carry pearls', () => {
+  const tiny = rollRound(emptyFishing(), 'w', sequence(.5, .5));
+  assert.equal(tiny.result.species, 'wheat');
+  const river = emptyFishing(); river.spot = 'river';
+  assert.equal(rollRound(river, 'w2', sequence(.6, .5)).result.species, 'wheat');
+  const pearl = rollRound(river, 'p', sequence(.76, .5, .5, .01));
+  assert.equal(pearl.result.species, 'pearl');
+  assert.equal(pearl.result.kind, 'treasure');
+  assert.equal(rollRound(river, 'm', sequence(.76, .5, .5, .5)).result.species, 'mussel');
+  // A middle roll lands near the low end of the size range.
+  const carp = rollRound(river, 'c', sequence(.9, 0, .5, .9)).result;
+  assert.equal(carp.species, 'carp');
+  assert.ok(carp.kg < 1.5);
+  let rare = 0, top = new Map();
+  const n = 20000; let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < n; i++) { const r = rollRound(emptyFishing(), `r${i}`, rnd).result; if (r.species) top.set(r.species, (top.get(r.species) ?? 0) + 1); const e = species.find(s => s.id === r.species); if (e && e.rarity >= 2) rare++; }
+  assert.ok(Math.abs(top.get('wheat') / n - .35) < .02);
+  for (const [id, count] of top) if (id !== 'wheat') assert.ok(count / n < .05, id);
+  assert.ok(rare / n < .03);
+});
+test('rod wear is free for half its life, then rises and caps; better rods last longer', () => {
+  assert.equal(wearChance(19, 40), 0);
+  assert.ok(wearChance(30, 40) > 0 && wearChance(30, 40) < .25);
+  assert.equal(wearChance(40, 40), .25);
+  assert.equal(wearChance(4000, 40), .6);
+  assert.equal(wearChance(40, 400), 0);
+  const worn = emptyFishing(); worn.wear.bamboo = 40;
+  const r = rollRound(worn, 'w', sequence(.9, 0, .5, .1)).result;
+  assert.equal(r.kind, 'broken'); assert.equal(r.cause, 'wear');
+  const fresh = rollRound(emptyFishing(), 'f', sequence(.9, 0, .5, .1)).result;
+  assert.equal(fresh.kind, 'fish');
+  assert.equal(rollRound(worn, 'e', sequence(.05)).result.kind, 'empty');
+});
+test('reeling adds wear; a break, a first purchase and a rescue start fresh; legacy saves default to new', () => {
+  const x = setup(100, () => .5);
+  x.run('cast'); x.saved();
+  const round = x.fishing.view().state.round.id;
+  x.run('reel', undefined, round); x.saved();
+  assert.equal(x.fishing.view().state.wear.bamboo, 1);
+  assert.ok(durabilityLeft(x.fishing.view().state, 'bamboo') < 1);
+  x.run('buyRod', 'wood'); x.saved();
+  assert.equal(x.fishing.view().state.wear.wood, 0);
+  const state = emptyFishing(); state.wear.bamboo = 33;
+  state.round = { id: 'b', rod: 'bamboo', signal: '明显绷紧', wait: 5, result: { kind: 'broken', name: '断', kg: 1, cause: 'wear' } };
+  const y = setup(0, undefined, state);
+  y.run('reel', undefined, 'b'); y.saved();
+  assert.equal(y.fishing.view().state.wear.bamboo, 0);
+  const legacy = emptyFishing(); delete legacy.wear;
+  assert.deepEqual(parseFishing(JSON.stringify(legacy)).wear, { bamboo: 0, wood: 0, pro: 0, collector: 0 });
+  assert.throws(() => parseFishing(JSON.stringify({ ...emptyFishing(), wear: { bamboo: -1 } })));
+});
+test('new catches record when they were caught; older catches without a time still parse', () => {
+  const x = setup(0, () => .5);
+  const game = new Fishing(x.store, x.coins, () => .5, () => 1_800_000_000_000);
+  const saved = () => { x.coins.confirmSaved(); game.confirmSaved(); };
+  game.execute({ action: 'cast', requestId: 'c' }); saved();
+  game.execute({ action: 'reel', requestId: 'r', roundId: game.view().state.round.id }); saved();
+  assert.equal(game.view().state.bag[0].at, 1_800_000_000_000);
+  const legacy = { ...emptyFishing(), bag: [{ id: 'o', species: 'wheat', kg: .02, value: 1, locked: false }] };
+  assert.equal(parseFishing(JSON.stringify(legacy)).bag[0].at, undefined);
+  assert.throws(() => parseFishing(JSON.stringify({ ...legacy, bag: [{ ...legacy.bag[0], at: -5 }] })));
 });

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { FISHING_KEY, fishingView, parseFishing, rods, tools, spots, rollRound, type FishingRequest, type FishingState, type FishingView, type FishingAction } from '../shared/fishing.js';
+import { FISHING_KEY, fishFound, fishingView, parseFishing, rods, tools, spots, rollRound, type FishingRequest, type FishingState, type FishingView, type FishingAction } from '../shared/fishing.js';
 import type { Coins } from './coins.js';
 interface Store { getItem(key: string): string | null; setItem(key: string, value: string): void }
 export class FishingError extends Error {
@@ -9,7 +9,7 @@ function refuse(message: string): never { throw new FishingError('FISHING_RULE',
 /** Called only inside the application's serialized command queue. */
 export class Fishing {
   private before: FishingState | null = null;
-  constructor(private store: Store, private coins: Coins, private random = Math.random) {}
+  constructor(private store: Store, private coins: Coins, private random = Math.random, private now = Date.now) {}
   confirmSaved() { this.before = null; }
   view(): FishingView {
     const wallet = this.coins.view();
@@ -38,17 +38,17 @@ export class Fishing {
       if (!next.round || request.roundId !== next.round.id) refuse('这一竿已经结束，请刷新记录。');
       const round = next.round;
       const result = round.result;
+      next.wear[round.rod] = (next.wear[round.rod] ?? 0) + 1;
       if (result.kind === 'broken') {
         next.rods[round.rod]--;
+        next.wear[round.rod] = 0;
         const fallback = rods.find(r => next.rods[r.id] > 0);
         if (fallback) next.equipped = fallback.id;
-      } else if (result.species && result.kg && result.value !== undefined) {
-        next.bag.push({ id: round.id, species: result.species, kg: result.kg, value: result.value, locked: false });
-        if (result.kind === 'fish') {
-          const entry = next.book[result.species] ?? { count: 0, largest: 0 };
-          next.book[result.species] = { count: entry.count + 1, largest: Math.max(entry.largest, result.kg) };
-          next.total++;
-        }
+      } else if (result.species && result.kg) {
+        if (result.value !== undefined) next.bag.push({ id: round.id, species: result.species, kg: result.kg, value: result.value, locked: false, at: this.now() });
+        const entry = next.book[result.species] ?? { count: 0, largest: 0 };
+        next.book[result.species] = { count: entry.count + 1, largest: Math.max(entry.largest, result.kg) };
+        if (result.kind === 'fish') next.total++;
       }
       next.last = result;
       next.round = null;
@@ -57,6 +57,7 @@ export class Fishing {
       if (!rod) refuse('鱼竿不存在。');
       if (next.rods[rod.id] >= 999) refuse('这款鱼竿已经够多了。');
       delta = -rod.price;
+      if (!next.rods[rod.id]) next.wear[rod.id] = 0;
       next.rods[rod.id]++;
       next.equipped = rod.id;
     } else if (action === 'buyTool') {
@@ -71,7 +72,7 @@ export class Fishing {
       next.equipped = rod.id;
     } else if (action === 'spot') {
       const spot = spots.find(s => s.id === id);
-      if (!spot || Object.keys(next.book).length < spot.required) refuse('发现 5 种鱼后开放河湾。');
+      if (!spot || fishFound(next.book) < spot.required) refuse('发现 5 种鱼后开放河湾。');
       next.spot = spot.id;
     } else if (action === 'bait') {
       if (id !== 'plain' && id !== 'worm') refuse('鱼饵不存在。');
@@ -80,6 +81,7 @@ export class Fishing {
     } else if (action === 'rescue') {
       if (Object.values(next.rods).some(n => n > 0)) refuse('背包里还有可用的鱼竿。');
       next.rods.bamboo = 1;
+      next.wear.bamboo = 0;
       next.equipped = 'bamboo';
     } else if (action === 'lock') {
       const item = next.bag.find(c => c.id === id);
