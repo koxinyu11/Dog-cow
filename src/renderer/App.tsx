@@ -21,6 +21,7 @@ import { Modal } from './components/Modal';
 import { LoadingScreen } from './components/LoadingScreen';
 import { useReducedMotion } from './hooks/useReducedMotion';
 import { Copy } from './features/personalization/Copy';
+import { NotesManager } from './features/desktop-notes/NotesManager';
 import { NewTask, WeeklyDialog } from './features/tasks/TaskDialogs';
 import { Confetti } from './features/dashboard/Confetti';
 import { DataPanel } from './features/settings/DataPanel';
@@ -34,7 +35,7 @@ import { BoardContext, computeMetrics } from './board/metrics';
 import { fx } from './motion/fx';
 import { OffworkNotice, OffworkReceipt } from './features/attendance/Offwork';
 import type { IncomeState } from '../shared/contracts';
-import { BadgeCheck, CircleAlert, ClipboardList, LayoutGrid, Package, Palette, PanelTopClose, PanelTopOpen, Plus, Settings, Wallet, Wand2 } from 'lucide-react';
+import { BadgeCheck, CircleAlert, ClipboardList, LayoutGrid, Package, Palette, FerrisWheel, PanelTopClose, PanelTopOpen, Plus, Settings, StickyNote, Wallet, Wand2 } from 'lucide-react';
 import { Button, Emoji, IconButton, MenuProvider, Segmented, Toast } from './ui';
 
 const COPY_LABELS: Record<string, string> = {
@@ -71,6 +72,7 @@ export function App() {
     return () => { document.body.style.removeProperty('--capsule-window-surface'); };
   }, [capsuleSurface]);
   useEffect(installWindowTransition, []);
+  const [playgroundOpening, setPlaygroundOpening] = useState(false);
   const [bootDone, setBootDone] = useState(false);
   useEffect(() => {
     if (state) document.title = state.tasks.settings.appTitle;
@@ -82,7 +84,25 @@ export function App() {
   const [arrangeTick, setArrangeTick] = useState(0);
   const [newTask, setNew] = useState(false);
   const [weekly, setWeekly] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [noteFocus, setNoteFocus] = useState<string>();
+  const [composeNotes, setComposeNotes] = useState(false);
+  const openNotes = (compose = false, id?: string) => { setNoteFocus(id); setComposeNotes(compose); setNotesOpen(true); };
+  useEffect(() => window.dogcow.openDesktopNotes(id => openNotes(false, id)), []);
   const [toast, setToast] = useState<{ text: string; tone?: 'ok' | 'error' }>({ text: '' });
+  useEffect(() => window.dogcow.playgroundError(({ message, correlationId }) => setToast({ text: `${message} 问题编号：${correlationId}`, tone: 'error' })), []);
+  const openPlayground = async () => {
+    if (playgroundOpening) return;
+    setPlaygroundOpening(true);
+    try {
+      const result = await window.dogcow.invoke('openPlayground');
+      if (!result.applied) setToast({ text: `${result.message || '游乐场打开失败，请重试。'}${result.correlationId ? ` 问题编号：${result.correlationId}` : ''}`, tone: 'error' });
+    } catch { setToast({ text: '游乐场打开失败，请重试。', tone: 'error' }); }
+    finally { setPlaygroundOpening(false); }
+  };
+  useEffect(() => {
+    if (state?.desktopNotes?.windowError) setToast({ text: state.desktopNotes.windowError, tone: 'error' });
+  }, [state?.desktopNotes?.windowError]);
   const [celebrating, setCelebrating] = useState('');
   const [confetti, setConfetti] = useState(0);
   const [clock, setClock] = useState<{ action: string; date?: string; token: string; at: number } | null>(null);
@@ -172,6 +192,11 @@ export function App() {
     return result;
   };
   const act = async (action: string, id: string, extra: Fields = {}, anchor?: Element | null) => {
+    if (action === 'desktop-pin') {
+      const result = await command('desktopNotes', { action: 'pin', taskIds: [id], expectedNotesRevision: state?.desktopNotes?.revision });
+      notify(result.applied && result.persisted ? '便签已保存，正在打开' : result.message, result.persisted ? 'ok' : 'error');
+      return;
+    }
     const el = anchor ?? taskNode(id);
     const task = state?.tasks.tasks.find((t) => t.id === id);
     if (action === 'delete') fx('task-delete', el);
@@ -257,6 +282,18 @@ export function App() {
         <div className="app-drag" aria-hidden="true" />
         <IconButton
           hidden={state.compact}
+          className="window-playground-toggle"
+          label="狗牛游乐场"
+          onContextMenu={event => { event.preventDefault(); void window.dogcow.invoke('copyPlaygroundDiagnostics').then(result => setToast({ text: result.message })).catch(() => setToast({ text: '诊断复制失败，请重试。', tone: 'error' })); }}
+          variant="ghost"
+          disabled={playgroundOpening}
+          aria-busy={playgroundOpening}
+          onClick={() => void openPlayground()}
+        >
+          <FerrisWheel size={17} />
+        </IconButton>
+        <IconButton
+          hidden={state.compact}
           className="window-compact-toggle"
           label="收成胶囊"
           variant="ghost"
@@ -310,6 +347,7 @@ export function App() {
               <Button icon={<LayoutGrid size={16} />} aria-pressed={shelf} onClick={() => setShelf((v) => !v)}>
                 模块库
               </Button>
+              <IconButton label="桌面便签" onClick={() => openNotes()}><StickyNote size={17}/></IconButton>
               <IconButton label="设置" onClick={() => openSettings('look')}><Settings size={17} /></IconButton>
             </div>
           </header>
@@ -340,6 +378,7 @@ export function App() {
               patch,
               openNew: () => setNew(true),
               openWeekly: () => setWeekly(true),
+              openNotes: () => openNotes(true),
               undoClockOut: undoTodayDeparture,
               undoClockOutBusy,
               openClock: (action) => void openClock(action),
@@ -401,6 +440,7 @@ export function App() {
               狗牛 {state.version} · 数据保存在本机 · {state.save.dirty ? '未保存 / 保存中' : '已保存'}
             </p>
           </Modal>
+          <NotesManager state={state} open={notesOpen} focus={noteFocus} compose={composeNotes} onClose={() => setNotesOpen(false)} onNewTask={() => setNew(true)}/>
           <NewTask open={newTask} date={selected} onClose={() => setNew(false)} run={runTask} />
           <WeeklyDialog open={weekly} date={selected} onClose={() => setWeekly(false)} run={runTask} />
           {clock && <ClockEditor draft={clock} income={state.income} onClose={() => setClock(null)} notify={notify} onFinished={(income, date, completedTasks) => setReceipt({ income, date, completedTasks })} />}

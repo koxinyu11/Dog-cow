@@ -1,7 +1,7 @@
 import { validDate } from '../domain/tasks/model.js';
 
 /**
- * 狗牛币 wallet. Coins come only from finished days of the title money ledgers
+ * 狗牛币 wallet. Coins come from fishing sales and finished days of the title money ledgers
  * (`steal`, `owed`, cents per day). Each day remembers how many cents were already
  * exchanged, so the same money can never be exchanged twice; a later lower ledger
  * value just means nothing is left for that day — coins are never clawed back.
@@ -16,7 +16,7 @@ const MAX_DAYS = 20_000;
 
 export interface CoinEntry {
   at: number;
-  kind: 'exchange' | 'spend';
+  kind: 'exchange' | 'spend' | 'fishing' | 'poker';
   /** Signed coin change. */
   coins: number;
   /** Exchange: yuan taken from each source. */
@@ -37,7 +37,9 @@ export type MoneyLedgers = Partial<Record<CoinSource, Record<string, number | st
 /** Returned only after the shared repository confirms the wallet write. */
 export type CoinOutcome =
   | { kind: 'exchange'; coins: number; balanceBefore: number; sources: CoinSource[] }
-  | { kind: 'purchase'; item: string };
+  | { kind: 'purchase'; item: string }
+  | { kind: 'fishing'; coins: number }
+  | { kind: 'poker'; coins: number };
 
 export interface CoinSourceView { yuan: number; coins: number; todayYuan: number }
 export interface CoinsView {
@@ -71,7 +73,7 @@ export function parseCoins(raw: string | null): CoinsState {
       used[source][day] = cents;
     }
   }
-  const entries = v.entries.filter((e): e is CoinEntry => record(e) && Number.isFinite(e.at) && (e.kind === 'exchange' || e.kind === 'spend')
+  const entries = v.entries.filter((e): e is CoinEntry => record(e) && Number.isFinite(e.at) && (e.kind === 'exchange' || e.kind === 'spend' || e.kind === 'fishing' || e.kind === 'poker')
     && Number.isSafeInteger(e.coins)).slice(-MAX_ENTRIES);
   return { version: 1, balance: v.balance, used, owned: [...new Set(v.owned as string[])], entries };
 }

@@ -141,7 +141,7 @@ export function CoinDialog({ open, coins, onClose }: { open: boolean; coins: Coi
                 {coins.entries.map((e, i) => (
                   <li key={`${e.at}-${i}`}>
                     <span>{day(e.at)}</span>
-                    <span>{e.kind === 'exchange' ? `${e.yuan?.steal ? '🎭' : ''}${e.yuan?.owed ? '🪧' : ''} 兑换` : `🛍 ${itemName(e.item)}`}</span>
+                    <span>{e.kind === 'poker' ? (e.coins > 0 ? '♠ 筹码兑回' : '♠ 兑换筹码') : e.kind === 'fishing' ? (e.coins > 0 ? '🎣 出售收获' : '🎣 钓鱼装备') : e.kind === 'exchange' ? `${e.yuan?.steal ? '🎭' : ''}${e.yuan?.owed ? '🪧' : ''} 兑换` : `🛍 ${itemName(e.item)}`}</span>
                     <strong className={e.coins < 0 ? 'is-out' : ''}>{e.coins > 0 ? '+' : ''}{e.coins}</strong>
                   </li>
                 ))}

@@ -45,6 +45,12 @@ jobs:
       - name: Verify Apple Silicon runner
         run: node -e "if (process.platform !== 'darwin' || process.arch !== 'arm64') throw Error('Expected a Mac arm64 runner')"
       - run: npm run make:mac
+      - uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-darwin-arm64-${{ needs.version.outputs.version }}
+          path: build/diagnostics/
+          if-no-files-found: error
+          retention-days: 90
       - run: node scripts/collect-release-assets.mjs darwin arm64 ${{ needs.version.outputs.version }}
       - uses: actions/upload-artifact@v4
         with:

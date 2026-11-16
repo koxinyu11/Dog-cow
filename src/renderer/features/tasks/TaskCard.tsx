@@ -5,7 +5,7 @@ import { type Fields, type Tag, type Task } from '../../../shared/contracts';
 import { localDate } from '../../../domain/tasks/model';
 import { dateLabel } from '../../format';
 import { AutoText } from '../../components/AutoText';
-import { ArrowRightToLine, CalendarClock, Clock, Trash2, X } from 'lucide-react';
+import { ArrowRightToLine, CalendarClock, Clock, StickyNote, Trash2, X } from 'lucide-react';
 import { Button, Check, IconButton } from '../../ui';
 import { CowProgress } from './CowProgress';
 
@@ -191,6 +191,7 @@ export function TaskCard({
       </div>
       <CowProgress task={task} act={act} celebrating={celebrating} />
       <div className="task-actions">
+        <Button size="sm" variant="ghost" icon={<StickyNote size={13}/>} onClick={() => void act('desktop-pin', task.id)}>贴到桌面</Button>
         {!task.done && (
           <Button size="sm" variant="soft" icon={<ArrowRightToLine size={13} />} onClick={() => void act('move', task.id)}>
             同步到下一日

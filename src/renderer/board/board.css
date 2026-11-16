@@ -144,7 +144,7 @@ body.is-resizing, body.is-resizing * { cursor: nwse-resize !important; user-sele
 @keyframes more-in { from { opacity: 0; transform: translateX(-50%) translateY(30px); } }
 
 /* ---------- Module library drawer ---------- */
-.shelf:not(.is-open) { visibility: hidden; transition: transform var(--t-slow) var(--ease-spring), visibility 0s var(--t-slow); }
+.shelf:not(.is-open) { visibility: hidden; transition: transform var(--t-slow) var(--ease-out), visibility 0s var(--t-slow); }
 body.is-dragging .shelf { visibility: visible; }
 .shelf {
   position: fixed;
@@ -162,7 +162,7 @@ body.is-dragging .shelf { visibility: visible; }
   -webkit-backdrop-filter: blur(24px);
   box-shadow: var(--e-3);
   transform: translateX(105%);
-  transition: transform var(--t-slow) var(--ease-spring);
+  transition: transform var(--t-slow) var(--ease-out);
 }
 .shelf.is-open { transform: none; }
 .shelf-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 20px 18px 10px; }

@@ -57,6 +57,23 @@ export class Coins {
     this.save(spendCoins(this.state, item, price, Date.now()), { kind: 'purchase', item });
   }
 
+  /** Fishing inventory changes share the repository's disk boundary with this ledger entry. */
+  fishing(delta: number, item: string) {
+    if (this.pending || !this.state) throw Error('钱包暂不可用，请先重试保存。');
+    const balance = this.state.balance + delta;
+    if (!Number.isSafeInteger(delta) || !Number.isSafeInteger(balance) || balance < 0) throw Error('狗牛币变动无效。');
+    this.save({ ...this.state, balance, entries: [...this.state.entries,
+      { at: Date.now(), kind: 'fishing' as const, coins: delta, item }].slice(-100) }, { kind: 'fishing', coins: delta });
+  }
+
+  poker(delta: number) {
+    if (this.pending || !this.state) throw Error('钱包暂不可用，请先重试保存。');
+    const balance = this.state.balance + delta;
+    if (!Number.isSafeInteger(delta) || !Number.isSafeInteger(balance) || balance < 0) throw Error('狗牛币变动无效。');
+    this.save({ ...this.state, balance, entries: [...this.state.entries,
+      { at: Date.now(), kind: 'poker' as const, coins: delta, item: '工位德州' }].slice(-100) }, { kind: 'poker', coins: delta });
+  }
+
   owns(item: string) {
     return !!(this.pending ? this.savedState : this.state)?.owned.includes(item);
   }

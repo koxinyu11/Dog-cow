@@ -34,6 +34,7 @@ export interface ModuleCtx {
   patch: (id: string, fields: Fields) => Promise<void>;
   openNew: () => void;
   openWeekly: () => void;
+  openNotes?: () => void;
   undoClockOut: () => Promise<void>;
   undoClockOutBusy: boolean;
   openClock: (action: string) => void;
@@ -390,7 +391,7 @@ function TasksModule(ctx: ModuleCtx) {
   if (state.taskError) return <p className="m-notice">{state.taskError}</p>;
   const details = <ModuleDetails label="完整清单" title={`${dateLabel(selected)} · 任务清单`}>{() => (
     <div className="module-detail-list">
-      <div className="tasks-add"><Button size="sm" onClick={openNew}>新增任务</Button><Button size="sm" onClick={openWeekly}>每周任务</Button></div>
+      <div className="tasks-add"><Button size="sm" onClick={ctx.openNotes}>组合便签</Button><Button size="sm" onClick={openNew}>新增任务</Button><Button size="sm" onClick={openWeekly}>每周任务</Button></div>
       {state.tasks.tasks.filter((task) => matchesDate(task, selected)).sort(byPriority).map((task) => (
         <TaskCard key={task.id} task={task} library={state.tasks.tagLibrary} celebrating={celebrating === task.id} act={act} patch={patch} />
       ))}
@@ -418,6 +419,7 @@ function TasksModule(ctx: ModuleCtx) {
         </div>
         <div className="tasks-add">
           <Button size="sm" variant="primary" icon={<Plus size={14} />} onClick={openNew}>新增</Button>
+          <Button size="sm" onClick={ctx.openNotes}>组合便签</Button>
           <Button size="sm" icon={<CalendarRange size={14} />} onClick={openWeekly}>每周</Button>
         </div>
       </div>

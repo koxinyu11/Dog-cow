@@ -1,3 +1,10 @@
+import { Fishing, FishingError } from './fishing.js';
+import { DesktopNotesStore } from './desktop-notes-store.js';
+import { createDesktopNotesController, type DesktopNotesController } from './desktop-notes-controller.js';
+import { projectTasks } from '../shared/desktop-notes.js';
+import { FISHING_KEY, type FishingRequest, type FishingReply } from '../shared/fishing.js';
+import { PlaygroundDiagnostics } from './playground-diagnostics.js';
+import { PlaygroundController } from './playground-controller.js';
 import { traySummary } from '../shared/tray-summary.js';
 import { TrayPanelController } from './tray-panel-controller.js';
 import { TrayController } from './tray-controller.js';
@@ -39,6 +46,8 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Repository } from './repository.js';
 import { Titles } from './titles.js';
+import { Poker, PokerError } from './poker.js';
+import { POKER_KEY, type PokerRequest, type PokerReply } from '../shared/poker.js';
 import { Coins } from './coins.js';
 import { COINS_KEY } from '../shared/coins.js';
 import {
@@ -103,6 +112,10 @@ if (!app.requestSingleInstanceLock()) {
   void start();
 }
 let win: BrowserWindow | null = null;
+let playground: PlaygroundController | undefined;
+let notesStore: DesktopNotesStore;
+let noteWindows: DesktopNotesController | undefined;
+let playgroundDiagnostics: PlaygroundDiagnostics;
 let repo: Repository;
 let sequence = 0;
 let tasks: TaskState = emptyTasks();
@@ -150,6 +163,8 @@ let unsubscribe: (() => void) | null = null;
 let income: IncomeState;
 let titles: Titles;
 let coins: Coins;
+let poker: Poker;
+let fishing: Fishing;
 let owedData = emptyOwed();
 let owedError = '';
 let stealDay = '';
@@ -175,6 +190,7 @@ function hopeHolidays() {
 function snapshot(): Snapshot {
   const windowState = windows?.snapshot() ?? { ...windowStore.value, phase: 'idle' as const, dirty: windowStore.dirty, warning: windowStore.warning };
   return {
+    desktopNotes: notesStore ? { ...notesStore.view(repo.dirty), alwaysOnTop: noteWindows?.alwaysOnTop ?? false, layoutPending: noteWindows?.layoutPending, windowError: noteWindows?.windowError, layoutError: noteWindows?.layoutError } : undefined,
     tray: trayController ? { ...trayController.state, ...panelError } : undefined,
     compact: windowState.mode === 'capsule',
     window: windowState,
@@ -205,6 +221,7 @@ function panelData(): TrayPanelData {
     theme: nativeTheme.shouldUseDarkColors ? 'dark' : 'light' };
 }
 function broadcast() {
+  noteWindows?.refresh();
   if (trayController && income) trayController.update(trayView({ income, tasks, taskError }, windowStore.value.tray?.display ?? 'icon'));
   trayPanel?.publish();
   if (win && !win.isDestroyed()) win.webContents.send('dogcow:state', snapshot());
@@ -239,6 +256,8 @@ function restoreModels() {
     tasks = emptyTasks();
     taskError = '任务数据读取失败，任务编辑已锁定；原数据未被覆盖。';
   }
+  notesStore = new DesktopNotesStore(repo.storage);
+  notesStore.load();
   layout = {
     version: 1,
     order: [...moduleIds],
@@ -291,6 +310,8 @@ function restoreModels() {
   titles.load();
   coins = new Coins(repo.storage, () => titles.moneyLedgers());
   coins.load();
+  poker = new Poker(repo.storage, coins);
+  fishing = new Fishing(repo.storage, coins);
   try {
     owedData = parseOwed(repo.storage.getItem(OWED_KEY));
     owedError = '';
@@ -352,6 +373,7 @@ function expected(payload: Fields, domain: keyof typeof revisions) {
 }
 function persistTask() {
   repo.storage.setItem(taskKey, JSON.stringify(tasks));
+  notesStore?.prune(tasks.tasks);
   revisions.tasks++;
 }
 function toiletFailure(errorCode: keyof typeof TOILET_ERRORS, message: string = TOILET_ERRORS[errorCode]): Result {
@@ -388,6 +410,8 @@ async function finish(result: Result): Promise<Result> {
   if (result.applied) titles?.settle();
   result.persisted = result.applied ? await repo.flush() : false;
   if (result.persisted) {
+    fishing?.confirmSaved();
+    poker?.confirmSaved();
     attendancePendingSave = false;
     const outcome = coins?.confirmSaved();
     if (outcome) result.coinOutcome = outcome;
@@ -453,6 +477,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
       return toastResult('显示模式无效。');
     nativeTheme.themeSource = p.mode === 'auto' ? 'system' : p.mode as 'light' | 'dark';
     win?.setBackgroundColor(windowBackground(p.resolved === 'dark'));
+    playground?.publishTheme();
     return toastResult('');
   }
   if (method === 'bootstrap') return { ...toastResult(''), snapshot: snapshot() };
@@ -587,12 +612,16 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     const backup = await repo.backup('before-import');
     // An older pack without a wallet keeps the current one, so restored ledgers cannot be exchanged twice.
     const currentCoins = repo.storage.getItem(COINS_KEY);
+    const currentPoker = repo.storage.getItem(POKER_KEY);
+    const currentFishing = repo.storage.getItem(FISHING_KEY);
     repo.values = new Map(
       Object.entries(pending.values).filter(
         (pair): pair is [string, string] => typeof pair[1] === 'string',
       ),
     );
     if (typeof pending.values[COINS_KEY] !== 'string' && currentCoins !== null) repo.values.set(COINS_KEY, currentCoins);
+    if (typeof pending.values[COINS_KEY] !== 'string' && currentFishing !== null) repo.values.set(FISHING_KEY, currentFishing);
+    if (typeof pending.values[COINS_KEY] !== 'string' && currentPoker !== null) repo.values.set(POKER_KEY, currentPoker);
     repo.readError = '';
     repo.revision++;
     repo.migration = {
@@ -625,6 +654,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     throw Error('导入尚未完成校验，业务写入暂停，请重新打开应用。');
   if (method === 'retrySave') {
     const result = await finish({ applied: true, persisted: false, message: '当前修改已保存。' });
+    if (noteWindows && !await noteWindows.flush()) return { ...result, persisted: false, message: noteWindows.layoutError ?? '便签位置尚未保存。', snapshot: snapshot() };
     return result;
   }
   if (attendancePendingSave && ['undoClockOut', 'clock', 'settings', 'leave', 'removeLeave', 'toilet'].includes(method))
@@ -636,7 +666,20 @@ async function invoke(method: string, p: Fields): Promise<Result> {
   if (repo.receipts.includes(requestId))
     return { applied: true, persisted: !repo.dirty && !repo.readError, message: repo.dirty ? '操作已处理，请重试保存。' : '操作已处理。', snapshot: snapshot() };
   let result: Result = { applied: true, persisted: false, message: '已保存。' };
-  if (method === 'task') {
+  let notePreferenceSaved = true;
+  if (method === 'desktopNotes') {
+    if (p.action === 'alwaysOnTop') {
+      if (typeof p.enabled !== 'boolean' || !noteWindows) throw Error('置顶选项无效，请重试。');
+      notePreferenceSaved = await noteWindows.setAlwaysOnTop(p.enabled);
+    } else if (p.action === 'positions') {
+      if (noteWindows && !await noteWindows.resetPositions()) throw Error(noteWindows.layoutError || noteWindows.windowError || '位置重置未完成。');
+    } else {
+      if (taskError && ['pin', 'create', 'update'].includes(String(p.action))) throw Error(taskError);
+      const id = notesStore.execute(p, tasks.tasks);
+      if (id && (p.action === 'pin' || p.action === 'create' || p.action === 'visible' && p.visible === true)) setImmediate(() => noteWindows?.reveal(id));
+      if (p.action === 'line' && p.visible === true) setImmediate(() => noteWindows?.reveal());
+    }
+  } else if (method === 'task') {
     expected(p, 'tasks');
     if (taskError) throw Error(taskError);
     const before = structuredClone(tasks);
@@ -977,6 +1020,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     repo.dirty = true;
   }
   const completed = await finish(result);
+  if (!notePreferenceSaved) return { ...completed, persisted: false, message: noteWindows?.layoutError || '置顶选项尚未保存，请重试保存。', snapshot: snapshot() };
   if (!completed.persisted && result.applied && method === 'clock' && p.action === 'finish'
     && p.method === 'recorded' && p.date === localDate() && toiletPendingSave)
     {
@@ -1010,7 +1054,7 @@ async function doQuit() {
   });
   await commands;
   if (!repo.readError) titles.settle();
-  const saved = (!repo.dirty || (await repo.flush())) && await windows.flush();
+  const saved = (!repo.dirty || (await repo.flush())) && await windows.flush() && (!noteWindows || await noteWindows.flush());
   if (pendingInstall && (!flushed || !saved || repo.readError)) {
     await updateInstaller!.cancel(pendingInstall);
     pendingInstall = null;
@@ -1048,7 +1092,10 @@ async function doQuit() {
       return;
     }
   }
+  await playgroundDiagnostics?.read();
   quitting = true;
+  noteWindows?.dispose();
+  playground?.dispose();
   controller.destroy();
   trayPanel?.dispose();
   trayController?.dispose();
@@ -1062,6 +1109,7 @@ async function checkUpdates(): Promise<Result> {
 
 async function start() {
   await app.whenReady();
+  console.info(JSON.stringify({ operation: 'appStartup', stage: 'app-ready' }));
   let runtimeIcon: Electron.NativeImage | undefined;
   try {
     const image = nativeImage.createFromPath(path.join(app.getAppPath(), 'assets', '狗牛.png'));
@@ -1107,8 +1155,17 @@ async function start() {
     );
     if (url.hostname !== 'app' || !requested.startsWith(`${root}${path.sep}`))
       return new Response('Forbidden', { status: 403 });
-    return net.fetch(pathToFileURL(requested).href);
+    const page = url.pathname === '/index.html' ? 'main' : url.pathname === '/desktop-notes.html' ? 'note' : 'asset';
+    if (page !== 'asset') console.info(JSON.stringify({ operation: 'appStartup', stage: 'protocol-request', page }));
+    return net.fetch(pathToFileURL(requested).href).then(response => {
+      if (page !== 'asset') console.info(JSON.stringify({ operation: 'appStartup', stage: 'protocol-response', page, status: response.status }));
+      return response;
+    }).catch(error => {
+      console.error(JSON.stringify({ operation: 'appStartup', stage: 'protocol-fetch', page, cause: error instanceof Error ? error.name : 'unknown' }));
+      throw error;
+    });
   });
+  console.info(JSON.stringify({ operation: 'appStartup', stage: 'protocol-ready' }));
   const bounds = windowStore.value.expanded.bounds;
   win = new BrowserWindow({
     ...bounds,
@@ -1128,17 +1185,152 @@ async function start() {
       sandbox: true,
     },
   });
+  win.webContents.on('dom-ready', () => console.info(JSON.stringify({ operation: 'appStartup', stage: 'main-dom-ready' })));
+  win.webContents.on('did-finish-load', () => console.info(JSON.stringify({ operation: 'appStartup', stage: 'main-loaded' })));
+  win.webContents.on('preload-error', () => console.error(JSON.stringify({ operation: 'appStartup', stage: 'main-preload', errorCode: 'MAIN_PRELOAD_FAILED' })));
+  win.webContents.on('did-fail-load', (_event, code, _description, _url, isMainFrame) => {
+    if (isMainFrame) console.error(JSON.stringify({ operation: 'appStartup', stage: 'main-load', code }));
+  });
   windows = new WindowController(win, windowStore, {
     broadcast, saveData: async () => !repo.readError && await repo.flush(),
     enqueue: <T>(work: () => Promise<T>) => { const job = commands.then(work); commands = job.catch(() => {}); return job; },
     quitting: () => quitting || !!quitPending,
   });
   await windows.initialize();
+  const enqueueNotes = (work: () => Promise<void>) => {
+    const job = commands.then(work);
+    commands = job.catch(() => {});
+    return job;
+  };
+  noteWindows = createDesktopNotesController({
+    profile, preload: path.join(app.getAppPath(), 'dist-electron/src/preload/desktop-notes.cjs'),
+    url: devUrl ? `${devUrl}/desktop-notes.html` : 'dogcow://app/desktop-notes.html',
+    data: () => {
+      const view = notesStore.view(repo.dirty);
+      return { notes: view.notes.map(note => ({ id: note.id, kind: note.kind, title: note.title, visible: note.visible, tasks: projectTasks(note, tasks.tasks) })),
+        lineVisible: view.lineVisible, revision: revisions.tasks, pending: repo.dirty,
+        error: view.error || taskError || repo.readError || (repo.dirty ? repo.error : '') };
+    },
+    toggle: (noteId, taskId, revision, requestId) => enqueueNotes(async () => {
+      const note = notesStore.get(noteId);
+      if (!note?.visible || !note.taskIds.includes(taskId) || notesStore.view().error) throw Error('这项任务已不在当前便签中。');
+      if (quitting || quitPending) throw Error('正在退出，请稍后重试。');
+      const result = await invoke('task', { action: 'toggle', id: taskId, expectedRevision: revision, requestId });
+      if (!result.applied || !result.persisted) throw Error(result.message || '任务尚未保存，请重试保存。');
+    }),
+    retry: () => enqueueNotes(async () => {
+      const result = await finish({ applied: true, persisted: false, message: '' });
+      if (!result.persisted) throw Error(result.message);
+    }),
+    hide: id => enqueueNotes(async () => {
+      const p = id === 'line' ? { action: 'line', visible: false } : { action: 'visible', id, visible: false };
+      const result = await invoke('desktopNotes', { ...p, expectedNotesRevision: notesStore.view().revision, requestId: randomUUID() });
+      if (!result.persisted) throw Error(result.message);
+    }),
+    manage: id => { revealWindow(); void windows.request('expanded').then(() => win?.webContents.send('dogcow:open-desktop-notes', id)); },
+    changed: broadcast,
+  });
+  // Window loading and renderer handshakes never occupy the task command queue.
+  void noteWindows.initialize().catch(error => console.error('[desktopNotes:startup]', error instanceof Error ? error.name : 'unknown'));
+  app.once('will-quit', () => noteWindows?.dispose());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (event) => event.preventDefault());
   win.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) =>
     callback(false),
   );
+  playgroundDiagnostics = new PlaygroundDiagnostics(path.join(profile, 'diagnostics'));
+  await playgroundDiagnostics.load();
+  let playgroundBuildId = 'development';
+  if (!devUrl) {
+    try { playgroundBuildId = JSON.parse(await readFile(path.join(root, 'build-info.json'), 'utf8')).buildId; }
+    catch { playgroundBuildId = 'unknown-build'; }
+  }
+  playground = new PlaygroundController({
+    environment: { version: app.getVersion(), buildId: playgroundBuildId },
+    record: (report, context) => playgroundDiagnostics.record(report, context),
+    preload: path.join(app.getAppPath(), 'dist-electron/src/preload/playground.cjs'),
+    url: devUrl ? `${devUrl}/playground.html` : 'dogcow://app/playground.html',
+    theme: () => nativeTheme.shouldUseDarkColors ? 'dark' : 'light',
+    failed: (message, correlationId) => {
+      if (win && !win.isDestroyed()) win.webContents.send('dogcow:playground-error', { message, correlationId });
+    },
+  });
+  ipcMain.handle('dogcow:playground', async (event, command: unknown, payload: unknown) => {
+    playground!.authorize(event.sender, event.senderFrame, command);
+    try {
+      if (command === 'poker') {
+        try {
+          if (!record(payload) || typeof payload.action !== 'string') throw new PokerError('POKER_RULE', '操作参数无效。');
+          const request = payload as unknown as PokerRequest;
+          // Sampling happens outside the shared business queue; execute rechecks the revision.
+          const decision = request.action === 'bot' ? await poker.decision(request) : undefined;
+          const job = commands.then(async (): Promise<PokerReply> => {
+            if (quitting || quitPending || repo.migration?.phase === 'pending' || repo.readError) throw new PokerError('POKER_UNAVAILABLE', '本机数据暂不可用，请先在主界面处理。');
+            if (request.action === 'exchangeStatus') return { view: poker.view(), exchangeStatus: poker.exchangeStatus(request) };
+            if (request.action === 'retry') await finish({ applied: true, persisted: false, message: '' });
+            else {
+              poker.execute(request, decision);
+              if (request.action !== 'view') await finish({ applied: true, persisted: false, message: '' });
+            }
+            const view = poker.view();
+            if (view.pending) return { view, errorCode: 'POKER_SAVE_FAILED', error: '本次操作尚未保存，请重试保存。' };
+            return { view, ...(['exchangeCoins', 'exchangeChips'].includes(request.action) ? { exchangeStatus: poker.exchangeStatus(request) } : {}) };
+          });
+          commands = job.catch(() => undefined);
+          return await job;
+        } catch (error) {
+          const correlationId = playground!.diagnose('ipc', error, 'poker');
+          let view; try { view = poker.view(); } catch { /* Keep damaged data untouched. */ }
+          return { view, errorCode: error instanceof PokerError ? error.code : 'POKER_FAILED',
+            error: error instanceof PokerError ? error.message : '德州记录暂不可用，原始数据保留。', correlationId };
+        }
+      }
+      if (command === 'fishing') {
+        const job = commands.then(async (): Promise<FishingReply> => {
+          try {
+            if (!record(payload) || typeof payload.action !== 'string') throw new FishingError('FISHING_RULE', '操作参数无效。');
+            if (quitting || quitPending || repo.migration?.phase === 'pending' || repo.readError) throw new FishingError('FISHING_UNAVAILABLE', '本机数据暂不可用，请先在主界面处理。');
+            const request = payload as unknown as FishingRequest;
+            if (request.action === 'retry') await finish({ applied: true, persisted: false, message: '' });
+            else {
+              // Snapshot and wallet writes run in the same queue as all existing business commands.
+              fishing.execute(request);
+              if (request.action !== 'view') await finish({ applied: true, persisted: false, message: '' });
+            }
+            const view = fishing.view();
+            if (view.pending) {
+              const correlationId = playground!.diagnose('persistence', Error('钓鱼操作快照保存失败'), 'desk-fishing');
+              return { view, errorCode: 'FISHING_SAVE_FAILED', error: '本次操作尚未保存，请保留窗口并重试保存。', correlationId };
+            }
+            return { view };
+          } catch (error) {
+            const correlationId = playground!.diagnose('ipc', error, 'desk-fishing');
+            let view;
+            try { view = fishing.view(); } catch { /* Invalid saves stay locked and untouched. */ }
+            return { view, errorCode: error instanceof FishingError ? error.code : 'FISHING_FAILED',
+              error: error instanceof FishingError ? error.message : '钓鱼记录暂不可用，原始数据保留，请重试或查看诊断。', correlationId };
+          }
+        });
+        commands = job;
+        return job;
+      }
+      if (command === 'report') return await playgroundDiagnostics.record(payload, playground!.context());
+      if (command === 'diagnostics') return await playgroundDiagnostics.read(payload);
+      if (command === 'copyDiagnostics') {
+        const data = await playgroundDiagnostics.read(payload);
+        if (payload && !data.entries.length) throw Error('未找到该问题编号。');
+        await clipboard.writeText(JSON.stringify(data, null, 2));
+        return;
+      }
+      return playground!.command(event.sender, event.senderFrame, command);
+    } catch (error) {
+      const id = playground!.diagnose(command === 'copyDiagnostics' ? 'clipboard' : 'ipc', error);
+      throw Error(`操作失败，问题编号：${id}`);
+    }
+  });
+  const playgroundTheme = () => playground?.publishTheme();
+  nativeTheme.on('updated', playgroundTheme);
+  app.once('will-quit', () => { nativeTheme.removeListener('updated', playgroundTheme); playground?.dispose(); });
   for (const method of methods)
     ipcMain.handle(`dogcow:${method}`, async (event, payload: unknown) => {
       const url = event.senderFrame?.url ?? '';
@@ -1186,6 +1378,22 @@ async function start() {
       if (method === 'quit' && record(payload) && payload.nonce === quitNonce && acknowledgeFlush) {
         acknowledgeFlush(payload.ready === true);
         return toastResult('');
+      }
+      // Native window readiness must never hold the serialized business queue.
+      if (method === 'copyPlaygroundDiagnostics') {
+        try {
+          const data = await playgroundDiagnostics.read();
+          await clipboard.writeText(JSON.stringify(data, null, 2));
+          return toastResult(data.warning ?? '已复制游乐场诊断信息。');
+        } catch (error) {
+          const id = playground!.diagnose('clipboard', error);
+          return { ...toastResult(`诊断复制失败，请重试。问题编号：${id}`), errorCode: 'PLAYGROUND_CLIPBOARD_FAILED', correlationId: id };
+        }
+      }
+      if (method === 'openPlayground') {
+        if (quitting || quitPending) return toastResult('正在退出，请稍后重试。');
+        const opened = await playground?.open();
+        return { ...toastResult(opened ? '' : playground?.lastFailure?.message ?? '游乐场打开失败，请点击摩天轮重试。'), applied: !!opened, ...(!opened ? { errorCode: playground?.lastFailure?.errorCode, correlationId: playground?.lastFailure?.correlationId } : {}) };
       }
       if (windows.phase === 'applying' || windows.phase === 'restoring') return toastResult('窗口正在切换，请稍后重试。');
       const job = commands
@@ -1299,6 +1507,7 @@ async function start() {
     win?.show();
     broadcast();
   });
+  console.info(JSON.stringify({ operation: 'appStartup', stage: 'main-load-start', source: devUrl ? 'dev' : 'local' }));
   if (devUrl) await win.loadURL(devUrl);
   else await win.loadURL('dogcow://app/index.html');
   if (app.isPackaged) {

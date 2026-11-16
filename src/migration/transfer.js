@@ -1,3 +1,5 @@
+import { validatePokerState } from './poker.js';
+import { DESKTOP_NOTES_KEY, validateDesktopNotes } from './desktop-notes.js';
 import { TOILET_KEY, validateToilet } from '../../app/income/src/paid-toilet.js';
 import { OWED_KEY, parseOwed } from '../../app/income/src/owed.js';
 import { loadSettings } from '../../app/income/src/storage.js';
@@ -7,8 +9,10 @@ export const RESTORE_KEY = 'dogcow.migration.restore.v1';
 export const MAX_TRANSFER_BYTES = 20 * 1024 * 1024;
 const fixedKeys = ['work-todolist-generic-v1', 'dogcow.home.v1', ...[1, 2, 3, 4].map(v => `niuma-calculator.settings.v${v}`)];
 export const TITLES_KEY = 'dogcow.titles.v1';
+export const POKER_KEY = 'dogcow.poker.v1';
+export const FISHING_KEY = 'dogcow.fishing.v1';
 export const COINS_KEY = 'dogcow.coins.v1';
-export const allowedKey = key => fixedKeys.includes(key) || key === TOILET_KEY || key === TITLES_KEY || key === COINS_KEY || key === OWED_KEY || key === 'dogcow.board.v2' || /^niuma-calculator\.holidays\.v1\.[1-9]\d{3}$/.test(key);
+export const allowedKey = key => fixedKeys.includes(key) || key === DESKTOP_NOTES_KEY || key === TOILET_KEY || key === TITLES_KEY || key === COINS_KEY || key === FISHING_KEY || key === POKER_KEY || key === OWED_KEY || key === 'dogcow.board.v2' || /^niuma-calculator\.holidays\.v1\.[1-9]\d{3}$/.test(key);
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const fail = message => { throw new Error(message); };
 const validDate = value => {
@@ -21,6 +25,8 @@ const validDate = value => {
 
 export function collectLegacy(storage) {
   const values = Object.fromEntries(fixedKeys.map(key => [key, storage.getItem(key)]));
+  const desktopNotes = storage.getItem(DESKTOP_NOTES_KEY);
+  if (desktopNotes !== null) values[DESKTOP_NOTES_KEY] = desktopNotes;
   for (let i = 0; i < storage.length; i++) {
     const key = storage.key(i);
     if (allowedKey(key) && !fixedKeys.includes(key)) values[key] = storage.getItem(key);
@@ -42,6 +48,15 @@ export function validateLegacy(values, now = new Date()) {
     const coins = JSON.parse(values[COINS_KEY]);
     if (!record(coins) || coins.version !== 1 || !Number.isSafeInteger(coins.balance) || coins.balance < 0 || !record(coins.used) || !Array.isArray(coins.owned) || !Array.isArray(coins.entries)) fail('狗牛币数据无效。');
   }
+  if (values[POKER_KEY] != null) {
+    const poker = JSON.parse(values[POKER_KEY]);
+    validatePokerState(poker);
+    if (typeof values[COINS_KEY] !== 'string') fail('德州存档需与钱包一起恢复。');
+  }
+  if (values[FISHING_KEY] != null) {
+    const fishing = JSON.parse(values[FISHING_KEY]);
+    if (!record(fishing) || fishing.version !== 1 || !record(fishing.rods) || !record(fishing.book) || !Array.isArray(fishing.bag)) fail('钓鱼存档格式无效。');
+  }
   for (const key of fixedKeys) if (!Object.hasOwn(values, key)) fail('迁移包缺少必要键。');
   const tasks = values[fixedKeys[0]] === null ? null : JSON.parse(values[fixedKeys[0]]);
   if (tasks !== null) {
@@ -52,6 +67,11 @@ export function validateLegacy(values, now = new Date()) {
       ids.add(task.id);
     }
     if (tasks.seededWeeks !== undefined && (!Array.isArray(tasks.seededWeeks) || !tasks.seededWeeks.every(validDate))) fail('周记录无效。');
+  }
+  if (values[DESKTOP_NOTES_KEY] != null) {
+    const notes = validateDesktopNotes(JSON.parse(values[DESKTOP_NOTES_KEY]));
+    const ids = new Set(tasks?.tasks.map(task => task.id) ?? []);
+    if (notes.notes.some(note => note.taskIds.some(id => !ids.has(id)))) fail('便签引用了迁移包中不存在的任务。');
   }
   const income = loadSettings({ getItem: key => values[key] ?? null }, now);
   if (['invalid', 'unavailable'].includes(income.status)) fail('收入数据无效；没有退回较低版本。');
@@ -97,7 +117,7 @@ export async function parseTransfer(text, cryptoImpl, now = new Date()) {
 export function beginRestore(storage, values) {
   validateLegacy(values);
   if (storage.getItem(RESTORE_KEY) !== null) fail('存在未完成恢复，请先处理。');
-  values = { ...values, [TOILET_KEY]: values[TOILET_KEY] ?? null, [TITLES_KEY]: values[TITLES_KEY] ?? null };
+  values = { ...values, [TOILET_KEY]: values[TOILET_KEY] ?? null, [TITLES_KEY]: values[TITLES_KEY] ?? null, [DESKTOP_NOTES_KEY]: values[DESKTOP_NOTES_KEY] ?? null };
   const before = Object.fromEntries(Object.keys(values).map(key => [key, storage.getItem(key)]));
   storage.setItem(RESTORE_KEY, JSON.stringify({ version: 1, before, target: values }));
   finishRestore(storage, 'target');
