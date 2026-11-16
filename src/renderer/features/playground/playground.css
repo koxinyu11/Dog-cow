@@ -6,7 +6,7 @@ body { margin: 0; background: var(--c-page); color: var(--c-ink); font-family: v
 .pg-titlebar > span { display: inline-flex; align-items: center; gap: 8px; }
 .pg-titlebar-end { gap: 12px !important; }
 .pg-local { letter-spacing: .08em; }
-.pg-app main { max-width: 1120px; margin: auto; padding: 20px 48px 32px; }
+.pg-app > main { max-width: 1120px; margin: auto; padding: 20px 48px 32px; }
 .pg-heading h1 { font: 600 clamp(24px, 3vw, 30px)/1.3 var(--f-display); margin: 0 0 6px; letter-spacing: -.03em; }
 .pg-heading p { color: var(--c-muted); font-size: 13px; margin: 0; }
 
@@ -79,7 +79,7 @@ body { margin: 0; background: var(--c-page); color: var(--c-ink); font-family: v
 .pg-feedback h1, .pg-feedback h2, .pg-feedback p { margin: 0; }
 .pg-app button:focus-visible, .pg-app summary:focus-visible { outline: 3px solid var(--c-brand); outline-offset: 4px; }
 @keyframes pg-turn { to { transform: rotate(360deg); } }
-@media (max-width: 760px) { .pg-app main { padding: 16px 26px 24px; } .pg-search { width: 100%; } .pg-recent { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .pg-app > main { padding: 16px 26px 24px; } .pg-search { width: 100%; } .pg-recent { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { .pg-wheel { animation: none; } .pg-cover.has-art svg { transition: none; } .pg-game-card { transition: none; } .pg-game-card:hover, .pg-game-card:active { transform: none; } }
 
 /* Diagnostics: icon in the title bar, panel on demand */

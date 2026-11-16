@@ -9,6 +9,7 @@ const bridge: PlaygroundBridge = {
   diagnostics(id) { return ipcRenderer.invoke('dogcow:playground', 'diagnostics', id); },
   copyDiagnostics(id) { return ipcRenderer.invoke('dogcow:playground', 'copyDiagnostics', id); },
   fishing(request) { return ipcRenderer.invoke('dogcow:playground', 'fishing', request); },
+  poker(request) { return ipcRenderer.invoke('dogcow:playground', 'poker', request); },
   onTheme(callback) {
     const listener = (_event: Electron.IpcRendererEvent, theme: PlaygroundTheme) => {
       if (theme === 'light' || theme === 'dark') callback(theme);

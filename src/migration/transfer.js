@@ -1,3 +1,4 @@
+import { validatePokerState } from './poker.js';
 import { DESKTOP_NOTES_KEY, validateDesktopNotes } from './desktop-notes.js';
 import { TOILET_KEY, validateToilet } from '../../app/income/src/paid-toilet.js';
 import { OWED_KEY, parseOwed } from '../../app/income/src/owed.js';
@@ -8,9 +9,10 @@ export const RESTORE_KEY = 'dogcow.migration.restore.v1';
 export const MAX_TRANSFER_BYTES = 20 * 1024 * 1024;
 const fixedKeys = ['work-todolist-generic-v1', 'dogcow.home.v1', ...[1, 2, 3, 4].map(v => `niuma-calculator.settings.v${v}`)];
 export const TITLES_KEY = 'dogcow.titles.v1';
+export const POKER_KEY = 'dogcow.poker.v1';
 export const FISHING_KEY = 'dogcow.fishing.v1';
 export const COINS_KEY = 'dogcow.coins.v1';
-export const allowedKey = key => fixedKeys.includes(key) || key === DESKTOP_NOTES_KEY || key === TOILET_KEY || key === TITLES_KEY || key === COINS_KEY || key === FISHING_KEY || key === OWED_KEY || key === 'dogcow.board.v2' || /^niuma-calculator\.holidays\.v1\.[1-9]\d{3}$/.test(key);
+export const allowedKey = key => fixedKeys.includes(key) || key === DESKTOP_NOTES_KEY || key === TOILET_KEY || key === TITLES_KEY || key === COINS_KEY || key === FISHING_KEY || key === POKER_KEY || key === OWED_KEY || key === 'dogcow.board.v2' || /^niuma-calculator\.holidays\.v1\.[1-9]\d{3}$/.test(key);
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const fail = message => { throw new Error(message); };
 const validDate = value => {
@@ -45,6 +47,11 @@ export function validateLegacy(values, now = new Date()) {
     // Structure only; every field is checked again by the wallet on load.
     const coins = JSON.parse(values[COINS_KEY]);
     if (!record(coins) || coins.version !== 1 || !Number.isSafeInteger(coins.balance) || coins.balance < 0 || !record(coins.used) || !Array.isArray(coins.owned) || !Array.isArray(coins.entries)) fail('狗牛币数据无效。');
+  }
+  if (values[POKER_KEY] != null) {
+    const poker = JSON.parse(values[POKER_KEY]);
+    validatePokerState(poker);
+    if (typeof values[COINS_KEY] !== 'string') fail('德州存档需与钱包一起恢复。');
   }
   if (values[FISHING_KEY] != null) {
     const fishing = JSON.parse(values[FISHING_KEY]);

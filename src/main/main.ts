@@ -46,6 +46,8 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Repository } from './repository.js';
 import { Titles } from './titles.js';
+import { Poker, PokerError } from './poker.js';
+import { POKER_KEY, type PokerRequest, type PokerReply } from '../shared/poker.js';
 import { Coins } from './coins.js';
 import { COINS_KEY } from '../shared/coins.js';
 import {
@@ -161,6 +163,7 @@ let unsubscribe: (() => void) | null = null;
 let income: IncomeState;
 let titles: Titles;
 let coins: Coins;
+let poker: Poker;
 let fishing: Fishing;
 let owedData = emptyOwed();
 let owedError = '';
@@ -307,6 +310,7 @@ function restoreModels() {
   titles.load();
   coins = new Coins(repo.storage, () => titles.moneyLedgers());
   coins.load();
+  poker = new Poker(repo.storage, coins);
   fishing = new Fishing(repo.storage, coins);
   try {
     owedData = parseOwed(repo.storage.getItem(OWED_KEY));
@@ -407,6 +411,7 @@ async function finish(result: Result): Promise<Result> {
   result.persisted = result.applied ? await repo.flush() : false;
   if (result.persisted) {
     fishing?.confirmSaved();
+    poker?.confirmSaved();
     attendancePendingSave = false;
     const outcome = coins?.confirmSaved();
     if (outcome) result.coinOutcome = outcome;
@@ -607,6 +612,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     const backup = await repo.backup('before-import');
     // An older pack without a wallet keeps the current one, so restored ledgers cannot be exchanged twice.
     const currentCoins = repo.storage.getItem(COINS_KEY);
+    const currentPoker = repo.storage.getItem(POKER_KEY);
     const currentFishing = repo.storage.getItem(FISHING_KEY);
     repo.values = new Map(
       Object.entries(pending.values).filter(
@@ -615,6 +621,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     );
     if (typeof pending.values[COINS_KEY] !== 'string' && currentCoins !== null) repo.values.set(COINS_KEY, currentCoins);
     if (typeof pending.values[COINS_KEY] !== 'string' && currentFishing !== null) repo.values.set(FISHING_KEY, currentFishing);
+    if (typeof pending.values[COINS_KEY] !== 'string' && currentPoker !== null) repo.values.set(POKER_KEY, currentPoker);
     repo.readError = '';
     repo.revision++;
     repo.migration = {
@@ -1251,6 +1258,33 @@ async function start() {
   ipcMain.handle('dogcow:playground', async (event, command: unknown, payload: unknown) => {
     playground!.authorize(event.sender, event.senderFrame, command);
     try {
+      if (command === 'poker') {
+        try {
+          if (!record(payload) || typeof payload.action !== 'string') throw new PokerError('POKER_RULE', '操作参数无效。');
+          const request = payload as unknown as PokerRequest;
+          // Sampling happens outside the shared business queue; execute rechecks the revision.
+          const decision = request.action === 'bot' ? await poker.decision(request) : undefined;
+          const job = commands.then(async (): Promise<PokerReply> => {
+            if (quitting || quitPending || repo.migration?.phase === 'pending' || repo.readError) throw new PokerError('POKER_UNAVAILABLE', '本机数据暂不可用，请先在主界面处理。');
+            if (request.action === 'exchangeStatus') return { view: poker.view(), exchangeStatus: poker.exchangeStatus(request) };
+            if (request.action === 'retry') await finish({ applied: true, persisted: false, message: '' });
+            else {
+              poker.execute(request, decision);
+              if (request.action !== 'view') await finish({ applied: true, persisted: false, message: '' });
+            }
+            const view = poker.view();
+            if (view.pending) return { view, errorCode: 'POKER_SAVE_FAILED', error: '本次操作尚未保存，请重试保存。' };
+            return { view, ...(['exchangeCoins', 'exchangeChips'].includes(request.action) ? { exchangeStatus: poker.exchangeStatus(request) } : {}) };
+          });
+          commands = job.catch(() => undefined);
+          return await job;
+        } catch (error) {
+          const correlationId = playground!.diagnose('ipc', error, 'poker');
+          let view; try { view = poker.view(); } catch { /* Keep damaged data untouched. */ }
+          return { view, errorCode: error instanceof PokerError ? error.code : 'POKER_FAILED',
+            error: error instanceof PokerError ? error.message : '德州记录暂不可用，原始数据保留。', correlationId };
+        }
+      }
       if (command === 'fishing') {
         const job = commands.then(async (): Promise<FishingReply> => {
           try {
