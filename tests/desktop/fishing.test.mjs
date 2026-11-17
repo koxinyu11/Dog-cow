@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyFishing, parseFishing, rollRound, breakChance, wearChance, durabilityLeft, FISHING_KEY, fishingView, categories, species, EMPTY_SHARE, TINY_SHARE } from '../../dist-electron/src/shared/fishing.js';
+import { emptyFishing, parseFishing, rollRound, breakChance, wearChance, durabilityLeft, FISHING_KEY, fishingView, fishingPool, categories, species, rarities, fishCount, MYTHIC_CHANCE, EMPTY_SHARE, TINY_SHARE } from '../../dist-electron/src/shared/fishing.js';
 import { emptyCoins, COINS_KEY, parseCoins } from '../../dist-electron/src/shared/coins.js';
 import { Coins } from '../../dist-electron/src/main/coins.js';
 import { Fishing } from '../../dist-electron/src/main/fishing.js';
@@ -9,6 +9,14 @@ import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 const sequence = (...values) => { let i = 0; return () => values[i++] ?? .5; };
+function poolRoll(spot, category, id, bait = 'plain') {
+  let before = 0;
+  for (const { entry, chance } of fishingPool(spot, category, bait)) {
+    if (entry.id === id) return (before + chance / 2) / categories.find(c => c.id === category).share;
+    before += chance;
+  }
+  throw Error(`Not in pool: ${id}`);
+}
 function setup(balance = 1000, random = () => .5, initial = emptyFishing()) {
   const map = new Map([[COINS_KEY, JSON.stringify({ ...emptyCoins(), balance })], [FISHING_KEY, JSON.stringify(initial)]]);
   const store = { getItem: key => map.get(key) ?? null, setItem: (key, raw) => map.set(key, raw) };
@@ -134,17 +142,19 @@ test('catalog shares sum to one and every category has entries at both spots', (
   assert.ok(Math.abs(total - 1) < 1e-9);
   for (const c of categories) for (const spot of ['pond', 'river']) assert.ok(species.some(s => s.category === c.id && (s.spot === spot || s.spot === 'any') && s.weight > 0), `${c.id}@${spot}`);
   assert.equal(new Set(species.map(s => s.id)).size, species.length);
-  assert.equal(species.length, 34);
+  assert.equal(species.length, 100);
+  assert.equal(fishCount, 72);
+  assert.deepEqual(Object.fromEntries(categories.map(c => [c.id, species.filter(s => s.category === c.id).length])), { creature: 10, junk: 8, treasure: 10, fish: 72 });
 });
 test('creatures and objects enter bag and book; visitors only enter book; treasure never breaks', () => {
   const creature = rollRound(emptyFishing(), 'c', sequence(.76, 0, .5));
   assert.equal(creature.result.kind, 'creature');
   assert.equal(creature.result.species, 'crayfish');
   const river = emptyFishing(); river.spot = 'river';
-  const otter = rollRound(river, 'o', sequence(.76, .999, .5));
+  const otter = rollRound(river, 'o', sequence(.76, poolRoll('river', 'creature', 'otter'), .5));
   assert.equal(otter.result.species, 'otter');
   assert.equal(otter.result.value, undefined);
-  const treasure = rollRound(river, 't', sequence(.837, .5, .5, 0));
+  const treasure = rollRound(river, 't', sequence(.837, poolRoll('river', 'treasure', 'compass'), .5, 0));
   assert.equal(treasure.result.kind, 'treasure');
   assert.equal(treasure.result.species, 'compass');
   const state = emptyFishing();
@@ -173,7 +183,7 @@ test('tiny fish dominates, big fish stay rare, and some mussels carry pearls', (
   assert.equal(pearl.result.kind, 'treasure');
   assert.equal(rollRound(river, 'm', sequence(.76, .5, .5, .5)).result.species, 'mussel');
   // A middle roll lands near the low end of the size range.
-  const carp = rollRound(river, 'c', sequence(.9, 0, .5, .9)).result;
+  const carp = rollRound(river, 'c', sequence(.9, poolRoll('river', 'fish', 'carp'), .5, .9)).result;
   assert.equal(carp.species, 'carp');
   assert.ok(carp.kg < 1.5);
   let rare = 0, top = new Map();
@@ -225,4 +235,90 @@ test('new catches record when they were caught; older catches without a time sti
   const legacy = { ...emptyFishing(), bag: [{ id: 'o', species: 'wheat', kg: .02, value: 1, locked: false }] };
   assert.equal(parseFishing(JSON.stringify(legacy)).bag[0].at, undefined);
   assert.throws(() => parseFishing(JSON.stringify({ ...legacy, bag: [{ ...legacy.bag[0], at: -5 }] })));
+});
+
+test('every catalog entry is reachable and round-trips through the current save format', () => {
+  const type = { fish: .9, creature: .76, junk: .82, treasure: .837 };
+  for (const entry of species) {
+    assert.ok(entry.name && entry.note && entry.rarity >= 0 && entry.rarity < rarities.length, entry.id);
+    assert.ok(entry.min > 0 && entry.min <= entry.max && entry.max * 1.15 <= 100, entry.id);
+    const state = emptyFishing(); state.spot = entry.spot === 'any' ? 'pond' : entry.spot; state.equipped = 'collector';
+    const rnd = entry.id === 'wheat' ? sequence(.5, .5)
+      : entry.id === 'pearl' ? sequence(.76, poolRoll('river', 'creature', 'mussel'), .5, 0)
+      : sequence(type[entry.category], poolRoll(state.spot, entry.category, entry.id), .5, .999);
+    state.round = rollRound(state, entry.id, rnd);
+    assert.equal(state.round.result.species, entry.id, entry.id);
+    assert.equal(state.round.result.value === undefined, !!entry.visitor, entry.id);
+    assert.deepEqual(parseFishing(JSON.stringify(state)).round, JSON.parse(JSON.stringify(state.round)), entry.id);
+  }
+});
+
+test('ten mythic entries reserve exactly 0.01% per eligible cast under both baits', () => {
+  const mythic = species.filter(s => s.rarity === 5);
+  assert.equal(mythic.length, 10);
+  assert.equal(new Set(mythic.map(s => s.shape)).size, 10);
+  for (const entry of mythic) { assert.equal(entry.castChance, 1 / 10000); assert.equal(entry.weight, 0); }
+  assert.equal(MYTHIC_CHANCE, .0001);
+  for (const spot of ['pond', 'river']) for (const bait of ['plain', 'worm']) for (const category of categories) {
+    const pool = fishingPool(spot, category.id, bait);
+    assert.ok(Math.abs(pool.reduce((sum, s) => sum + s.chance, 0) - category.share) < 1e-12);
+    assert.equal(new Set(pool.map(s => s.entry.id)).size, pool.length);
+    assert.equal(pool.some(s => s.entry.id === 'pearl' || s.entry.id === 'wheat'), false);
+    for (const { entry, chance } of pool) {
+      assert.ok(entry.spot === spot || entry.spot === 'any');
+      assert.ok(Number.isFinite(chance) && chance > 0);
+      if (entry.rarity === 5) assert.equal(chance, .0001);
+    }
+    assert.equal(pool.filter(s => s.entry.rarity === 5).length, category.id === 'fish' ? 4 : category.id === 'treasure' ? 1 : 0);
+  }
+});
+
+test('mythic interval edges select one species without leaking into a second draw or bait bonus', () => {
+  for (const spot of ['pond', 'river']) for (const bait of ['plain', 'worm']) for (const category of ['fish', 'treasure']) {
+    const state = emptyFishing(); state.spot = spot; state.bait = bait; state.equipped = 'collector';
+    const fixed = species.filter(s => s.spot === spot && s.category === category && s.rarity === 5);
+    const share = category === 'fish' ? .16 : .004;
+    const type = category === 'fish' ? .9 : .837;
+    for (let i = 0; i < fixed.length; i++) {
+      const lower = i * .0001, upper = (i + 1) * .0001;
+      for (const point of [lower + 1e-10, (lower + upper) / 2, upper - 1e-10]) {
+        const result = rollRound(state, 'mythic', sequence(type, point / share, .5, .999)).result;
+        assert.equal(result.species, fixed[i].id, `${spot}/${bait}/${category}/${point}`);
+      }
+      const after = rollRound(state, 'after', sequence(type, (upper + 1e-10) / share, .5, .999)).result;
+      assert.notEqual(after.species, fixed[i].id);
+      if (i + 1 < fixed.length) assert.equal(after.species, fixed[i + 1].id);
+      else assert.ok(species.find(s => s.id === after.species).rarity < 5);
+    }
+  }
+});
+
+test('original 34 IDs, discoveries, locked catches and an unrevealed old round remain intact', () => {
+  const ids = 'wheat crucian minnow medaka loach perch salt koi betta moon carp silver grass catfish yellowcat momo mandarin gold cloud crayfish snail turtle crab mussel otter badge key keycap bottle mug trophy wish pearl compass'.split(' ');
+  assert.equal(ids.length, 34);
+  const legacy = emptyFishing();
+  legacy.book = Object.fromEntries(ids.map(id => [id, { count: 2, largest: .5 }]));
+  legacy.bag = ids.filter(id => id !== 'otter').map(id => ({ id: `old-${id}`, species: id, kg: .5, value: 2, locked: true }));
+  legacy.round = { id: 'old-round', rod: 'bamboo', signal: '轻轻晃动', wait: 7, result: { kind: 'fish', name: '日落锦鲤', species: 'koi', kg: 1, value: 15, newDiscovery: false } };
+  assert.deepEqual(parseFishing(JSON.stringify(legacy)), legacy);
+});
+
+test('a mythic result survives reload, is hidden before reeling, and retries without rerolling or duplicating', () => {
+  let draws = 0;
+  const random = sequence(.9, .00005 / .16, .5, .999);
+  const x = setup(0, () => { draws++; return random(); });
+  x.run('cast', undefined, undefined, 'rare-cast'); x.saved();
+  const round = x.fishing.view().state.round;
+  assert.equal(round.result, undefined);
+  const reloaded = new Fishing(x.store, x.coins, () => { throw Error('must not reroll'); });
+  reloaded.execute({ action: 'reel', roundId: round.id, requestId: 'rare-reel' });
+  assert.equal(reloaded.view().pending, true);
+  assert.equal(reloaded.view().state.bag.length, 0);
+  reloaded.confirmSaved();
+  reloaded.execute({ action: 'reel', roundId: round.id, requestId: 'rare-reel' });
+  const saved = reloaded.view().state;
+  assert.equal(saved.bag.length, 1);
+  assert.equal(saved.bag[0].species, 'star-koi');
+  assert.equal(saved.book['star-koi'].count, 1);
+  assert.equal(draws, 6);
 });

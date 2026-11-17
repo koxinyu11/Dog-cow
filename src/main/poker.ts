@@ -15,7 +15,7 @@ export class PokerError extends Error {
 const refuse = (message: string): never => { throw new PokerError('POKER_RULE', message); };
 export class Poker {
     private before: PokerState | null = null;
-    constructor(private store: Store, private coins: Coins) { }
+    constructor(private store: Store, private coins: Coins, private settled?: (table: Table) => void) { }
     private read(): PokerState {
         const raw = this.store.getItem(POKER_KEY);
         if (raw === null)
@@ -195,6 +195,7 @@ export class Poker {
             this.coins.poker(delta);
         this.store.setItem(POKER_KEY, JSON.stringify(s));
         this.before = old;
+        if (s.table?.done && old.table && !old.table.done) this.settled?.(s.table);
     }
     private newHand(chips: number[], dealer: number, reads?: Table['reads']) {
         const deck = Array.from({ length: 52 }, (_, i) => i);

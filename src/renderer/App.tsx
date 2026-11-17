@@ -155,7 +155,7 @@ export function App() {
     later('toast', 4000, () => setToast({ text: '' }));
   };
   // Unlock notice waits behind business toasts and the offwork receipt; shown once per title.
-  const pendingTitles = state?.titles?.pendingToast ?? [];
+  const pendingTitles = (state?.titles?.pendingToast ?? []).filter(id => !['game-time', 'fishing', 'poker'].includes(state?.titles?.items.find(t => t.id === id)?.series ?? ''));
   useEffect(() => {
     if (!pendingTitles.length || receipt || toast.text || titleToast || state?.compact) return;
     const names = pendingTitles.map((id) => state?.titles?.items.find((card) => card.id === id)?.name).filter(Boolean);

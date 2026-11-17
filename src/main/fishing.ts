@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { FISHING_KEY, fishFound, fishingView, parseFishing, rods, tools, spots, rollRound, type FishingRequest, type FishingState, type FishingView, type FishingAction } from '../shared/fishing.js';
+import { FISHING_KEY, awardSkins, fishFound, fishingView, parseFishing, repairPrice, repairedWear, rods, skinAvailable, tools, spots, rollRound, type FishingRequest, type FishingState, type FishingView, type FishingAction } from '../shared/fishing.js';
+import { isBaitSupply, MAX_SUPPLIES, rodSkins, supplies } from '../shared/fishing-gear.js';
 import type { Coins } from './coins.js';
 interface Store { getItem(key: string): string | null; setItem(key: string, value: string): void }
 export class FishingError extends Error {
@@ -16,7 +17,7 @@ export class Fishing {
     return fishingView(this.before ?? parseFishing(this.store.getItem(FISHING_KEY)), wallet.balance, !!this.before, !!wallet.error || !!wallet.pendingSave);
   }
   execute(request: FishingRequest) {
-    const actions: FishingAction[] = ['view', 'cast', 'reel', 'buyRod', 'buyTool', 'equip', 'spot', 'bait', 'sell', 'sellAll', 'lock', 'rescue', 'retry'];
+    const actions: FishingAction[] = ['view', 'cast', 'reel', 'buyRod', 'buyTool', 'equip', 'spot', 'bait', 'sell', 'sellAll', 'lock', 'rescue', 'retry', 'buySkin', 'skin', 'buySupply', 'guard', 'repair'];
     if (!request || !actions.includes(request.action)) refuse('操作无效。');
     if (request.action === 'view') return;
     if (this.before) refuse('本次操作尚未保存，请先重试保存。');
@@ -32,12 +33,24 @@ export class Fishing {
     if (action === 'cast') {
       if (!next.rods[next.equipped]) refuse('请先装备一根可用鱼竿。');
       if (next.bag.length >= 200) refuse('鱼篓满了，请先出售一些收获。');
+      if (isBaitSupply(next.bait) && next.gear.stock[next.bait] < 1) refuse('补给不足，请先切换普通饵或购买补给。');
       next.round = rollRound(next, randomUUID(), this.random);
       next.last = null;
     } else if (action === 'reel') {
       if (!next.round || request.roundId !== next.round.id) refuse('这一竿已经结束，请刷新记录。');
       const round = next.round;
       const result = round.result;
+      // Reservations are frozen in the hidden round and settled exactly once on reel.
+      if (round.supply) {
+        if (next.gear.stock[round.supply] < 1) refuse('本竿预留补给记录异常，请保留存档并查看诊断。');
+        next.gear.stock[round.supply]--;
+        if (next.gear.stock[round.supply] === 0 && next.bait === round.supply) next.bait = 'plain';
+      }
+      if (result.protected) {
+        if (next.gear.stock.guard < 1) refuse('本竿护线扣记录异常，请保留存档并查看诊断。');
+        next.gear.stock.guard--;
+        if (next.gear.stock.guard === 0) next.gear.guard = false;
+      }
       next.wear[round.rod] = (next.wear[round.rod] ?? 0) + 1;
       if (result.kind === 'broken') {
         next.rods[round.rod]--;
@@ -52,6 +65,7 @@ export class Fishing {
       }
       next.last = result;
       next.round = null;
+      awardSkins(next);
     } else if (action === 'buyRod') {
       const rod = rods.find(r => r.id === id);
       if (!rod) refuse('鱼竿不存在。');
@@ -66,6 +80,35 @@ export class Fishing {
       if (next.tools.includes(tool.id)) refuse('已经拥有这件工具。');
       delta = -tool.price;
       next.tools.push(tool.id);
+    } else if (action === 'buySkin') {
+      const skin = rodSkins.find(s => s.id === id);
+      if (!skin || skin.price <= 0) refuse('这款皮肤通过收集解锁。');
+      if (next.gear.skins.includes(skin.id)) refuse('已经拥有这款皮肤。');
+      delta = -skin.price;
+      next.gear.skins.push(skin.id);
+      next.gear.skin = skin.id;
+    } else if (action === 'skin') {
+      const skin = rodSkins.find(s => s.id === id);
+      if (!skin || !skinAvailable(next, skin)) refuse('这款皮肤尚未解锁。');
+      if (!next.gear.skins.includes(skin.id)) next.gear.skins.push(skin.id);
+      next.gear.skin = skin.id;
+    } else if (action === 'buySupply') {
+      const supply = supplies.find(s => s.id === id);
+      if (!supply) refuse('补给不存在。');
+      if (fishFound(next.book) < supply.requiredFish) refuse(`发现 ${supply.requiredFish} 种鱼后可用${supply.name}。`);
+      if (next.gear.stock[supply.id] + supply.pack > MAX_SUPPLIES) refuse(`这类补给最多存放 ${MAX_SUPPLIES} 份。`);
+      delta = -supply.price;
+      next.gear.stock[supply.id] += supply.pack;
+    } else if (action === 'guard') {
+      if (id !== 'on' && id !== 'off') refuse('护线选项无效。');
+      if (id === 'on' && next.gear.stock.guard < 1) refuse('请先购买护线扣。');
+      next.gear.guard = id === 'on';
+    } else if (action === 'repair') {
+      const rod = rods.find(r => r.id === next.equipped)!;
+      if (!next.rods[rod.id]) refuse('已经断掉的竿无法保养，请先装备一根可用鱼竿。');
+      if (next.wear[rod.id] === 0) refuse('这根鱼竿状态良好，无需保养。');
+      delta = -repairPrice(rod.id);
+      next.wear[rod.id] = repairedWear(next.wear[rod.id], rod.durability);
     } else if (action === 'equip') {
       const rod = rods.find(r => r.id === id);
       if (!rod || !next.rods[rod.id]) refuse('这根鱼竿暂不可用。');
@@ -75,8 +118,13 @@ export class Fishing {
       if (!spot || fishFound(next.book) < spot.required) refuse('发现 5 种鱼后开放河湾。');
       next.spot = spot.id;
     } else if (action === 'bait') {
-      if (id !== 'plain' && id !== 'worm') refuse('鱼饵不存在。');
+      if (id !== 'plain' && id !== 'worm' && !isBaitSupply(id)) refuse('钓法不存在。');
       if (id === 'worm' && !next.tools.includes('baitbox')) refuse('购买双层饵盒后可用虫饵。');
+      if (isBaitSupply(id)) {
+        const supply = supplies.find(s => s.id === id)!;
+        if (fishFound(next.book) < supply.requiredFish) refuse(`发现 ${supply.requiredFish} 种鱼后可用${supply.name}。`);
+        if (next.gear.stock[id] < 1) refuse('该补给已用完，请先购买。');
+      }
       next.bait = id;
     } else if (action === 'rescue') {
       if (Object.values(next.rods).some(n => n > 0)) refuse('背包里还有可用的鱼竿。');

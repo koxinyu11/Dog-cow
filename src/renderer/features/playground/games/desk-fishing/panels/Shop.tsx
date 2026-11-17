@@ -1,23 +1,20 @@
-import { Check } from 'lucide-react';
 import { rods, tools, spots, fishFound, durabilityLeft } from '../../../../../../shared/fishing';
 import { RodArt, ToolArt } from '../Art';
 import type { PanelProps } from './types';
-export type ShopTab = 'rods' | 'tools' | 'spots';
+import { Price } from './Price';
+import { SkinShop, SupplyShop } from './GearShop';
+export type ShopTab = 'rods' | 'skins' | 'tools' | 'supplies' | 'spots';
 const MAX = rods[rods.length - 1].capacity;
-function Price({ price, balance, disabled, onBuy, owned }: { price: number; balance: number; disabled: boolean; onBuy(): void; owned?: boolean }) {
-  if (owned) return <span className="df-owned"><Check size={13}/>已拥有</span>;
-  const short = price - balance;
-  return <button className="df-price is-buy" disabled={disabled || short > 0} onClick={onBuy} title={short > 0 ? `还差 ${short} 狗牛币` : undefined}>
-    <b>{price}</b>{short > 0 ? <small>还差 {short}</small> : '购买'}
-  </button>;
-}
-export function Shop({ tab, view, controlsLocked, send }: PanelProps & { tab: ShopTab }) {
+export function Shop({ tab, ...props }: PanelProps & { tab: ShopTab }) {
+  const { view, controlsLocked, send } = props;
+  if (tab === 'skins') return <SkinShop {...props}/>;
+  if (tab === 'supplies') return <SupplyShop {...props}/>;
   const { state, balance, walletLocked } = view;
   const blocked = controlsLocked || walletLocked;
   if (tab === 'rods') return <div className="df-goods">{rods.map(rod => {
     const count = state.rods[rod.id]; const using = state.equipped === rod.id && count > 0;
     return <article key={rod.id} className={`df-good ${using ? 'is-using' : ''}`}>
-      <RodArt color={rod.color}/>
+      <RodArt color={rod.color} skin={state.gear.skin}/>
       <div className="df-good-text">
         <strong>{rod.name}{using && <em>使用中</em>}</strong>
         <div className="df-meter" aria-label={`承重 ${rod.capacity} kg`}><i style={{ width: `${rod.capacity / MAX * 100}%`, background: rod.color }}/></div>

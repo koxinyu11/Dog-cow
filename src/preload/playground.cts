@@ -10,6 +10,12 @@ const bridge: PlaygroundBridge = {
   copyDiagnostics(id) { return ipcRenderer.invoke('dogcow:playground', 'copyDiagnostics', id); },
   fishing(request) { return ipcRenderer.invoke('dogcow:playground', 'fishing', request); },
   poker(request) { return ipcRenderer.invoke('dogcow:playground', 'poker', request); },
+  gameActivity(report) { return ipcRenderer.invoke('dogcow:playground', 'gameActivity', report); },
+  onInterrupt(callback) {
+    const listener = () => callback();
+    ipcRenderer.on('dogcow:playground-interrupt', listener);
+    return () => ipcRenderer.removeListener('dogcow:playground-interrupt', listener);
+  },
   onTheme(callback) {
     const listener = (_event: Electron.IpcRendererEvent, theme: PlaygroundTheme) => {
       if (theme === 'light' || theme === 'dark') callback(theme);

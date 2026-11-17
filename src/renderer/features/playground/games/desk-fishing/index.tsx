@@ -8,9 +8,11 @@ import { Modal } from './panels/Modal';
 import { Bag, BagFooter } from './panels/Bag';
 import { Book } from './panels/Book';
 import { Shop, type ShopTab } from './panels/Shop';
+import { rodLook, isBaitSupply } from '../../../../../shared/fishing-gear';
+import { Loadout } from './Loadout';
 import './fishing.css';
 type Panel = 'bag' | 'book' | 'shop' | null;
-export default function DeskFishing({ paused, diagnostics }: GameProps) {
+export default function DeskFishing({ paused, diagnostics, onActivity }: GameProps) {
   const [view, setView] = useState<FishingView>();
   const [error, setError] = useState('');
   const [problem, setProblem] = useState('');
@@ -41,9 +43,16 @@ export default function DeskFishing({ paused, diagnostics }: GameProps) {
       if (reply.error) { setError(reply.error); setProblem(reply.correlationId ?? ''); }
       else if (action === 'sell' || action === 'sellAll') setNotice('收获已出售，狗牛币已入账');
       else if (action === 'buyRod' || action === 'buyTool') setNotice('购买成功，装备已放入背包');
+      else if (action === 'buySupply') setNotice('补给已入背包');
       if (action === 'reel' || request.action === 'reel') {
         setPhase(reply.view?.state.round ? 'signal' : 'idle');
         if (!reply.view?.state.round) setRevealing(true);
+        if (!reply.error && reply.view && !reply.view.pending) {
+          const notices: string[] = [];
+          if (isBaitSupply(view?.state.bait) && reply.view.state.bait === 'plain') notices.push('补给用完，已切回普通饵');
+          if (view?.state.gear.guard && reply.view.state.gear.stock.guard === 0) notices.push('护线扣已用完');
+          if (notices.length) setNotice(notices.join(' · '));
+        }
       }
       return reply;
     } catch (failure) {
@@ -97,9 +106,15 @@ export default function DeskFishing({ paused, diagnostics }: GameProps) {
     if (phase === 'idle') void send('cast');
     else if (phase === 'signal') { reelTime.current = 900; setPhase('reeling'); }
   }
+  useEffect(() => {
+    onActivity?.(!view || error || view.pending || retryRequest.current ? 'blocked'
+      : !panel && !help && (phase === 'waiting' || phase === 'reeling') ? 'progressing' : 'decision');
+    return () => onActivity?.('blocked');
+  }, [onActivity, !!view, error, view?.pending, panel, help, phase]);
   const state = view?.state;
   if (!view || !state) return <div className="pg-feedback" role="status"><p>{error || '正在来到池塘边…'}</p>{error && <Button disabled={busy || paused} onClick={() => void send('view')}>重新读取</Button>}{problem && <small>问题编号：{problem}</small>}</div>;
   const rod = rods.find(r => r.id === state.equipped)!;
+  const look = rodLook(state.gear.skin, rod.color);
   const noRods = !Object.values(state.rods).some(Boolean);
   const locked = busy || paused || view.pending || !!retryRequest.current;
   const stranded = noRods && !state.round;
@@ -118,7 +133,7 @@ export default function DeskFishing({ paused, diagnostics }: GameProps) {
     if (event.code !== 'Space' || event.repeat || event.target !== root.current) return;
     event.preventDefault(); primary();
   }}>
-    <Scene rod={state.equipped} spot={state.spot} phase={phase} signal={state.round?.signal} paused={paused || !!panel || busy} result={state.last} net={state.tools.includes('net')} float={state.tools.includes('float')}/>
+    <Scene rod={state.equipped} spot={state.spot} phase={phase} signal={state.round?.signal} paused={paused || !!panel || busy} result={state.last} net={state.tools.includes('net')} float={state.tools.includes('float')} skin={state.gear.skin}/>
     <div className="df-hud">
       <div className="df-chip"><MapPin size={13}/>{spots.find(s => s.id === state.spot)!.name}<span>·</span><button className="df-chip-link" disabled={entryLocked} onClick={() => openPanel('book')}>图鉴 {discovered}/{species.length}</button></div>
       <div className="df-chip is-wallet"><Coins size={14}/><b>{view.balance}</b></div>
@@ -126,11 +141,11 @@ export default function DeskFishing({ paused, diagnostics }: GameProps) {
     {!panel && alert}
     {!panel && notice && <div className="df-toast" role="status">{notice}</div>}
     <div className="df-dock">
-      <button className="df-equipped" disabled={entryLocked} onClick={() => openPanel('shop', 'rods')} aria-label={`${rod.name}，打开商店`}>
-        <span className="df-rod-dot" style={{ background: rod.color }}/>
-        <span><strong>{rod.name}{noRods ? ' · 已损坏' : lifeTone === 'bad' ? <em>快断了</em> : null}</strong><small>{rod.capacity} kg · {state.bait === 'plain' ? '普通饵' : '虫饵'}</small>
+      <div className="df-tackle-slot"><button className="df-equipped" disabled={entryLocked} onClick={() => openPanel('shop', 'rods')} aria-label={`${rod.name}，打开商店`}>
+        <span className="df-rod-dot" style={{ background: look.color }}/>
+        <span><strong>{rod.name}{noRods ? ' · 已损坏' : lifeTone === 'bad' ? <em>快断了</em> : null}</strong><small>{rod.capacity} kg{look.id !== 'default' && ` · ${look.name}`}</small>
           {!noRods && <i className={`df-life is-${lifeTone}`} role="meter" aria-label="鱼竿耐久" aria-valuenow={Math.round(life * 100)} aria-valuemin={0} aria-valuemax={100}><b style={{ width: `${life * 100}%` }}/></i>}</span>
-      </button>
+      </button><Loadout {...props}/></div>
       <div className="df-main-action" data-phase={phase}>
         {stranded ? <Button variant="primary" disabled={locked} onClick={() => void send('rescue')}>领取应急竹竿</Button>
           : <Button variant="primary" disabled={locked || view.walletLocked || phase === 'waiting' || phase === 'reeling'} onClick={primary}>{label}</Button>}
@@ -149,13 +164,13 @@ export default function DeskFishing({ paused, diagnostics }: GameProps) {
     </div>
     {panel && <Modal label={{ bag: '鱼篓', book: '图鉴', shop: '商店' }[panel]} active={panel} onTab={next => openPanel(next)} onClose={closePanel}
       tabs={[{ id: 'bag', label: '鱼篓', icon: <Fish size={15}/>, badge: state.bag.length }, { id: 'book', label: '图鉴', icon: <BookOpen size={15}/> }, { id: 'shop', label: '商店', icon: <ShoppingBag size={15}/> }]}
-      footer={panel === 'bag' && state.bag.length ? <BagFooter {...props}/> : panel === 'shop' ? <><span className="df-foot-note">购买即装备 · 永久使用</span><span className="df-chip is-wallet is-flat"><Coins size={14}/><b>{view.balance}</b></span></> : undefined}>
+      footer={panel === 'bag' && state.bag.length ? <BagFooter {...props}/> : panel === 'shop' ? <><span className="df-foot-note">{{ rods: '购买即装备', skins: '通用皮肤 · 永久拥有', tools: '永久工具', supplies: '补给入包后选择使用', spots: '切换钓点与鱼饵' }[shopTab]}</span><span className="df-chip is-wallet is-flat"><Coins size={14}/><b>{view.balance}</b></span></> : undefined}>
       {alert}
       {notice && <div className="df-toast is-inline" role="status">{notice}</div>}
       {panel === 'bag' && <Bag {...props}/>}
       {panel === 'book' && <Book {...props}/>}
       {panel === 'shop' && <>
-        <div className="df-seg" role="group" aria-label="商品分类">{([['rods', '鱼竿'], ['tools', '工具'], ['spots', '钓点与鱼饵']] as const).map(([id, name]) => <button key={id} aria-pressed={shopTab === id} onClick={() => setShopTab(id)}>{name}</button>)}</div>
+        <div className="df-seg" role="group" aria-label="商品分类">{([['rods', '鱼竿'], ['skins', '皮肤'], ['tools', '工具'], ['supplies', '补给'], ['spots', '钓点与鱼饵']] as const).map(([id, name]) => <button key={id} aria-pressed={shopTab === id} onClick={() => setShopTab(id)}>{name}</button>)}</div>
         <Shop {...props} tab={shopTab}/>
       </>}
     </Modal>}

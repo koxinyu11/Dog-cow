@@ -159,11 +159,15 @@ test('dry side pot offers only call or fold when every opponent is all-in',()=>{
  assert.equal(t.turn,0);assert.equal(legal(t).call,10);assert.equal(legal(t).raise,false);assert.throws(()=>act(t,'raise',30));
  const called=act(t,'call');assert.equal(called.done,true);assert.equal(called.settlement.awards.some(a=>a.refund),false);
 });
-test('river pure bluff opportunity exists on a dry board, but not a wet board or negligible equity',async()=>{
+test('river bluff needs a meaningful blocker and position; board-only draws do not qualify',async()=>{
  const {bluffOpportunity}=await import('../../dist-electron/src/main/poker/strategy.js');
- const t=startTable([1000,1000,1000,1000,1000],0,deck(),'bluff');t.street=3;t.board=[card(14),card(9,1),card(6,2),card(3,3),card(13)];
- assert.equal(bluffOpportunity(t,.15),true);assert.equal(bluffOpportunity(t,.01),false);
- t.board=[card(10,2),card(11,2),card(12,2),card(13,2),card(3)];assert.equal(bluffOpportunity(t,.15),false);
+ const t=startTable([1000,1000,1000,1000,1000],0,deck(),'bluff');t.street=3;t.turn=2;t.dealer=2;
+ t.seats.forEach((s,i)=>s.folded=![0,2].includes(i));
+ t.board=[card(12),card(9,1),card(6,2),card(3,3),card(2)];t.seats[2].hand=[card(14,1),card(8)];
+ assert.equal(bluffOpportunity(t,.25),true);assert.equal(bluffOpportunity(t,.01),false);
+ t.seats[2].hand=[card(8),card(7,1)];assert.equal(bluffOpportunity(t,.15),false);
+ t.street=2;t.board=[card(2,2),card(5,2),card(9,2),card(13,2)];t.seats[2].hand=[card(7),card(3,1)];
+ assert.equal(bluffOpportunity(t,.01),false);
 });
 test('one strict validator rejects corrupt cards, turn, phase, actions and payout metadata on load and import',async()=>{
  const {validatePokerState}=await import('../../dist-electron/src/migration/poker.js');
@@ -178,12 +182,19 @@ test('one strict validator rejects corrupt cards, turn, phase, actions and payou
  const bad=structuredClone(state);bad.table.settlement.gains[0]++;assert.throws(()=>validatePokerState(bad));
  const old=structuredClone(state);delete old.table.settlement;delete old.table.actions;delete old.table.reads;delete old.exchanges;delete old.exchangeFloor;validatePokerState(old);
 });
-test('actual dry-river decision can pure bluff; same equity with a failed bluff roll checks',async()=>{
- const {decide,estimateEquity}=await import('../../dist-electron/src/main/poker/strategy.js');
- const t=startTable([1000,1000,1000,1000,1000],0,deck(),'river-bluff');t.street=3;t.turn=2;t.current=0;
- t.board=[card(14),card(9,1),card(6,2),card(3,3),card(13)];t.seats[2].hand=[card(8),card(7,1)];
- t.seats.forEach((s,i)=>{s.folded=![0,2].includes(i);s.bet=0;});
- const rng=bluffRoll=>{let n=17,calls=0;return()=>{calls++;if(calls===5721)return .5;if(calls===5722)return bluffRoll;n=(n*1664525+1013904223)>>>0;return n/2**32;};};
- const equity=estimateEquity(t,rng(0));assert.ok(equity>.06&&equity<.59);
- assert.equal(decide(t,rng(0)).move,'raise');assert.equal(decide(t,rng(.999)).move,'check');
+test('profitable river bluffs remain mixed, rather than a forced action on every weak hand',async()=>{
+ const {analyzeDecision}=await import('../../dist-electron/src/main/poker/strategy.js');
+ const {emptyOpponentModel}=await import('../../dist-electron/src/shared/poker/observations.js');
+ const t=startTable([1000,1000,1000,1000,1000],0,deck(),'river-bluff');t.street=3;t.turn=2;t.dealer=2;t.current=0;
+ t.board=[card(12),card(9,1),card(6,2),card(3,3),card(2)];t.seats[2].hand=[card(14,1),card(8)];
+ t.seats.forEach((s,i)=>{s.folded=![0,2].includes(i);s.bet=0;s.invested=[0,2].includes(i)?100:0;});
+ t.reads=t.seats.map(()=>({decisions:100,raises:10,calls:10,folds:80,model:emptyOpponentModel()}));
+ t.reads[0].model.foldToBet[3]={hits:45,opportunities:50};
+ const modes=[];
+ for(let seed=1;seed<=20;seed++){
+  let n=seed;const rng=()=>{n=(n*1664525+1013904223)>>>0;return n/2**32;};
+  const result=analyzeDecision(t,rng,48);modes.push(result.mode);
+  if(result.mode==='bluff')assert.ok(result.raiseEV>=result.baselineEV);
+ }
+ assert.ok(modes.includes('bluff'));assert.ok(modes.includes('check'));
 });

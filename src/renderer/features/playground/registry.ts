@@ -1,8 +1,9 @@
 import type { ComponentType } from 'react';
+import type { GameActivity } from '../../../shared/game-progress';
 import type { GameDiagnostics } from './game-diagnostics';
 import { DeskFishingCover } from './covers/DeskFishingCover';
 /** Games receive lifecycle state, not the main app's business bridge. */
-export interface GameProps { paused: boolean; diagnostics: GameDiagnostics }
+export interface GameProps { paused: boolean; diagnostics: GameDiagnostics; onActivity?(activity: GameActivity): void }
 /** Cover tint; maps to theme tokens so both light and dark themes stay legible. */
 export type GameAccent = 'brand' | 'accent' | 'sky' | 'gold' | 'danger' | 'grass';
 export interface LocalGame {

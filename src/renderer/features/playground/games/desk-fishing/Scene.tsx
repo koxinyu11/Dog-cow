@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { rods, species, rarities, type FishingResult, type RodId, type SpotId } from '../../../../../shared/fishing';
 import { CatchArt, OutcomeArt } from './Art';
+import type { RodSkinId } from '../../../../../shared/fishing-gear';
 import { palettes, timeOfDay, BOBBER } from './scene/palette';
 import { Sky } from './scene/Sky';
 import { Backdrop } from './scene/Backdrop';
@@ -15,15 +16,15 @@ export function tierOf(result: FishingResult) {
   if (result.kind === 'broken') return 'broken';
   const entry = species.find(s => s.id === result.species);
   if (!entry) return 'empty';
-  return entry.rarity >= 4 ? 'legend' : entry.rarity >= 2 ? 'rare' : 'common';
+  return entry.rarity === 5 ? 'mythic' : entry.rarity >= 4 ? 'legend' : entry.rarity >= 2 ? 'rare' : 'common';
 }
 function ResultArt({ result }: { result: FishingResult }) {
   const entry = species.find(s => s.id === result.species);
   if (entry) return <CatchArt entry={entry}/>;
   return <OutcomeArt kind={result.kind === 'broken' ? 'broken' : result.name.includes('水草') ? 'weed' : 'empty'}/>;
 }
-export function Scene({ rod, spot, phase, signal, paused, result, net, float }: {
-  rod: RodId; spot: SpotId; phase: Phase; signal?: string; paused: boolean; result: FishingResult | null; net: boolean; float: boolean;
+export function Scene({ rod, spot, phase, signal, paused, result, net, float, skin }: {
+  rod: RodId; spot: SpotId; phase: Phase; signal?: string; paused: boolean; result: FishingResult | null; net: boolean; float: boolean; skin?: RodSkinId;
 }) {
   const { ref, viewBox, at } = useSceneAnchor();
   const anchor = at(BOBBER[0], BOBBER[1]);
@@ -52,7 +53,7 @@ export function Scene({ rod, spot, phase, signal, paused, result, net, float }: 
       <Bank spot={spot}/>
       <Dock net={net}/>
       <Angler mood={mood}/>
-      <Tackle phase={phase} color={rods.find(r => r.id === rod)!.color} float={float}/>
+      <Tackle phase={phase} color={rods.find(r => r.id === rod)!.color} float={float} skin={skin}/>
       {time === 'night' && <g className="df-fireflies" fill="#f7f0a2">{[[90, 230], [820, 200], [700, 240], [150, 210], [866, 260], [40, 250]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="2.2" style={{ animationDelay: `${i * 1.1}s` }}/>)}</g>}
       <rect x="-50" y="-50" width="1000" height="500" fill={p.tint} opacity={p.tintOpacity} style={{ mixBlendMode: 'multiply' }}/>
       <rect x="-50" y="-50" width="1000" height="500" filter="url(#df-grain)" opacity=".14" style={{ mixBlendMode: 'multiply' }}/>
@@ -64,10 +65,10 @@ export function Scene({ rod, spot, phase, signal, paused, result, net, float }: 
       {caught && fresh && <div className="df-leap" key={`leap-${key}`} style={anchor} onAnimationEnd={() => setSettled(key)}><ResultArt result={result}/></div>}
       <div className={`df-catch tier-${tier} ${result.newDiscovery ? 'is-new' : ''} ${!fresh ? 'is-settled' : caught ? 'is-delayed' : ''}`} role="status" key={`card-${key}`} onAnimationEnd={event => { if (event.target === event.currentTarget) setSettled(key); }}>
         <span className="df-tag-hole" aria-hidden="true"/>
-        {tier === 'legend' && <span className="df-sparkles" aria-hidden="true">{[0, 1, 2, 3, 4, 5].map(i => <i key={i}/>)}</span>}
+        {(tier === 'legend' || tier === 'mythic') && <span className="df-sparkles" aria-hidden="true">{[0, 1, 2, 3, 4, 5].map(i => <i key={i}/>)}</span>}
         <div className="df-catch-art"><ResultArt result={result}/></div>
         <div className="df-catch-text">
-          <div className="df-catch-tags">{result.newDiscovery && <small className="df-new">图鉴 +1</small>}{entry && <small className={`df-tag rarity-${entry.rarity}`}>{rarities[entry.rarity]}</small>}</div>
+          <div className="df-catch-tags">{result.newDiscovery && <small className="df-new">图鉴 +1</small>}{entry && <small className={`df-tag rarity-${entry.rarity}`}>{rarities[entry.rarity]}</small>}{result.protected && <small className="df-protected">护线扣已保护</small>}</div>
           <strong>{result.name}</strong>
           <span>{entry?.visitor ? '它没有进鱼篓，只是来看看你' : result.kg ? `${result.kg.toFixed(2)} kg` : '下次会有什么呢'}{result.value !== undefined ? ` · ${result.value} 狗牛币` : ''}</span>
         </div>
