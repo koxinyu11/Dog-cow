@@ -23,12 +23,12 @@ function ResultArt({ result }: { result: FishingResult }) {
   if (entry) return <CatchArt entry={entry}/>;
   return <OutcomeArt kind={result.kind === 'broken' ? 'broken' : result.name.includes('水草') ? 'weed' : 'empty'}/>;
 }
-export function Scene({ rod, spot, phase, signal, paused, result, net, float, skin }: {
-  rod: RodId; spot: SpotId; phase: Phase; signal?: string; paused: boolean; result: FishingResult | null; net: boolean; float: boolean; skin?: RodSkinId;
+export function Scene({ hour, rod, spot, phase, signal, paused, result, net, float, skin }: {
+  hour?: number; rod: RodId; spot: SpotId; phase: Phase; signal?: string; paused: boolean; result: FishingResult | null; net: boolean; float: boolean; skin?: RodSkinId;
 }) {
   const { ref, viewBox, at } = useSceneAnchor();
   const anchor = at(BOBBER[0], BOBBER[1]);
-  const time = timeOfDay();
+  const time = timeOfDay(hour);
   const p = palettes[time];
   const entry = result && species.find(s => s.id === result.species);
   const tier = result && tierOf(result);

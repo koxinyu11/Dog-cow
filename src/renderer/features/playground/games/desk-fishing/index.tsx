@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BookOpen, ShoppingBag, Fish, Coins, MapPin, CircleHelp, X } from 'lucide-react';
+import { BookOpen, ShoppingBag, Fish, Coins, MapPin, CircleHelp, Waves, X } from 'lucide-react';
 import { Button } from '../../../../ui';
 import type { GameProps } from '../../registry';
 import { rods, species, spots, durabilityLeft, type FishingView, type FishingAction, type FishingRequest } from '../../../../../shared/fishing';
@@ -10,9 +10,13 @@ import { Book } from './panels/Book';
 import { Shop, type ShopTab } from './panels/Shop';
 import { rodLook, isBaitSupply } from '../../../../../shared/fishing-gear';
 import { Loadout } from './Loadout';
+import { fishingTide } from '../../../../../shared/fishing-tide';
+import { Tide, tideLabel } from './Tide';
 import './fishing.css';
-type Panel = 'bag' | 'book' | 'shop' | null;
+type Panel = 'bag' | 'book' | 'shop' | 'tide' | null;
 export default function DeskFishing({ paused, diagnostics, onActivity }: GameProps) {
+  const [now, setNow] = useState(Date.now);
+  const tide = fishingTide(now);
   const [view, setView] = useState<FishingView>();
   const [error, setError] = useState('');
   const [problem, setProblem] = useState('');
@@ -68,9 +72,10 @@ export default function DeskFishing({ paused, diagnostics, onActivity }: GamePro
   useEffect(() => {
     mounted.current = true;
     void send('view');
-    const focus = () => { void send('view'); };
+    const focus = () => { setNow(Date.now()); void send('view'); };
+    const clock = setInterval(() => setNow(Date.now()), 10000);
     window.addEventListener('focus', focus);
-    return () => { mounted.current = false; window.removeEventListener('focus', focus); };
+    return () => { mounted.current = false; clearInterval(clock); window.removeEventListener('focus', focus); };
   }, []);
   useEffect(() => { if (view && !paused && !panel) root.current?.focus(); }, [!!view]);
   useEffect(() => {
@@ -133,9 +138,11 @@ export default function DeskFishing({ paused, diagnostics, onActivity }: GamePro
     if (event.code !== 'Space' || event.repeat || event.target !== root.current) return;
     event.preventDefault(); primary();
   }}>
-    <Scene rod={state.equipped} spot={state.spot} phase={phase} signal={state.round?.signal} paused={paused || !!panel || busy} result={state.last} net={state.tools.includes('net')} float={state.tools.includes('float')} skin={state.gear.skin}/>
+    <Scene hour={new Date(now).getHours()} rod={state.equipped} spot={state.spot} phase={phase} signal={state.round?.signal} paused={paused || !!panel || busy} result={state.last} net={state.tools.includes('net')} float={state.tools.includes('float')} skin={state.gear.skin}/>
     <div className="df-hud">
-      <div className="df-chip"><MapPin size={13}/>{spots.find(s => s.id === state.spot)!.name}<span>·</span><button className="df-chip-link" disabled={entryLocked} onClick={() => openPanel('book')}>图鉴 {discovered}/{species.length}</button></div>
+      <div className="df-hud-place"><div className="df-chip"><MapPin size={13}/>{spots.find(s => s.id === state.spot)!.name}<span>·</span><button className="df-chip-link" disabled={entryLocked} onClick={() => openPanel('book')}>图鉴 {discovered}/{species.length}</button></div>
+        <button className={`df-chip df-tide-chip is-${tide.phase}`} disabled={entryLocked} onClick={() => openPanel('tide')} aria-label="鱼情，查看当前鱼群动静"><Waves size={14}/><b>{tideLabel(tide)}</b></button>
+      </div>
       <div className="df-chip is-wallet"><Coins size={14}/><b>{view.balance}</b></div>
     </div>
     {!panel && alert}
@@ -162,11 +169,12 @@ export default function DeskFishing({ paused, diagnostics, onActivity }: GamePro
         <ul><li>抛竿后等浮标有动静，再点收线，信号不会过期。</li><li>鱼太重会断竿，鱼竿越用越旧也更容易断；鱼篓里的收获不受影响。</li><li>出售收获换狗牛币，锁定的不会被卖掉。</li><li>离开窗口自动暂停，当前这一竿会保留。</li></ul>
       </div>}
     </div>
-    {panel && <Modal label={{ bag: '鱼篓', book: '图鉴', shop: '商店' }[panel]} active={panel} onTab={next => openPanel(next)} onClose={closePanel}
-      tabs={[{ id: 'bag', label: '鱼篓', icon: <Fish size={15}/>, badge: state.bag.length }, { id: 'book', label: '图鉴', icon: <BookOpen size={15}/> }, { id: 'shop', label: '商店', icon: <ShoppingBag size={15}/> }]}
+    {panel && <Modal label={{ bag: '鱼篓', book: '图鉴', shop: '商店', tide: '鱼情' }[panel]} active={panel} onTab={next => openPanel(next)} onClose={closePanel}
+      tabs={[{ id: 'bag', label: '鱼篓', icon: <Fish size={15}/>, badge: state.bag.length }, { id: 'book', label: '图鉴', icon: <BookOpen size={15}/> }, { id: 'shop', label: '商店', icon: <ShoppingBag size={15}/> }, { id: 'tide', label: '鱼情', icon: <Waves size={15}/> }]}
       footer={panel === 'bag' && state.bag.length ? <BagFooter {...props}/> : panel === 'shop' ? <><span className="df-foot-note">{{ rods: '购买即装备', skins: '通用皮肤 · 永久拥有', tools: '永久工具', supplies: '补给入包后选择使用', spots: '切换钓点与鱼饵' }[shopTab]}</span><span className="df-chip is-wallet is-flat"><Coins size={14}/><b>{view.balance}</b></span></> : undefined}>
       {alert}
       {notice && <div className="df-toast is-inline" role="status">{notice}</div>}
+      {panel === 'tide' && <Tide tide={tide}/>}
       {panel === 'bag' && <Bag {...props}/>}
       {panel === 'book' && <Book {...props}/>}
       {panel === 'shop' && <>

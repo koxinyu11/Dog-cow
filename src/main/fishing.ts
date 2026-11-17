@@ -34,7 +34,7 @@ export class Fishing {
       if (!next.rods[next.equipped]) refuse('请先装备一根可用鱼竿。');
       if (next.bag.length >= 200) refuse('鱼篓满了，请先出售一些收获。');
       if (isBaitSupply(next.bait) && next.gear.stock[next.bait] < 1) refuse('补给不足，请先切换普通饵或购买补给。');
-      next.round = rollRound(next, randomUUID(), this.random);
+      next.round = rollRound(next, randomUUID(), this.random, this.now());
       next.last = null;
     } else if (action === 'reel') {
       if (!next.round || request.roundId !== next.round.id) refuse('这一竿已经结束，请刷新记录。');

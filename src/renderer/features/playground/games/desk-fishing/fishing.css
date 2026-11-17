@@ -156,6 +156,23 @@
 .df-chip.is-flat { box-shadow: none; background: color-mix(in srgb, var(--c-brand) 8%, transparent); color: var(--c-ink); }
 .df-chip-link { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; }
 .df-chip-link:hover:not(:disabled) { text-decoration: underline; text-underline-offset: 3px; }
+.df-hud-place { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px; margin-right: 10px; }
+.df-tide-chip { border: 0; font-family: inherit; cursor: pointer; }
+.df-tide-chip b { font-weight: 500; }
+.df-tide-chip.is-peak { background: #e4efcdeb; color: #365d35; }
+.df-tide-chip.is-rising { background: #f6eacdeb; color: #76551f; }
+.df-tide-chip:disabled { cursor: default; opacity: .65; }
+.df-modal:has(.df-tide-panel) { height: auto; }
+.df-tide-panel { max-width: 580px; margin: 0 auto; padding: 12px 0; }
+.df-tide-summary { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: var(--c-brand); }
+.df-tide-summary strong { font-size: 20px; }
+.df-tide-groups { display: grid; gap: 8px; margin: 0; }
+.df-tide-groups > div { display: flex; justify-content: space-between; gap: 16px; padding: 12px; border-radius: 10px; background: color-mix(in srgb, var(--c-brand) 6%, transparent); font-size: 13px; }
+.df-tide-groups dt { color: var(--c-ink-2); }
+.df-tide-groups dd { margin: 0; color: var(--c-brand); font-weight: 500; }
+@media (max-width: 700px) {
+  .df-hud-place { flex-direction: column; }
+}
 .df-toast { position: absolute; top: 52px; left: 50%; translate: -50% 0; z-index: 3; display: flex; align-items: center; gap: 12px; max-width: 80%; padding: 8px 10px 8px 14px; border-radius: 12px; background: var(--df-glass); backdrop-filter: blur(10px); color: var(--c-brand); font-size: 12px; box-shadow: 0 8px 20px -10px #0d1f1c60; animation: df-arrive .3s ease-out; }
 .df-toast.is-error { color: var(--c-danger); }
 .df-toast small { display: block; font-size: 10px; margin-top: 3px; opacity: .8; }
