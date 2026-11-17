@@ -17,7 +17,7 @@ function poolRoll(spot, category, id, bait = 'plain') {
   }
   throw Error(`Not in pool: ${id}`);
 }
-function setup(balance = 1000, random = () => .5, initial = emptyFishing()) {
+function setup(balance = 1000, random = sequence(.9, .5, .2, .999), initial = emptyFishing()) {
   const map = new Map([[COINS_KEY, JSON.stringify({ ...emptyCoins(), balance })], [FISHING_KEY, JSON.stringify(initial)]]);
   const store = { getItem: key => map.get(key) ?? null, setItem: (key, raw) => map.set(key, raw) };
   const coins = new Coins(store, () => ({})); coins.load();
@@ -34,7 +34,7 @@ test('signal hides fish and junk outcomes, including on persisted reload', () =>
   assert.equal(state.round.result.kind, 'empty');
   assert.equal(fishingView(state, 0).state.round.result, undefined);
   assert.deepEqual(parseFishing(JSON.stringify(state)), state);
-  const junk = rollRound(emptyFishing(), 'junk', sequence(.82, .1));
+  const junk = rollRound(emptyFishing(), 'junk', sequence(.57, .1));
   assert.equal(junk.result.species, 'badge');
 });
 test('rods within capacity never break, overload rises gradually and is bounded', () => {
@@ -147,14 +147,14 @@ test('catalog shares sum to one and every category has entries at both spots', (
   assert.deepEqual(Object.fromEntries(categories.map(c => [c.id, species.filter(s => s.category === c.id).length])), { creature: 10, junk: 8, treasure: 10, fish: 72 });
 });
 test('creatures and objects enter bag and book; visitors only enter book; treasure never breaks', () => {
-  const creature = rollRound(emptyFishing(), 'c', sequence(.76, 0, .5));
+  const creature = rollRound(emptyFishing(), 'c', sequence(.52, 0, .5));
   assert.equal(creature.result.kind, 'creature');
   assert.equal(creature.result.species, 'crayfish');
   const river = emptyFishing(); river.spot = 'river';
-  const otter = rollRound(river, 'o', sequence(.76, poolRoll('river', 'creature', 'otter'), .5));
+  const otter = rollRound(river, 'o', sequence(.52, poolRoll('river', 'creature', 'otter'), .5));
   assert.equal(otter.result.species, 'otter');
   assert.equal(otter.result.value, undefined);
-  const treasure = rollRound(river, 't', sequence(.837, poolRoll('river', 'treasure', 'compass'), .5, 0));
+  const treasure = rollRound(river, 't', sequence(.595, poolRoll('river', 'treasure', 'compass'), .5, 0));
   assert.equal(treasure.result.kind, 'treasure');
   assert.equal(treasure.result.species, 'compass');
   const state = emptyFishing();
@@ -173,15 +173,15 @@ test('river unlock counts discovered fish only, and legacy saves still parse', (
   const legacy = { ...emptyFishing(), bag: [{ id: 'b', species: 'bottle', kg: .1, value: 2, locked: false }], last: { kind: 'junk', name: '旧工牌', species: 'badge', kg: .05, value: 1 } };
   assert.equal(parseFishing(JSON.stringify(legacy)).bag[0].species, 'bottle');
 });
-test('tiny fish dominates, big fish stay rare, and some mussels carry pearls', () => {
-  const tiny = rollRound(emptyFishing(), 'w', sequence(.5, .5));
+test('stable fish activity reduces tiny fish while preserving small sizes and mussel pearls', () => {
+  const tiny = rollRound(emptyFishing(), 'w', sequence(.4, .5));
   assert.equal(tiny.result.species, 'wheat');
   const river = emptyFishing(); river.spot = 'river';
-  assert.equal(rollRound(river, 'w2', sequence(.6, .5)).result.species, 'wheat');
-  const pearl = rollRound(river, 'p', sequence(.76, .5, .5, .01));
+  assert.equal(rollRound(river, 'w2', sequence(.4, .5)).result.species, 'wheat');
+  const pearl = rollRound(river, 'p', sequence(.52, .5, .5, .01));
   assert.equal(pearl.result.species, 'pearl');
   assert.equal(pearl.result.kind, 'treasure');
-  assert.equal(rollRound(river, 'm', sequence(.76, .5, .5, .5)).result.species, 'mussel');
+  assert.equal(rollRound(river, 'm', sequence(.52, .5, .5, .5)).result.species, 'mussel');
   // A middle roll lands near the low end of the size range.
   const carp = rollRound(river, 'c', sequence(.9, poolRoll('river', 'fish', 'carp'), .5, .9)).result;
   assert.equal(carp.species, 'carp');
@@ -190,9 +190,9 @@ test('tiny fish dominates, big fish stay rare, and some mussels carry pearls', (
   const n = 20000; let seed = 7;
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   for (let i = 0; i < n; i++) { const r = rollRound(emptyFishing(), `r${i}`, rnd).result; if (r.species) top.set(r.species, (top.get(r.species) ?? 0) + 1); const e = species.find(s => s.id === r.species); if (e && e.rarity >= 2) rare++; }
-  assert.ok(Math.abs(top.get('wheat') / n - .35) < .02);
+  assert.ok(Math.abs(top.get('wheat') / n - .2) < .02);
   for (const [id, count] of top) if (id !== 'wheat') assert.ok(count / n < .05, id);
-  assert.ok(rare / n < .03);
+  assert.ok(rare / n > .015 && rare / n < .05);
 });
 test('rod wear is free for half its life, then rises and caps; better rods last longer', () => {
   assert.equal(wearChance(19, 40), 0);
@@ -208,7 +208,7 @@ test('rod wear is free for half its life, then rises and caps; better rods last 
   assert.equal(rollRound(worn, 'e', sequence(.05)).result.kind, 'empty');
 });
 test('reeling adds wear; a break, a first purchase and a rescue start fresh; legacy saves default to new', () => {
-  const x = setup(100, () => .5);
+  const x = setup(100, sequence(.9, .5, .2, .999));
   x.run('cast'); x.saved();
   const round = x.fishing.view().state.round.id;
   x.run('reel', undefined, round); x.saved();
@@ -227,7 +227,7 @@ test('reeling adds wear; a break, a first purchase and a rescue start fresh; leg
 });
 test('new catches record when they were caught; older catches without a time still parse', () => {
   const x = setup(0, () => .5);
-  const game = new Fishing(x.store, x.coins, () => .5, () => 1_800_000_000_000);
+  const game = new Fishing(x.store, x.coins, sequence(.9, .5, .2, .999), () => 1_800_000_000_000);
   const saved = () => { x.coins.confirmSaved(); game.confirmSaved(); };
   game.execute({ action: 'cast', requestId: 'c' }); saved();
   game.execute({ action: 'reel', requestId: 'r', roundId: game.view().state.round.id }); saved();
@@ -238,13 +238,13 @@ test('new catches record when they were caught; older catches without a time sti
 });
 
 test('every catalog entry is reachable and round-trips through the current save format', () => {
-  const type = { fish: .9, creature: .76, junk: .82, treasure: .837 };
+  const type = { fish: .9, creature: .52, junk: .57, treasure: .595 };
   for (const entry of species) {
     assert.ok(entry.name && entry.note && entry.rarity >= 0 && entry.rarity < rarities.length, entry.id);
     assert.ok(entry.min > 0 && entry.min <= entry.max && entry.max * 1.15 <= 100, entry.id);
     const state = emptyFishing(); state.spot = entry.spot === 'any' ? 'pond' : entry.spot; state.equipped = 'collector';
-    const rnd = entry.id === 'wheat' ? sequence(.5, .5)
-      : entry.id === 'pearl' ? sequence(.76, poolRoll('river', 'creature', 'mussel'), .5, 0)
+    const rnd = entry.id === 'wheat' ? sequence(.4, .5)
+      : entry.id === 'pearl' ? sequence(.52, poolRoll('river', 'creature', 'mussel'), .5, 0)
       : sequence(type[entry.category], poolRoll(state.spot, entry.category, entry.id), .5, .999);
     state.round = rollRound(state, entry.id, rnd);
     assert.equal(state.round.result.species, entry.id, entry.id);
@@ -277,8 +277,8 @@ test('mythic interval edges select one species without leaking into a second dra
   for (const spot of ['pond', 'river']) for (const bait of ['plain', 'worm']) for (const category of ['fish', 'treasure']) {
     const state = emptyFishing(); state.spot = spot; state.bait = bait; state.equipped = 'collector';
     const fixed = species.filter(s => s.spot === spot && s.category === category && s.rarity === 5);
-    const share = category === 'fish' ? .16 : .004;
-    const type = category === 'fish' ? .9 : .837;
+    const share = category === 'fish' ? .4 : .01;
+    const type = category === 'fish' ? .9 : .595;
     for (let i = 0; i < fixed.length; i++) {
       const lower = i * .0001, upper = (i + 1) * .0001;
       for (const point of [lower + 1e-10, (lower + upper) / 2, upper - 1e-10]) {
@@ -305,7 +305,7 @@ test('original 34 IDs, discoveries, locked catches and an unrevealed old round r
 
 test('a mythic result survives reload, is hidden before reeling, and retries without rerolling or duplicating', () => {
   let draws = 0;
-  const random = sequence(.9, .00005 / .16, .5, .999);
+  const random = sequence(.9, 0, .5, .999);
   const x = setup(0, () => { draws++; return random(); });
   x.run('cast', undefined, undefined, 'rare-cast'); x.saved();
   const round = x.fishing.view().state.round;

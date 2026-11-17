@@ -22,6 +22,11 @@ const shelf = (win, text) => js(win, `(() => { const button = [...document.query
 const shot = async (win, name) => fs.writeFile(path.join(process.env.DOGCOW_FISHING_ARTIFACTS, name), (await win.webContents.capturePage()).toPNG());
 
 (async () => {
+  const { fishingDay } = await load('src/shared/fishing-tide.js');
+  const { Fishing } = await load('src/main/fishing.js');
+  let tideClock = fishingDay(new Date(2026, 10, 17).getTime())[13].start + 1000;
+  const originalExecute = Fishing.prototype.execute;
+  Fishing.prototype.execute = function(request) { this.now = () => tideClock; return originalExecute.call(this, request); };
   await load('src/main/main.js');
   const main = await until(() => BrowserWindow.getAllWindows().find(w => w.webContents.getURL() === 'dogcow://app/index.html'), 'main window');
   await until(() => js(main, "!!window.dogcow && !!document.querySelector('button[aria-label=\"狗牛游乐场\"]')"), 'main launcher');
@@ -29,9 +34,52 @@ const shot = async (win, name) => fs.writeFile(path.join(process.env.DOGCOW_FISH
   assert.equal(await js(main, "window.dogcow.invoke('openPlayground').then(r => r.applied)"), true);
   let park = await until(() => BrowserWindow.getAllWindows().find(w => w.webContents.getURL().endsWith('/playground.html')), 'playground');
   await until(() => js(park, "!![...document.querySelectorAll('button')].find(b => b.textContent.includes('工位钓鱼'))"), 'fishing card');
+  await js(park, `Date.now = () => ${tideClock}; true`);
   await js(park, "[...document.querySelectorAll('button')].find(b => b.textContent.includes('工位钓鱼')).click()");
   await until(() => js(park, "(() => { document.querySelector('.pg-pause button')?.click(); return !!document.querySelector('.df-game button[aria-label=\"图鉴\"]:not(:disabled)'); })()"), 'fishing game');
   assert.ok((await js(park, "document.querySelector('.df-chip-link').textContent")).includes('100/100'));
+  const clockUI = async time => {
+    tideClock = time;
+    await js(park, `Date.now = () => ${time}; window.dispatchEvent(new Event('focus')); true`);
+    await until(() => js(park, "!!document.querySelector('.df-tide-chip:not(:disabled)')"), 'tide control ready');
+  };
+  const tideDialog = async () => {
+    await js(park, "document.querySelector('.df-tide-chip').click()");
+    await until(() => js(park, "!!document.querySelector('.df-tide-panel')"), 'tide dialog');
+    await sleep(350);
+  };
+  await until(() => js(park, "document.querySelector('.df-tide-chip').textContent.includes('鱼汛旺盛')"), 'peak activity chip');
+  await tideDialog();
+  const qualitativeTide = async () => {
+    const content = await js(park, "document.querySelector('.df-tide-panel').textContent");
+    assert.doesNotMatch(content, /[0-9%％]|概率|下轮|下一轮|倒计时|时间表|今日|分钟/);
+    assert.equal(await js(park, "document.querySelectorAll('.df-tide-panel [role=meter], .df-tide-day, .df-tide-odds, .df-tide-panel [aria-valuenow]').length"), 0);
+    const chip = await js(park, "(() => { const e=document.querySelector('.df-tide-chip'); return e.textContent+' '+e.getAttribute('aria-label'); })()");
+    assert.doesNotMatch(chip, /[0-9%％]|概率|下轮|下一轮|倒计时|时间表|今日/);
+    return js(park, "[...document.querySelectorAll('.df-tide-groups dd')].map(e=>e.textContent)");
+  };
+  assert.equal(await js(park, "document.querySelector('.df-tide-summary strong').textContent"), '鱼汛旺盛');
+  assert.deepEqual(await qualitativeTide(), ['鱼群穿梭', '格外活跃', '踪迹渐多']);
+  await sleep(5200); await shot(park, 'tide-peak.png');
+  await js(park, "document.querySelector('.df-modal-close').click()");
+  await clockUI(new Date(2026, 10, 18, 13).getTime());
+  await tideDialog();
+  assert.equal(await js(park, "document.querySelector('.df-tide-summary strong').textContent"), '鱼群平稳');
+  assert.deepEqual(await qualitativeTide(), ['活动正常', '偶尔游过', '偶有踪迹']);
+  park.setContentSize(800, 600); await sleep(150);
+  assert.equal(await js(park, "(() => { const e=document.querySelector('.df-modal-body'); return e.scrollWidth <= e.clientWidth + 1; })()"), true);
+  await shot(park, 'tide-next-day-800x600.png');
+  await js(park, "document.querySelector('.df-modal-close').click()");
+  await clockUI(new Date(2026, 10, 18, 19).getTime());
+  await until(() => js(park, "!!document.querySelector('.df-scene.time-night')"), 'scene updates as local time changes');
+  await clockUI(fishingDay(new Date(2026, 10, 18).getTime())[13].start + 1000);
+  await clockUI(fishingDay(new Date(2026, 10, 18).getTime())[13].start - 180000);
+  await tideDialog();
+  assert.equal(await js(park, "document.querySelector('.df-tide-summary strong').textContent"), '鱼群聚集');
+  assert.deepEqual(await qualitativeTide(), ['鱼群穿梭', '更活跃', '偶有踪迹']);
+  await js(park, "document.querySelector('.df-modal-close').click()");
+  await clockUI(fishingDay(new Date(2026, 10, 18).getTime())[13].start + 1000);
+  console.log('PASS: qualitative fish activity only in calm/rising/peak states, no probability/numeric activity/schedule leaks, live scene clock, 800x600 tide dialog');
   await js(park, "document.querySelector('.df-game button[aria-label=\"图鉴\"]').click()");
   await until(async () => await count(park) === 72, '72 fish');
   await rarity(park, '5'); await until(async () => await count(park) === 8, '8 mythic fish');
@@ -109,7 +157,10 @@ const shot = async (win, name) => fs.writeFile(path.join(process.env.DOGCOW_FISH
   await clickReady('.df-main-action button', 'cast with supplies');
   const pending = await until(async () => (await gameState()).round, 'stored round');
   assert.equal((await gameState()).gear.stock.scout, 10);
+  assert.deepEqual(pending.tide, { version:2, at:tideClock, activity:1 });
+  assert.equal(pending.result, undefined);
   assert.equal(await js(park, "document.querySelector('.df-loadout select').disabled"), true);
+  tideClock = new Date(2026, 10, 19, 1).getTime();
   park.close(); await until(() => park.isDestroyed(), 'close game while fishing');
   assert.equal(await js(main, "window.dogcow.invoke('openPlayground').then(r => r.applied)"), true);
   park = await until(() => BrowserWindow.getAllWindows().find(w => w.webContents.getURL().endsWith('/playground.html')), 'reopen playground');
@@ -118,6 +169,7 @@ const shot = async (win, name) => fs.writeFile(path.join(process.env.DOGCOW_FISH
   await js(park, "[...document.querySelectorAll('button')].find(b => b.textContent.includes('工位钓鱼')).click()");
   await until(() => js(park, "(() => { document.querySelector('.pg-pause button')?.click(); return !!document.querySelector('.df-game'); })()"), 'resumed fishing');
   assert.equal((await gameState()).round.id, pending.id);
+  assert.deepEqual((await gameState()).round.tide, pending.tide);
   assert.equal((await gameState()).gear.skin, 'galaxy');
   await until(() => js(park, "(() => { document.querySelector('.pg-pause button')?.click(); return document.querySelector('.df-main-action')?.dataset.phase === 'signal'; })()"), 'bite after reopening');
   await clickReady('.df-main-action button', 'reel after reopening');

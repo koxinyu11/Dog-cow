@@ -141,10 +141,10 @@ test('treasure bait shifts 0.8 percentage points from junk, with all ten fixed e
       for (const e of pool.filter(e => e.entry.rarity === 5)) assert.equal(e.chance, .0001);
     }
   }
-  assert.equal(fishingCategories('magnet').find(c => c.id === 'treasure').share, .012);
-  assert.equal(fishingCategories('magnet').find(c => c.id === 'junk').share, .018);
+  assert.ok(Math.abs(fishingCategories('magnet').find(c => c.id === 'treasure').share - .018) < 1e-12);
+  assert.ok(Math.abs(fishingCategories('magnet').find(c => c.id === 'junk').share - .022) < 1e-12);
   const state = emptyFishing(); state.bait = 'magnet'; state.equipped = 'collector';
-  for (const [type, kind] of [[.8279, 'junk'], [.8281, 'treasure'], [.8399, 'treasure'], [.8401, 'fish']])
+  for (const [type, kind] of [[.5819, 'junk'], [.5821, 'treasure'], [.5999, 'treasure'], [.6001, 'fish']])
     assert.equal(rollRound(state, 'boundary', sequence(type, .5, .5, .999)).result.kind, kind);
 });
 
@@ -167,7 +167,7 @@ test('supply reservation stays hidden and survives closing before reeling, with 
 
 test('guard protects an overloaded mythic catch and spends one only on persisted reeling', () => {
   const state = emptyFishing(); state.spot = 'river'; state.gear.guard = true; state.gear.stock.guard = 1;
-  const x = setup(state, 0, sequence(.9, .00005 / .16, .99, 0));
+  const x = setup(state, 0, sequence(.9, 0, .99, 0));
   x.run('cast'); x.saved();
   const round = x.game.view().state.round;
   assert.equal(x.game.view().state.gear.stock.guard, 1);
