@@ -6,7 +6,7 @@
 
 给打工狗和上班牛的桌面搭子：记待办、养小牛，顺便看看今天赚了几口草。
 
-[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.2.1-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.1/DogCow-arm64-3.2.1.dmg)
+[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.2.2-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.2/DogCow-arm64-3.2.2.dmg)
 [![所有版本](https://img.shields.io/badge/所有版本-Releases-343b36?style=for-the-badge&logo=github&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases)
 
 [怎么安装](#下载安装) &nbsp; · &nbsp; [能做什么](#主要功能) &nbsp; · &nbsp; [最近更新](#最新版更新) &nbsp; · &nbsp; [常见问题](#常见问题) &nbsp; · &nbsp; [技术栈](#技术栈) &nbsp; · &nbsp; [隐私说明](#隐私说明)
@@ -17,13 +17,13 @@
 
 ## 下载安装
 
-**Mac · Apple Silicon（M 系列芯片） · v3.2.1**
+**Mac · Apple Silicon（M 系列芯片） · v3.2.2**
 
 | 安装方式 | 下载 | 怎么装 |
 | :--- | :--- | :--- |
-| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.1/DogCow-arm64-3.2.1.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
-| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.1/DogCow-darwin-arm64-3.2.1.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
-| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.1/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
+| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.2/DogCow-arm64-3.2.2.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
+| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.2/DogCow-darwin-arm64-3.2.2.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
+| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.2/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
 
 > 本次仅提供 **Apple Silicon（arm64）** 安装包，暂不提供 Intel Mac 和 Windows 包。安装包采用本地测试签名，尚未完成 Apple Developer ID 签名和公证；若 macOS 阻止打开，请先确认来源，再查看“系统设置 → 隐私与安全性”的允许打开选项。
 
@@ -64,7 +64,7 @@ npm run dev
 | 🍱 | **午饭不再纠结** | 从 568 道菜中挑选午餐，或开个盲盒；卡片随尺寸调整布局。 |
 | 🧾 | **记下老板欠的账** | 查看打卡对应的加班时间，补记处理消息的时间，并导出欠条 PNG；加班费需在收入设置中开启，默认关闭。 |
 | 📌 | **待办挂到桌面上** | 单条任务贴成便签，多条任务组成清单；挂在淡色晾衣线上，完成状态与主窗口同步，重启后继续留着。 |
-| 🎡 | **班间逛逛游乐场** | 点击主窗口摩天轮，打开独立游戏窗口；钓鱼收集 100 种图鉴，或和四位会观察对局的电脑牌手玩德州，累计游玩还能解锁职称。 |
+| 🎡 | **班间逛逛游乐场** | 点击主窗口摩天轮，打开独立游戏窗口；钓鱼收集 100 种图鉴、观察当前鱼群动静，或和四位会观察对局的电脑牌手玩德州，累计游玩还能解锁职称。 |
 | 💾 | **小本本留在自己手里** | 任务和设置自动保存在本机，换版本前还能导出备份，给辛苦记下的事留个底。 |
 
 <sub>“工资能买啥”换算卡片支持调整项目，不同尺寸展示快乐货架与月份格子。收入与税费为估算；“偷出金额”是工作时间的价值拆分，不是额外工资。首页默认展示九类卡片，可调整大小、拖动排列或移除。</sub>
@@ -81,17 +81,23 @@ npm run dev
 
 新增 9 张隐藏壁纸，获得对应称号后出现在“设置 → 外观 → 背景”，带 ✨ 的会动：带薪下钱雨 ✨、奶茶自由 ✨、无理小金库、到点跑路 ✨、周五永居 ✨、周一免疫、需求粉碎机 ✨、资本家克星、终身股东 ✨。解锁条件不公开，靠打工自己发现。新获得称号时，解锁提示会一起列出新壁纸；升级前已有的称号对应壁纸直接可用，不再提示。关闭动效或系统减少动态效果时显示静态画面。自 v3.0.15 起包含在正式安装包中。
 
-## 未发布
-
-- **工位钓鱼鱼情**：鱼情每天随时间动态变化。钓点旁只显示当前鱼群平稳、活跃或旺盛，点开可看普通鱼、稀有鱼与神秘踪迹的当前动静；不公开概率、活跃度数值或鱼汛时间预告。
-- **收集节奏调整**：减少空钩与麦穗鱼，鱼情旺盛时更容易遇到其他鱼、稀有鱼和神话；超载与磨损仍可能断竿。
-- **存档行为**：抛竿时锁定本竿鱼情与结果，暂停、关闭窗口、跨时段或重试保存不会重抽；已有未收回的旧竿保持原结果。鱼饵、补给与河蚌珍珠继续按各自规则生效。
-
 ## 最新版更新
 
-当前正式版为 **v3.2.1**，提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。以下按已发布标签及对应提交整理；测试和维护版本单独注明，历史平台支持不代表当前安装包范围。
+当前正式版为 **v3.2.2**，提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。以下按已发布标签及对应提交整理；测试和维护版本单独注明，历史平台支持不代表当前安装包范围。
 
-### [v3.2.1](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.2.1) · 当前正式版
+### [v3.2.2](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.2.2) · 当前正式版
+
+水下每天有新动静，偶尔也会热闹起来。
+
+- **每日动态鱼情**：鱼群活跃程度随当天时间变化，每天都有不同的鱼情。
+- **收集节奏调整**：减少空钩和麦穗鱼，鱼群旺盛时更容易遇到其他鱼、稀有鱼与神话。
+- **当前鱼情提示**：钓点旁显示当前鱼群平稳、活跃或旺盛，点开可看普通鱼、稀有鱼与神秘踪迹的动静；不公开具体概率、活跃度数值或时间预告。
+- **保留当前鱼竿**：抛竿时锁定鱼情与结果，暂停、关闭窗口、跨时段或重试保存都不会重新抽取；已有未收回的旧竿保持原结果，鱼饵与补给继续按各自规则生效。
+
+<details>
+<summary><strong>历史版本 · v3.2.1 及更早</strong></summary>
+
+### [v3.2.1](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.2.1)
 
 钓鱼多点惊喜，牌局多点心思，休闲也有自己的资历。
 
@@ -102,9 +108,6 @@ npm run dev
 - **更会观察的德州机器人**：结合位置、牌力、公共牌、有效筹码、多人底池和下注过程决策，比较跟注与不同下注尺度的收益；修正无效听牌识别，限制空气牌连续开火，保留半诈唬、偷池和选择性抓诈唬。四名角色保留风格差异。
 - **本轮对局画像**：按公开行动与实际摊牌逐步学习，样本不足使用默认判断，旧观察渐弱；不读取未亮出的对手手牌。同次入席跨手及关窗续局保留，离桌后清除。
 - **数据兼容与保存**：保留已有钱包、鱼篓、图鉴和进行中的鱼竿结果，游戏记录继续纳入本机快照与备份。异常退出可能损失最后一次保存后的短片段，不补算离线时间；含新增图鉴条目的存档不适合交回旧版本读取，升级前建议导出备份。
-
-<details>
-<summary><strong>历史版本 · v3.2.0 及更早</strong></summary>
 
 ### [v3.2.0](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.2.0)
 
@@ -329,7 +332,7 @@ macOS 可能同时识别“应用程序”中的正式版、挂载安装镜像�
 <details>
 <summary><strong>支持 Windows 和 Intel Mac 吗？</strong></summary>
 
-当前 v3.1.0 只提供 Apple Silicon（M 系列芯片）的 Mac 安装包。Intel Mac 与 Windows 安装包暂未发布，请勿下载 arm64 包用于这些设备。
+当前 v3.2.2 只提供 Apple Silicon（M 系列芯片）的 Mac 安装包。Intel Mac 与 Windows 安装包暂未发布，请勿下载 arm64 包用于这些设备。
 
 </details>
 
