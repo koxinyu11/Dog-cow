@@ -8,6 +8,7 @@ interface Dependencies {
   theme(): PlaygroundTheme;
   environment?: { version: string; buildId: string };
   record?(report: PlaygroundReport, context: DiagnosticContext): Promise<unknown>;
+  activityChanged?(foreground: boolean, stopped?: boolean): void;
   failed(message: string, correlationId: string): void;
 }
 class NativeFailure extends Error {
@@ -67,6 +68,10 @@ export class PlaygroundController {
           webPreferences: { preload: this.deps.preload, nodeIntegration: false, contextIsolation: true, sandbox: true },
         });
         this.window = win;
+        win.on('focus', () => this.deps.activityChanged?.(true));
+        win.on('blur', () => this.deps.activityChanged?.(false));
+        win.on('hide', () => this.deps.activityChanged?.(false));
+        win.on('minimize', () => this.deps.activityChanged?.(false));
         const created = win;
         stage = 'initialize';
         win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -75,6 +80,7 @@ export class PlaygroundController {
         win.on('close', () => { if (!created.isMaximized() && !created.isFullScreen()) this.bounds = created.getBounds(); });
         win.on('closed', () => {
           if (this.window === created) {
+            this.deps.activityChanged?.(false, true);
             this.window = undefined; this.phase = 'closed';
             this.rejectReady?.(Error('closed'));
           }
@@ -129,6 +135,7 @@ export class PlaygroundController {
     }
   }
   private fail(win: BrowserWindow | undefined, stage: DiagnosticStage, cause: unknown) {
+    this.deps.activityChanged?.(false, true);
     this.window = undefined;
     this.phase = 'closed';
     const correlationId = this.diagnose(stage, cause);

@@ -14,7 +14,7 @@ function PlayingCard({ card, small = false, winning = false }: {
     small?: boolean;
     winning?: boolean;
 }) { return <span className={`pk-card ${small ? 'is-small' : ''} ${winning ? 'is-winning' : ''} ${card === undefined ? 'is-back' : suit(card) === 1 || suit(card) === 2 ? 'is-red' : ''}`}>{card === undefined ? <i>✦</i> : <><b>{['', '', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'][rank(card)]}<small>{symbols[suit(card)]}</small></b><em>{symbols[suit(card)]}</em></>}</span>; }
-export default function PokerGame({ paused }: GameProps) {
+export default function PokerGame({ paused, onActivity }: GameProps) {
     const [unresolvedExchange, setUnresolvedExchange] = useState(false);
     const [exchangeExpired, setExchangeExpired] = useState(false);
     const exchangeClient = useMemo(() => new PokerExchangeClient({
@@ -79,6 +79,11 @@ export default function PokerGame({ paused }: GameProps) {
         if (readyToLeave && view?.leaving && !busy && !error && !view.pending && !exchange && !paused)
             void send({ action: 'leave' });
     }, [readyToLeave, view?.leaving, busy, error, view?.pending, exchange, paused, send]);
+    useEffect(() => {
+        onActivity?.(!view || error || view.pending || unresolvedExchange ? 'blocked'
+          : t && !exchange && !help && ((!t.done && t.turn !== 0) || (t.done && !settlement.complete)) ? 'progressing' : 'decision');
+        return () => onActivity?.('blocked');
+    }, [onActivity, !!view, error, view?.pending, unresolvedExchange, t?.id, t?.revision, exchange, help, settlement.complete]);
     const yours = !!t && !t.done && t.turn === 0;
     useEffect(() => {
         if (l)

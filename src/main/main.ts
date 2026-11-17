@@ -2,7 +2,7 @@ import { Fishing, FishingError } from './fishing.js';
 import { DesktopNotesStore } from './desktop-notes-store.js';
 import { createDesktopNotesController, type DesktopNotesController } from './desktop-notes-controller.js';
 import { projectTasks } from '../shared/desktop-notes.js';
-import { FISHING_KEY, type FishingRequest, type FishingReply } from '../shared/fishing.js';
+import { FISHING_KEY, parseFishing, type FishingRequest, type FishingReply } from '../shared/fishing.js';
 import { PlaygroundDiagnostics } from './playground-diagnostics.js';
 import { PlaygroundController } from './playground-controller.js';
 import { traySummary } from '../shared/tray-summary.js';
@@ -46,6 +46,8 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Repository } from './repository.js';
 import { Titles } from './titles.js';
+import { GameProgress } from './game-progress.js';
+import { validActivityReport, type GameProgressReply } from '../shared/game-progress.js';
 import { Poker, PokerError } from './poker.js';
 import { POKER_KEY, type PokerRequest, type PokerReply } from '../shared/poker.js';
 import { Coins } from './coins.js';
@@ -162,6 +164,7 @@ let controller: IncomeController;
 let unsubscribe: (() => void) | null = null;
 let income: IncomeState;
 let titles: Titles;
+let gameProgress: GameProgress;
 let coins: Coins;
 let poker: Poker;
 let fishing: Fishing;
@@ -310,7 +313,8 @@ function restoreModels() {
   titles.load();
   coins = new Coins(repo.storage, () => titles.moneyLedgers());
   coins.load();
-  poker = new Poker(repo.storage, coins);
+  gameProgress = new GameProgress(repo.storage, titles);
+  poker = new Poker(repo.storage, coins, table => gameProgress.poker(table));
   fishing = new Fishing(repo.storage, coins);
   try {
     owedData = parseOwed(repo.storage.getItem(OWED_KEY));
@@ -407,7 +411,7 @@ async function maintainToilet(interruption?: 'sleep' | 'clock-change') {
 
 async function finish(result: Result): Promise<Result> {
   // Business commands persist even sub-yuan ledger corrections at the same disk boundary.
-  if (result.applied) titles?.settle();
+  if (result.applied) { gameProgress?.settle(); titles?.settle(); }
   result.persisted = result.applied ? await repo.flush() : false;
   if (result.persisted) {
     fishing?.confirmSaved();
@@ -1052,8 +1056,9 @@ async function doQuit() {
     };
     win!.webContents.send('dogcow:before-quit', quitNonce);
   });
+  gameProgress?.clock.stop();
   await commands;
-  if (!repo.readError) titles.settle();
+  if (!repo.readError) { gameProgress?.settle(); titles.settle(); }
   const saved = (!repo.dirty || (await repo.flush())) && await windows.flush() && (!noteWindows || await noteWindows.flush());
   if (pendingInstall && (!flushed || !saved || repo.readError)) {
     await updateInstaller!.cancel(pendingInstall);
@@ -1245,8 +1250,43 @@ async function start() {
     try { playgroundBuildId = JSON.parse(await readFile(path.join(root, 'build-info.json'), 'utf8')).buildId; }
     catch { playgroundBuildId = 'unknown-build'; }
   }
+  let gameInterrupted = false;
+  const checkpointGames = () => {
+    const job = commands.then(async () => {
+      if (quitting || quitPending || repo.readError || repo.migration?.phase === 'pending') return;
+      await finish({ applied: true, persisted: false, message: '' });
+    }).catch(error => { playground?.diagnose('persistence', error); });
+    commands = job;
+  };
+  const gameTick = setInterval(checkpointGames, 10_000);
+  const interruptGames = () => {
+    gameInterrupted = true;
+    gameProgress.clock.interrupt();
+    playground?.window?.webContents.send('dogcow:playground-interrupt');
+    checkpointGames();
+  };
+  const resumeGames = () => {
+    gameInterrupted = false;
+    gameProgress.clock.environmentChanged({ foreground: !!playground?.window?.isFocused(), interrupted: false });
+  };
+  powerMonitor.on('suspend', interruptGames);
+  powerMonitor.on('lock-screen', interruptGames);
+  powerMonitor.on('resume', resumeGames);
+  powerMonitor.on('unlock-screen', resumeGames);
+  app.once('will-quit', () => {
+    clearInterval(gameTick);
+    powerMonitor.removeListener('suspend', interruptGames);
+    powerMonitor.removeListener('lock-screen', interruptGames);
+    powerMonitor.removeListener('resume', resumeGames);
+    powerMonitor.removeListener('unlock-screen', resumeGames);
+  });
   playground = new PlaygroundController({
     environment: { version: app.getVersion(), buildId: playgroundBuildId },
+    activityChanged: (foreground, stopped) => {
+      if (stopped) gameProgress.clock.stop();
+      gameProgress.clock.environmentChanged({ foreground, interrupted: gameInterrupted });
+      checkpointGames();
+    },
     record: (report, context) => playgroundDiagnostics.record(report, context),
     preload: path.join(app.getAppPath(), 'dist-electron/src/preload/playground.cjs'),
     url: devUrl ? `${devUrl}/playground.html` : 'dogcow://app/playground.html',
@@ -1258,6 +1298,27 @@ async function start() {
   ipcMain.handle('dogcow:playground', async (event, command: unknown, payload: unknown) => {
     playground!.authorize(event.sender, event.senderFrame, command);
     try {
+      if (command === 'gameActivity') {
+        if (payload !== undefined && !validActivityReport(payload)) throw Error('游戏状态无效。');
+        if (payload) gameProgress.clock.update(payload);
+        else gameProgress.clock.stop();
+        const job = commands.then(async (): Promise<GameProgressReply> => {
+          if (quitting || quitPending || repo.readError || repo.migration?.phase === 'pending')
+            return { games: gameProgress.games(), notices: [], error: '本机数据暂不可用，已暂停记录。', errorCode: 'GAME_PROGRESS_UNAVAILABLE' };
+          if (gameProgress.error) return { games: {}, notices: [], error: gameProgress.error, errorCode: 'GAME_PROGRESS_READ_FAILED' };
+          const result = await finish({ applied: true, persisted: false, message: '' });
+          if (!result.persisted) return { games: gameProgress.games(), notices: [], error: '游戏时长尚未保存，请重试。', errorCode: 'GAME_PROGRESS_SAVE_FAILED' };
+          const view = titles.view();
+          const notices = view.items.filter(t => ['game-time', 'fishing', 'poker'].includes(t.series) && view.pendingToast.includes(t.id));
+          if (notices.length) {
+            titles.change({ action: 'toast-shown', ids: notices.map(t => t.id) });
+            await finish({ applied: true, persisted: false, message: '' });
+          }
+          return { games: gameProgress.games(), notices, ...(view.error ? { error: view.error, errorCode: 'GAME_TITLES_UNAVAILABLE' } : {}) };
+        });
+        commands = job.catch(() => undefined);
+        return await job;
+      }
       if (command === 'poker') {
         try {
           if (!record(payload) || typeof payload.action !== 'string') throw new PokerError('POKER_RULE', '操作参数无效。');
@@ -1295,7 +1356,8 @@ async function start() {
             else {
               // Snapshot and wallet writes run in the same queue as all existing business commands.
               fishing.execute(request);
-              if (request.action !== 'view') await finish({ applied: true, persisted: false, message: '' });
+              gameProgress.fishing(parseFishing(repo.storage.getItem(FISHING_KEY)));
+              await finish({ applied: true, persisted: false, message: '' });
             }
             const view = fishing.view();
             if (view.pending) {

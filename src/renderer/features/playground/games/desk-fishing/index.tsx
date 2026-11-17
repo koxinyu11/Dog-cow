@@ -12,7 +12,7 @@ import { rodLook, isBaitSupply } from '../../../../../shared/fishing-gear';
 import { Loadout } from './Loadout';
 import './fishing.css';
 type Panel = 'bag' | 'book' | 'shop' | null;
-export default function DeskFishing({ paused, diagnostics }: GameProps) {
+export default function DeskFishing({ paused, diagnostics, onActivity }: GameProps) {
   const [view, setView] = useState<FishingView>();
   const [error, setError] = useState('');
   const [problem, setProblem] = useState('');
@@ -106,6 +106,11 @@ export default function DeskFishing({ paused, diagnostics }: GameProps) {
     if (phase === 'idle') void send('cast');
     else if (phase === 'signal') { reelTime.current = 900; setPhase('reeling'); }
   }
+  useEffect(() => {
+    onActivity?.(!view || error || view.pending || retryRequest.current ? 'blocked'
+      : !panel && !help && (phase === 'waiting' || phase === 'reeling') ? 'progressing' : 'decision');
+    return () => onActivity?.('blocked');
+  }, [onActivity, !!view, error, view?.pending, panel, help, phase]);
   const state = view?.state;
   if (!view || !state) return <div className="pg-feedback" role="status"><p>{error || '正在来到池塘边…'}</p>{error && <Button disabled={busy || paused} onClick={() => void send('view')}>重新读取</Button>}{problem && <small>问题编号：{problem}</small>}</div>;
   const rod = rods.find(r => r.id === state.equipped)!;

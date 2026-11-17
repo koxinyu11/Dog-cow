@@ -16,6 +16,7 @@ export type TitleEvent =
   | { kind: 'task-done'; task: Pick<Task, 'id' | 'date'> }
   | { kind: 'clock'; before: Attendance; after: Attendance }
   | { kind: 'fun'; action: unknown; after: FunState }
+  | { kind: 'game'; facts: Partial<Record<import('../shared/titles/signals.js').LedgerId, number>> }
   | { kind: 'open' }
   | { kind: 'steal'; amount: unknown }
   | { kind: 'owed'; days: Record<string, number>; month?: string };
@@ -99,6 +100,7 @@ export class Titles {
   private signals(event: TitleEvent, today: string): Signal[] {
     const view = viewOf(this.state!);
     switch (event.kind) {
+      case 'game': return Object.entries(event.facts).map(([ledger, value]) => ({ kind: 'ledger', ledger: ledger as import('../shared/titles/signals.js').LedgerId, key: today, value: value!, date: today }));
       case 'task-done': return taskSignals(event.task, today, view);
       case 'clock': return clockSignals(event.before, event.after, this.dayFacts);
       case 'fun': return funSignals(event.action, event.after, today);

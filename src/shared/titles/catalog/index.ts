@@ -6,14 +6,15 @@ import { fun } from './fun.js';
 import { meta } from './meta.js';
 import { money } from './money.js';
 import { work } from './work.js';
+import { games } from './games.js';
 
 /** Bump when any threshold or condition changes. Unlocked titles are never revoked. */
-export const RULES_VERSION = 1;
+export const RULES_VERSION = 2;
 /** Ids removed from the catalog. Never reuse them. */
 export const RETIRED_IDS: readonly string[] = [];
 
 // Shelf order in the warehouse follows this list.
-const parts = [work, clock, fun, appUsage, money, meta];
+const parts = [work, clock, fun, appUsage, money, games, meta];
 export const SERIES: readonly SeriesDef[] = parts.flatMap((part) => part.series);
 export const TITLES: readonly TitleDef[] = parts.flatMap((part) => part.titles);
 export const titleById = new Map(TITLES.map((title) => [title.id, title]));

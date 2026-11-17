@@ -20,6 +20,13 @@ export const SIGNALS = {
 } as const;
 
 export const LEDGERS = {
+  gameActive: '日期 → 累计参与游戏毫秒数快照',
+  gameIdle: '日期 → 累计有效挂机毫秒数快照',
+  fishingCaught: '日期 → 累计鱼获数量快照',
+  fishingFound: '日期 → 累计图鉴种类快照',
+  fishingMythic: '日期 → 累计神话图鉴种类快照',
+  pokerHands: '日期 → 累计结算手数快照',
+  pokerWins: '日期 → 累计净赢手数快照',
   steal: '日期 → 当天偷出金额（分）',
   owed: '日期 → 当天老板欠款（分）',
   lunch: '日期 → 确认的菜名',
