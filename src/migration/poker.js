@@ -8,6 +8,10 @@ const cards = v => Array.isArray(v) && v.every(c => integer(c) && c >= 0 && c < 
 const five = v => Array.isArray(v) && v.length === 5;
 const sum = v => v.reduce((a, b) => a + b, 0);
 const requireValid = value => { if (!value) throw Error('德州存档格式或牌局状态无效，原始数据保留。'); };
+const validObservation = s => record(s) && Number.isFinite(s.hits) && Number.isFinite(s.opportunities)
+  && s.hits >= 0 && s.opportunities >= s.hits && s.opportunities <= 10_000;
+const validModel = m => record(m) && [m.vpip, m.preflopRaise, m.aggression, m.weakRiverShowdown].every(validObservation)
+  && Array.isArray(m.foldToBet) && m.foldToBet.length === 4 && m.foldToBet.every(validObservation);
 const actions = ['fold', 'check', 'call', 'raise'];
 const handNames = ['高牌', '一对', '两对', '三条', '顺子', '同花', '葫芦', '四条', '同花顺', '其他玩家弃牌'];
 export function validatePokerTable(t) {
@@ -24,8 +28,8 @@ export function validatePokerTable(t) {
   requireValid(count(total) && total === t.initial);
   if (t.done) requireValid(t.turn === -1 && t.seats.every(s => s.bet === 0 && s.invested === 0));
   else requireValid(seat(t.turn) && !t.seats[t.turn].folded && t.seats[t.turn].chips > 0 && t.seats.filter(s => !s.folded).length >= 2);
-  if (t.actions !== undefined) requireValid(Array.isArray(t.actions) && t.actions.length <= 120 && t.actions.every(a => record(a) && seat(a.seat) && integer(a.street) && a.street >= 0 && a.street <= t.street && actions.includes(a.action) && [a.paid, a.total, a.potBefore].every(count) && a.paid <= a.total && a.total <= t.initial && a.potBefore <= t.initial));
-  if (t.reads !== undefined) requireValid(five(t.reads) && t.reads.every(r => record(r) && [r.decisions, r.raises, r.calls, r.folds].every(count) && count(r.raises + r.calls + r.folds) && r.raises + r.calls + r.folds <= r.decisions));
+  if (t.actions !== undefined) requireValid(Array.isArray(t.actions) && t.actions.length <= 120 && t.actions.every(a => record(a) && seat(a.seat) && integer(a.street) && a.street >= 0 && a.street <= t.street && actions.includes(a.action) && [a.paid, a.total, a.potBefore].every(count) && a.paid <= a.total && a.total <= t.initial && a.potBefore <= t.initial && (a.toCall === undefined || count(a.toCall)) && (a.raiseSize === undefined || count(a.raiseSize))));
+  if (t.reads !== undefined) requireValid(five(t.reads) && t.reads.every(r => record(r) && [r.decisions, r.raises, r.calls, r.folds].every(count) && count(r.raises + r.calls + r.folds) && r.raises + r.calls + r.folds <= r.decisions && (r.model === undefined || validModel(r.model))));
   if (t.temperament !== undefined) requireValid(five(t.temperament) && t.temperament.every(n => Number.isFinite(n) && Math.abs(n) <= 1));
   if (t.settlement !== undefined) {
     const result = t.settlement;

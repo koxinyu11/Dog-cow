@@ -1,3 +1,4 @@
+import { observeAction, observeRiverShowdown, type OpponentModel } from './observations.js';
 import { validatePokerTable } from '../../migration/poker.js';
 /** Integer chips throughout. Rules have no clock, storage or UI dependencies. */
 export type Card = number;
@@ -37,8 +38,10 @@ export interface PublicAction {
     paid: number;
     total: number;
     potBefore: number;
+    toCall?: number;
+    raiseSize?: number;
 }
-export interface PlayerRead { decisions: number; raises: number; calls: number; folds: number }
+export interface PlayerRead { decisions: number; raises: number; calls: number; folds: number; model?: OpponentModel }
 export interface Table {
     id: string;
     revision: number;
@@ -160,7 +163,7 @@ export function act(old: Table, action: Action, total?: number): Table {
     if (old.done)
         throw Error('本手已经结束。');
     const t = structuredClone(old), s = t.seats[t.turn], l = legal(t);
-    const investmentBefore = s.invested, potBefore = pot(t), streetBefore = t.street;
+    const investmentBefore = s.invested, potBefore = pot(t), streetBefore = t.street, currentBefore = t.current;
     if (s.folded || !s.chips)
         throw Error('当前座位无法行动。');
     if (action === 'fold') {
@@ -190,10 +193,9 @@ export function act(old: Table, action: Action, total?: number): Table {
         throw Error('行动无效。');
     s.acted = true;
     s.actedAt = t.current;
-    t.actions = [...(t.actions ?? []), { seat: t.turn, street: streetBefore, action, paid: s.invested - investmentBefore, total: s.bet, potBefore }].slice(-120);
-    t.reads ??= t.seats.map(() => ({ decisions: 0, raises: 0, calls: 0, folds: 0 }));
-    const read = t.reads[t.turn];
-    read.decisions++; if (action === 'raise') read.raises++; if (action === 'call') read.calls++; if (action === 'fold') read.folds++;
+    observeAction(t, action, l.call);
+    t.actions = [...(t.actions ?? []), { seat: t.turn, street: streetBefore, action, paid: s.invested - investmentBefore, total: s.bet, potBefore,
+        toCall: l.call, raiseSize: action === 'raise' ? t.current - currentBefore : 0 }].slice(-120);
     t.revision++;
     note(t, `${s.name} · ${s.lastAction}`);
     advance(t, t.turn);
@@ -264,6 +266,13 @@ function settle(t: Table) {
                 winningCards[x.seat] = bestFive([...t.seats[x.seat].hand, ...t.board]);
         });
     }
+    // Only contested river showdowns train profiles; winning by folds never reveals a private bluff.
+    if (t.board.length === 5 && t.seats.filter(s => !s.folded).length >= 2) t.seats.forEach((s, i) => {
+        if (s.folded) return;
+        const mine = Math.floor(score([...s.hand, ...t.board]) / 15 ** 5);
+        const board = Math.floor(score(t.board) / 15 ** 5);
+        observeRiverShowdown(t, i, board <= 1 && mine <= board);
+    });
     t.seats.forEach((s, i) => { s.chips += gains[i]; s.bet = 0; s.invested = 0; });
     t.settlement = { awards, gains, balancesBefore, winningCards, handNames, netGains: gains.map((gain, i) => gain - contributions[i]) };
     t.done = true;
