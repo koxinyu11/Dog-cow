@@ -1,3 +1,4 @@
+import { fishingMaps, defaultLocation } from '../shared/fishing-maps.js';
 import { randomUUID } from 'node:crypto';
 import { FISHING_KEY, awardSkins, fishFound, fishingView, parseFishing, repairPrice, repairedWear, rods, skinAvailable, tools, spots, rollRound, type FishingRequest, type FishingState, type FishingView, type FishingAction } from '../shared/fishing.js';
 import { isBaitSupply, MAX_SUPPLIES, rodSkins, supplies } from '../shared/fishing-gear.js';
@@ -17,7 +18,7 @@ export class Fishing {
     return fishingView(this.before ?? parseFishing(this.store.getItem(FISHING_KEY)), wallet.balance, !!this.before, !!wallet.error || !!wallet.pendingSave);
   }
   execute(request: FishingRequest) {
-    const actions: FishingAction[] = ['view', 'cast', 'reel', 'buyRod', 'buyTool', 'equip', 'spot', 'bait', 'sell', 'sellAll', 'lock', 'rescue', 'retry', 'buySkin', 'skin', 'buySupply', 'guard', 'repair'];
+    const actions: FishingAction[] = ['view', 'cast', 'reel', 'buyRod', 'buyTool', 'equip', 'spot', 'bait', 'sell', 'sellAll', 'lock', 'rescue', 'retry', 'buySkin', 'skin', 'buySupply', 'guard', 'repair', 'zone', 'layer'];
     if (!request || !actions.includes(request.action)) refuse('操作无效。');
     if (request.action === 'view') return;
     if (this.before) refuse('本次操作尚未保存，请先重试保存。');
@@ -115,8 +116,20 @@ export class Fishing {
       next.equipped = rod.id;
     } else if (action === 'spot') {
       const spot = spots.find(s => s.id === id);
-      if (!spot || fishFound(next.book) < spot.required) refuse('发现 5 种鱼后开放河湾。');
+      if (!spot) refuse('钓点不存在。');
+      if (fishFound(next.book) < spot.required) refuse(`发现 ${spot.required} 种鱼后开放${spot.name}。`);
       next.spot = spot.id;
+      next.location = defaultLocation(spot.id);
+    } else if (action === 'zone' || action === 'layer') {
+      const map = fishingMaps[next.spot];
+      if (!map || !next.location) refuse('当前钓点不支持选择落点与水层。');
+      if (action === 'zone') {
+        if (!map.zones.some(z => z.id === id)) refuse('落点不存在。');
+        next.location.zone = id!;
+      } else {
+        if (id !== 'shallow' && id !== 'bottom') refuse('水层不存在。');
+        next.location.layer = id;
+      }
     } else if (action === 'bait') {
       if (id !== 'plain' && id !== 'worm' && !isBaitSupply(id)) refuse('钓法不存在。');
       if (id === 'worm' && !next.tools.includes('baitbox')) refuse('购买双层饵盒后可用虫饵。');

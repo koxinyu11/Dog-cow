@@ -3,11 +3,11 @@ import { rodLook, type RodSkinId } from '../../../../../../shared/fishing-gear';
 import { RodGrip, RodReel, RodStroke, RodTrim } from '../GearArt';
 type Phase = 'idle' | 'waiting' | 'signal' | 'reeling';
 /** Rod, line and bobber. The rod re-mounts on cast so its swing animation replays. */
-export function Tackle({ phase, color, float, skin = 'default' }: { phase: Phase; color: string; float: boolean; skin?: RodSkinId }) {
+export function Tackle({ phase, color, float, skin = 'default', target = BOBBER }: { target?: readonly [number, number]; phase: Phase; color: string; float: boolean; skin?: RodSkinId }) {
   const look = rodLook(skin, color);
   const [bx, by] = ROD_BASE;
   const [tx, ty] = rodTip(phase);
-  const [fx, fy] = BOBBER;
+  const [fx, fy] = target;
   const bend = phase === 'reeling' ? [bx + 60, ty + 30] : phase === 'signal' ? [bx + 70, by - 42] : [bx + 64, by - 40];
   const active = phase !== 'idle';
   const curve = `M${bx} ${by}Q${bend[0]} ${bend[1]} ${tx} ${ty}`;

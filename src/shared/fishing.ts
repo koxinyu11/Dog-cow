@@ -1,3 +1,4 @@
+import { fishingMaps, defaultLocation, validLocation, locationWeight, type FishingLocation } from './fishing-maps.js';
 import { fishingTide, fishingShares, fishingRarityBoost, type FishingTideStamp } from './fishing-tide.js';
 import { emptyGear, isBaitSupply, parseGear, rodSkins, type BaitSupply, type FishingGear, type RodSkin } from './fishing-gear.js';
 /** Local fishing rules. Prices and rewards never come from renderer requests. */
@@ -19,6 +20,8 @@ export const tools = [
 export const spots = [
   { id: 'pond', name: '午后池塘', description: '浅水 · 建议承重 2 kg', required: 0 },
   { id: 'river', name: '芦苇河湾', description: '深水 · 建议承重 16 kg，有断竿风险', required: 5 },
+  { id: 'lotus', name: '荷风浅荡', description: '落点 × 水层 · 建议承重 6 kg', required: 10 },
+  { id: 'bridge', name: '旧桥深潭', description: '落点 × 水层 · 建议承重 16 kg，沉底留意大鱼', required: 20 },
 ] as const;
 export type Category = 'fish' | 'creature' | 'junk' | 'treasure';
 const stableShares = fishingShares();
@@ -166,20 +169,21 @@ export type Bait = 'plain' | 'worm' | BaitSupply;
 /** `at` (ms epoch) is absent on catches saved before it was recorded. */
 export interface Catch { id: string; species: string; kg: number; value: number; locked: boolean; at?: number }
 export type FishingResult = { kind: Category | 'empty' | 'broken'; name: string; cause?: 'wear'; kg?: number; species?: string; newDiscovery?: boolean; value?: number; protected?: boolean };
-export interface FishingRound { id: string; rod: RodId; signal: '轻轻晃动' | '缓缓横移' | '明显绷紧'; wait: number; result: FishingResult; supply?: BaitSupply; tide?: FishingTideStamp }
+export interface FishingRound { id: string; rod: RodId; signal: '轻轻晃动' | '缓缓横移' | '明显绷紧'; wait: number; result: FishingResult; location?: FishingLocation; supply?: BaitSupply; tide?: FishingTideStamp }
 export interface FishingState {
   version: 1; rods: Record<RodId, number>; equipped: RodId; tools: ToolId[]; spot: SpotId; bait: Bait;
   /** Reels used by the rod currently in hand of each type; spares start fresh. */
+  location?: FishingLocation;
   wear: Record<RodId, number>;
   gear: FishingGear;
   bag: Catch[]; book: Record<string, { count: number; largest: number }>; total: number;
   round: FishingRound | null; last: FishingResult | null; requests: string[];
 }
 export type FishingAction = 'view' | 'cast' | 'reel' | 'buyRod' | 'buyTool' | 'equip' | 'spot' | 'bait' | 'sell' | 'sellAll' | 'lock' | 'rescue' | 'retry'
-  | 'buySkin' | 'skin' | 'buySupply' | 'guard' | 'repair';
+  | 'buySkin' | 'skin' | 'buySupply' | 'guard' | 'repair' | 'zone' | 'layer';
 export interface FishingRequest { action: FishingAction; requestId?: string; id?: string; roundId?: string }
 export interface FishingView {
-  state: Omit<FishingState, 'round' | 'requests'> & { round: Pick<FishingRound, 'id' | 'rod' | 'signal' | 'wait' | 'tide'> | null };
+  state: Omit<FishingState, 'round' | 'requests'> & { round: Pick<FishingRound, 'id' | 'rod' | 'signal' | 'wait' | 'tide' | 'location'> | null };
   balance: number; pending: boolean; walletLocked: boolean;
 }
 export interface FishingReply { view?: FishingView; error?: string; errorCode?: string; correlationId?: string }
@@ -220,12 +224,18 @@ export function parseFishing(raw: string | null): FishingState {
   // Saves from before rod wear carry no `wear`; treat every rod in hand as new.
   if (v.wear === undefined) v.wear = Object.fromEntries(rods.map(r => [r.id, 0]));
   else if (!obj(v.wear) || !rods.every(r => count((v.wear as Record<string, unknown>)[r.id]) && Number((v.wear as Record<string, unknown>)[r.id]) <= 100000)) throw Error('钓鱼存档异常，已保留原始数据。');
+  if (fishingMaps[v.spot as SpotId]) {
+    if (v.location === undefined) v.location = defaultLocation(v.spot as SpotId);
+    else if (!validLocation(v.spot as SpotId, v.location)) throw Error('钓鱼落点记录异常，已保留原始数据。');
+  } else if (v.location !== undefined) throw Error('钓鱼落点记录异常，已保留原始数据。');
+  if (obj(v.round) && v.round.location !== undefined && (!validLocation(v.spot as SpotId, v.round.location)
+    || !obj(v.location) || v.round.location.zone !== v.location.zone || v.round.location.layer !== v.location.layer)) throw Error('当前落点记录异常，已保留原始数据。');
   v.gear = parseGear(v.gear);
   return v as unknown as FishingState;
 }
 export function fishingView(state: FishingState, balance: number, pending = false, walletLocked = false): FishingView {
   const { requests: _requests, round, ...rest } = state;
-  return { state: { ...rest, round: round ? { id: round.id, rod: round.rod, signal: round.signal, wait: round.wait, ...(round.tide ? { tide: round.tide } : {}) } : null }, balance, pending, walletLocked };
+  return { state: { ...rest, round: round ? { id: round.id, rod: round.rod, signal: round.signal, wait: round.wait, ...(round.tide ? { tide: round.tide } : {}), ...(round.location ? { location: round.location } : {}) } : null }, balance, pending, walletLocked };
 }
 /** Overload has a gradual risk; rods within capacity never break. */
 export function breakChance(kg: number, capacity: number) { return kg <= capacity ? 0 : Math.min(.95, (kg / capacity - 1) * .6); }
@@ -241,14 +251,16 @@ export function fishingCategories(bait: Bait, activity = 0) {
   const shares = fishingShares(activity);
   return categories.map(c => ({ ...c, share: shares[c.id] + (bait === 'magnet' ? c.id === 'treasure' ? .008 : c.id === 'junk' ? -.008 : 0 : 0) }));
 }
-export function fishingPool(spot: SpotId, category: Category, bait: Bait, book: Record<string, unknown> = {}, activity = 0) {
-  const eligible = species.filter(s => (s.spot === spot || s.spot === 'any') && s.category === category);
+export function fishingPool(spot: SpotId, category: Category, bait: Bait, book: Record<string, unknown> = {}, activity = 0, location?: FishingLocation) {
+  if (location && !validLocation(spot, location)) throw Error('钓鱼落点无效。');
+  const habitat = fishingMaps[spot]?.source ?? spot;
+  const eligible = species.filter(s => (s.spot === habitat || s.spot === 'any') && s.category === category);
   const fixed = eligible.filter(s => s.castChance !== undefined);
   const regular = eligible.filter(s => s.castChance === undefined && s.weight > 0);
   const share = fishingCategories(bait, activity).find(c => c.id === category)!.share;
   const fixedChance = (s: Species) => s.castChance! * (1 + 9 * activity);
   const reserved = fixed.reduce((sum, s) => sum + fixedChance(s), 0);
-  const weights = regular.map(s => s.weight * (category === 'fish' ? fishingRarityBoost(s.rarity, activity) : 1) * (bait === 'worm' && s.rarity >= 2 ? 1.8 : bait === 'scout' && category === 'fish' && !book[s.id] ? 3 : 1));
+  const weights = regular.map(s => s.weight * (category === 'fish' ? fishingRarityBoost(s.rarity, activity) : 1) * (bait === 'worm' && s.rarity >= 2 ? 1.8 : bait === 'scout' && category === 'fish' && !book[s.id] ? 3 : 1) * locationWeight(spot, location ?? defaultLocation(spot), s));
   const total = weights.reduce((sum, weight) => sum + weight, 0);
   if (!total || reserved >= share || fixed.some(s => !Number.isFinite(s.castChance) || s.castChance! <= 0)) throw Error('钓获概率配置无效。');
   return [
@@ -273,7 +285,7 @@ export function rollRound(state: FishingState, id: string, random = Math.random,
     result = { kind: 'fish', name: tiny.name, species: tiny.id, kg, value: tiny.price, newDiscovery: !state.book[tiny.id] };
   } else {
     // Tiny fish and pearls retain their dedicated branches; fixed entries are not weighted twice.
-    const pool = fishingPool(state.spot, category, state.bait, state.book, activity);
+    const pool = fishingPool(state.spot, category, state.bait, state.book, activity, state.location);
     let point = random() * shares.find(c => c.id === category)!.share;
     const pick = (pool.find(s => (point -= s.chance) < 0) ?? pool[pool.length - 1]).entry;
     const living = category === 'fish' || category === 'creature';
@@ -298,7 +310,7 @@ export function rollRound(state: FishingState, id: string, random = Math.random,
     if (protectedCatch) result.protected = true;
   }
   const heavy = result.kind !== 'treasure' && result.kind !== 'junk' && (result.kg ?? 0) > rod.capacity * .8;
-  return { id, rod: rod.id, wait: (5 + random() * 5) * rod.wait * (state.tools.includes('float') ? .85 : 1),
+  return { id, rod: rod.id, ...(state.location ? { location: { ...state.location } } : {}), wait: (5 + random() * 5) * rod.wait * (state.tools.includes('float') ? .85 : 1),
     ...(conditions ? { tide: { version: conditions.version, at: conditions.at, activity } } : {}),
     signal: heavy ? '明显绷紧' : random() < .5 ? '轻轻晃动' : '缓缓横移', result,
     ...(isBaitSupply(state.bait) ? { supply: state.bait } : {}) };

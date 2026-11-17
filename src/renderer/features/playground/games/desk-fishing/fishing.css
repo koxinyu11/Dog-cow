@@ -354,3 +354,25 @@
   .df-leap { display: none; }
   .df-line { stroke-dasharray: none; }
 }
+
+/* Cast locations stay attached to the same scene coordinates as the float. */
+.df-cast-zones { position: absolute; inset: 0; pointer-events: none; }
+.df-cast-zone { position: absolute; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 7px; padding: 10px 16px; border: 0; border-radius: 30px; color: #f8f3dc; background: #203e4250; pointer-events: auto; cursor: pointer; text-shadow: 0 1px 4px #172e34; }
+.df-cast-zone i { display: block; width: 42px; height: 12px; border: 1px solid #edf5dc90; border-radius: 50%; box-shadow: 0 0 0 5px #edf5dc0d; }
+.df-cast-zone span { font-size: 11px; letter-spacing: .08em; }
+.df-cast-zone[aria-pressed="true"] { background: #244e49b0; }
+.df-cast-zone[aria-pressed="true"] i { border: 2px solid #f9e7a7; box-shadow: 0 0 0 5px #f9e7a725; }
+.df-cast-zone:focus-visible { outline: 2px solid #fff2bb; outline-offset: 4px; }
+.df-cast-zone:disabled { cursor: default; opacity: .5; }
+.df-scene:not([data-phase="idle"]) .df-cast-zone[aria-pressed="true"] { visibility: hidden; }
+.df-water-choice { position: absolute; bottom: 122px; left: 24px; display: grid; gap: 6px; padding: 10px; max-width: 245px; border-radius: 14px; background: #f3f4e8e8; color: #344d48; box-shadow: 0 5px 24px #18372f12; }
+.df-depth-toggle { display: flex; gap: 3px; padding: 3px; background: #244d4610; border-radius: 10px; }
+.df-depth-toggle button { flex: 1; border: 0; border-radius: 7px; padding: 7px 18px; background: transparent; color: inherit; cursor: pointer; font-size: 12px; }
+.df-depth-toggle button[aria-pressed="true"] { background: #355f53; color: #fff7df; box-shadow: 0 2px 5px #173e3320; }
+.df-depth-toggle button:disabled { opacity: .55; cursor: default; }
+.df-depth-toggle button:focus-visible { outline: 2px solid #8e7432; outline-offset: 2px; }
+.df-water-choice > span, .df-water-choice > small { font-size: 11px; padding: 0 4px; }
+.df-water-choice > small { color: #936038; }
+.df-place.is-lotus .df-place-art { background: radial-gradient(ellipse at 65% 65%, #d8a3ac 0 8%, transparent 9%), radial-gradient(ellipse at 45% 75%, #759b72 0 24%, transparent 25%), linear-gradient(#c3d8b4 48%, #81b2a1 49%); }
+.df-place.is-bridge .df-place-art { background: radial-gradient(ellipse at 50% 58%, #3c6868 0 23%, transparent 24%), linear-gradient(175deg, #b5bdb1 30%, #7b8d83 31% 53%, #4e7f7d 54%); }
+@media (max-width: 680px) { .df-water-choice { bottom: 152px; left: 12px; max-width: 210px; padding: 7px; } .df-cast-zone { padding: 7px; gap: 4px; } .df-cast-zone span { font-size: 10px; } }
