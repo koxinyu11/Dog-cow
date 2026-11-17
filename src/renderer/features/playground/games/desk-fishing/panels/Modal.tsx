@@ -10,7 +10,7 @@ export function Modal<T extends string>({ label, tabs, active, onTab, onClose, c
   function keys(event: React.KeyboardEvent) {
     if (event.key === 'Escape') { event.stopPropagation(); onClose(); return; }
     if (event.key !== 'Tab' || !box.current) return;
-    const items = [...box.current.querySelectorAll<HTMLElement>('button:not(:disabled), [tabindex="0"]')];
+    const items = [...box.current.querySelectorAll<HTMLElement>('button:not(:disabled), select:not(:disabled), [tabindex="0"]')];
     if (!items.length) return;
     const first = items[0], last = items[items.length - 1];
     if (event.shiftKey && (document.activeElement === first || document.activeElement === box.current)) { event.preventDefault(); last.focus(); }

@@ -21,6 +21,7 @@
     "test:migration": "node --test tests/migration/*.test.js",
     "postinstall": "node scripts/patch-build-dependencies.mjs",
     "test:desktop-notes": "npm run build && node --test tests/desktop/desktop-notes*.test.mjs && node scripts/test-desktop-notes-drafts.mjs && node scripts/test-desktop-notes.mjs",
+    "test:fishing": "npm run build && node scripts/test-fishing-catalog.mjs",
     "test:playground": "npm run build && node scripts/test-playground.mjs"
   },
   "engines": {
