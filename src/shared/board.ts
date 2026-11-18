@@ -276,6 +276,28 @@ export function smartArrange(
     const score = holes * 100 + rows;
     if (score < bestScore) [best, bestScore] = [next, score];
   }
+  // Random search is bounded, so even a feasible grid may have no sampled solution.
+  // Build whole rows from legal medium/full-width sizes before returning a gapped best effort.
+  const perRow = columns === BOARD_COLUMNS ? 3 : columns === 6 ? 2 : 0;
+  if (perRow) {
+    const order = [...items.slice(1), items[0]];
+    const wideCount = items.length % perRow;
+    const wide = order.filter(item => options(item.id).includes('wide')).slice(0, wideCount);
+    let rest = order.filter(item => !wide.some(full => full.id === item.id));
+    if (wide.length === wideCount && rest.every(item => options(item.id).includes('m'))) {
+      const rows = (): BoardItem[] => [
+        ...wide.map(item => ({ id: item.id, size: 'wide' as const })),
+        ...rest.map(item => ({ id: item.id, size: 'm' as const })),
+      ];
+      let candidate = rows();
+      if (same(candidate) && rest.length > 1) {
+        rest = [...rest.slice(1), rest[0]];
+        candidate = rows();
+      }
+      if (!same(candidate) && layoutScore(candidate, columns).holes === 0)
+        return { items: candidate, holes: 0 };
+    }
+  }
   const fallback = best ?? items.map((i) => ({ ...i }));
   return { items: fallback, holes: layoutScore(fallback, columns).holes };
 }
