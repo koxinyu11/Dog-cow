@@ -16,7 +16,7 @@ const MAX_DAYS = 20_000;
 
 export interface CoinEntry {
   at: number;
-  kind: 'exchange' | 'spend' | 'fishing' | 'poker';
+  kind: 'exchange' | 'spend' | 'fishing' | 'poker' | 'market';
   /** Signed coin change. */
   coins: number;
   /** Exchange: yuan taken from each source. */
@@ -39,7 +39,8 @@ export type CoinOutcome =
   | { kind: 'exchange'; coins: number; balanceBefore: number; sources: CoinSource[] }
   | { kind: 'purchase'; item: string }
   | { kind: 'fishing'; coins: number }
-  | { kind: 'poker'; coins: number };
+  | { kind: 'poker'; coins: number }
+  | { kind: 'market'; coins: number };
 
 export interface CoinSourceView { yuan: number; coins: number; todayYuan: number }
 export interface CoinsView {
@@ -73,7 +74,7 @@ export function parseCoins(raw: string | null): CoinsState {
       used[source][day] = cents;
     }
   }
-  const entries = v.entries.filter((e): e is CoinEntry => record(e) && Number.isFinite(e.at) && (e.kind === 'exchange' || e.kind === 'spend' || e.kind === 'fishing' || e.kind === 'poker')
+  const entries = v.entries.filter((e): e is CoinEntry => record(e) && Number.isFinite(e.at) && (e.kind === 'exchange' || e.kind === 'spend' || e.kind === 'fishing' || e.kind === 'poker' || e.kind === 'market')
     && Number.isSafeInteger(e.coins)).slice(-MAX_ENTRIES);
   return { version: 1, balance: v.balance, used, owned: [...new Set(v.owned as string[])], entries };
 }

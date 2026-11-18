@@ -1,3 +1,7 @@
+import { Cafe, CafeError } from './cafe.js';
+import { StockMarket, MarketError } from './market.js';
+import { MARKET_KEY, type MarketRequest, type MarketReply } from '../shared/market/game.js';
+import type { CafeRequest, CafeReply } from '../shared/cafe/types.js';
 import { Fishing, FishingError } from './fishing.js';
 import { DesktopNotesStore } from './desktop-notes-store.js';
 import { createDesktopNotesController, type DesktopNotesController } from './desktop-notes-controller.js';
@@ -166,6 +170,8 @@ let income: IncomeState;
 let titles: Titles;
 let gameProgress: GameProgress;
 let coins: Coins;
+let cafe: Cafe;
+let market: StockMarket;
 let poker: Poker;
 let fishing: Fishing;
 let owedData = emptyOwed();
@@ -314,6 +320,8 @@ function restoreModels() {
   coins = new Coins(repo.storage, () => titles.moneyLedgers());
   coins.load();
   gameProgress = new GameProgress(repo.storage, titles);
+  cafe = new Cafe(repo.storage, 8675309);
+  market = new StockMarket(repo.storage, coins, 791911);
   poker = new Poker(repo.storage, coins, table => gameProgress.poker(table));
   fishing = new Fishing(repo.storage, coins);
   try {
@@ -416,6 +424,8 @@ async function finish(result: Result): Promise<Result> {
   if (result.persisted) {
     fishing?.confirmSaved();
     poker?.confirmSaved();
+    cafe?.confirmSaved();
+    market?.confirmSaved();
     attendancePendingSave = false;
     const outcome = coins?.confirmSaved();
     if (outcome) result.coinOutcome = outcome;
@@ -617,6 +627,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     // An older pack without a wallet keeps the current one, so restored ledgers cannot be exchanged twice.
     const currentCoins = repo.storage.getItem(COINS_KEY);
     const currentPoker = repo.storage.getItem(POKER_KEY);
+    const currentMarket = repo.storage.getItem(MARKET_KEY);
     const currentFishing = repo.storage.getItem(FISHING_KEY);
     repo.values = new Map(
       Object.entries(pending.values).filter(
@@ -626,6 +637,7 @@ async function invoke(method: string, p: Fields): Promise<Result> {
     if (typeof pending.values[COINS_KEY] !== 'string' && currentCoins !== null) repo.values.set(COINS_KEY, currentCoins);
     if (typeof pending.values[COINS_KEY] !== 'string' && currentFishing !== null) repo.values.set(FISHING_KEY, currentFishing);
     if (typeof pending.values[COINS_KEY] !== 'string' && currentPoker !== null) repo.values.set(POKER_KEY, currentPoker);
+    if (typeof pending.values[COINS_KEY] !== 'string' && currentMarket !== null) repo.values.set(MARKET_KEY, currentMarket);
     repo.readError = '';
     repo.revision++;
     repo.migration = {
@@ -1254,6 +1266,7 @@ async function start() {
   const checkpointGames = () => {
     const job = commands.then(async () => {
       if (quitting || quitPending || repo.readError || repo.migration?.phase === 'pending') return;
+      try { market.clock(!gameInterrupted); } catch (error) { playground?.diagnose('persistence', error, 'stock-market'); }
       await finish({ applied: true, persisted: false, message: '' });
     }).catch(error => { playground?.diagnose('persistence', error); });
     commands = job;
@@ -1315,6 +1328,59 @@ async function start() {
             await finish({ applied: true, persisted: false, message: '' });
           }
           return { games: gameProgress.games(), notices, ...(view.error ? { error: view.error, errorCode: 'GAME_TITLES_UNAVAILABLE' } : {}) };
+        });
+        commands = job.catch(() => undefined);
+        return await job;
+      }
+      if (command === 'market') {
+        const job = commands.then(async (): Promise<MarketReply> => {
+          try {
+            if (!record(payload) || typeof payload.action !== 'string') throw new MarketError('MARKET_RULE', '操作参数无效。');
+            if (quitting || quitPending || repo.readError || repo.migration?.phase === 'pending') throw new MarketError('MARKET_UNAVAILABLE', '本机数据暂不可用，请先在主界面处理。');
+            const request = payload as unknown as MarketRequest;
+            if (request.action === 'retry') market.retryClock();
+            else market.execute(request);
+            const result = await finish({ applied: true, persisted: false, message: '' });
+            const view = market.view(Number.isInteger(request.detail) && request.detail! >= 0 && request.detail! < 258 ? request.detail : 240);
+            if (view.engineError) return { view, error: view.engineError, errorCode: 'MARKET_TICK_FAILED' };
+            if (!result.persisted || view.pending) {
+              const correlationId = playground!.diagnose('persistence', Error('狗牛市快照保存失败'), 'stock-market');
+              return { view, error: '本次操作尚未保存，请保留窗口并重试保存。', errorCode: 'MARKET_SAVE_FAILED', correlationId };
+            }
+            return { view };
+          } catch (error) {
+            const correlationId = playground!.diagnose('ipc', error, 'stock-market');
+            let view; try { view = market.view(); } catch { /* Keep unreadable data intact. */ }
+            return { view, errorCode: error instanceof MarketError ? error.code : 'MARKET_FAILED',
+              error: error instanceof MarketError ? error.message : '狗牛市暂不可用，原始记录已保留。请重试或查看诊断。', correlationId };
+          }
+        });
+        commands = job.catch(() => undefined);
+        return await job;
+      }
+      if (command === 'cafe') {
+        const job = commands.then(async (): Promise<CafeReply> => {
+          try {
+            if (!record(payload) || typeof payload.action !== 'string') throw new CafeError('CAFE_RULE', '操作参数无效。');
+            if (quitting || quitPending || repo.readError || repo.migration?.phase === 'pending') throw new CafeError('CAFE_UNAVAILABLE', '本机数据暂不可用，请先在主界面处理。');
+            const request = payload as unknown as CafeRequest;
+            if (request.action === 'retry') await finish({ applied: true, persisted: false, message: '' });
+            else {
+              cafe.execute(request);
+              if (request.action !== 'view') await finish({ applied: true, persisted: false, message: '' });
+            }
+            const view = cafe.view();
+            if (view.pending) {
+              const correlationId = playground!.diagnose('persistence', Error('咖啡馆快照保存失败'), 'cafe');
+              return { view, error: '本次操作尚未保存，请保留窗口并重试保存。', errorCode: 'CAFE_SAVE_FAILED', correlationId };
+            }
+            return { view };
+          } catch (error) {
+            const correlationId = playground!.diagnose('ipc', error, 'cafe');
+            let view; try { view = cafe.view(); } catch { /* Keep unreadable saves untouched. */ }
+            return { view, errorCode: error instanceof CafeError ? error.code : 'CAFE_FAILED',
+              error: error instanceof CafeError ? error.message : '咖啡馆暂不可用，原始记录已保留。请重试或查看诊断。', correlationId };
+          }
         });
         commands = job.catch(() => undefined);
         return await job;

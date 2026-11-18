@@ -42,7 +42,7 @@ export function GameHost({ game, exit, status }: { game: LocalGame; exit(): void
       <span className="pg-game-nav"><Button size="sm" variant="ghost" icon={<ArrowLeft size={15} />} onClick={exit}>大厅</Button><h2>{game.title}</h2></span>
       <span className="pg-game-actions">
         {!game.persistent && <Button size="sm" variant="ghost" icon={<RotateCcw size={14} />} onClick={() => { setActivity('blocked'); setRound(v => v + 1); setPaused(false); }}>重新开始</Button>}
-        <Button size="sm" variant="ghost" icon={<Pause size={14} />} onClick={() => setPaused(true)}>暂停</Button>
+        <Button size="sm" variant="ghost" icon={<Pause size={14} />} onClick={() => setPaused(true)}>{game.id === 'stock-market' ? '暂停操作' : '暂停'}</Button>
         {status}
       </span>
     </header>

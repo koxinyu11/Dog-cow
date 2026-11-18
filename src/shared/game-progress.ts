@@ -4,6 +4,8 @@ export const GAME_IDLE_MS = 5 * 60_000;
 export const GAME_POLICIES = {
   'desk-fishing': { background: 'pause' },
   poker: { background: 'pause' },
+  cafe: { background: 'pause' },
+  'stock-market': { background: 'idle' },
 } as const;
 export type GameId = keyof typeof GAME_POLICIES;
 export type GameActivity = 'blocked' | 'decision' | 'progressing' | 'idle-running';

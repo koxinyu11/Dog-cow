@@ -6,7 +6,7 @@
 
 ## 已实现
 
-[F01–F08、F10、G06：查看已实现方案与验收状态](implemented/README.md)
+[F01–F08、F10、G06、G08、G09：查看已实现方案与验收状态](implemented/README.md)
 
 ## 待实施方案
 
