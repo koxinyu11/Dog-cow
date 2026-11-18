@@ -1,6 +1,8 @@
 import type { ComponentType } from 'react';
 import type { GameActivity } from '../../../shared/game-progress';
 import type { GameDiagnostics } from './game-diagnostics';
+import { CafeScene } from './games/cafe/Scene';
+import { MarketCover } from './games/market/Cover';
 import { DeskFishingCover } from './covers/DeskFishingCover';
 /** Games receive lifecycle state, not the main app's business bridge. */
 export interface GameProps { paused: boolean; diagnostics: GameDiagnostics; onActivity?(activity: GameActivity): void }
@@ -31,6 +33,10 @@ export interface LocalGame {
 }
 /** Explicit, offline catalog. Add a game directory and one lazy import here. */
 export const games: readonly LocalGame[] = [{
+  id: 'stock-market', title: '狗牛市', description: '240 家公司与 18 只 ETF，用狗牛币读财报、看行情、做交易。', icon: '↗', cover: MarketCover, category: '经营', accent: 'grass', minutes: 5, controls: 'mouse', addedAt: '2026-11-18', persistent: true, order: 0, tags: ['股票', 'ETF', '狗牛币', '量化', '投资'], load: () => import('./games/market'),
+}, {
+  id: 'cafe', title: '狗牛咖啡馆', description: '从街角选址开始，经营你的第一家咖啡馆。', icon: '☕', cover: CafeScene, category: '经营', accent: 'gold', minutes: 5, controls: 'mouse', addedAt: '2026-11-17', persistent: true, tags: ['咖啡', '经营', 'BizCafe', '模拟'], load: () => import('./games/cafe'),
+}, {
   id: 'poker', title: '工位德州', description: '筹码落桌，藏好你的底牌。', icon: '♠', category: '棋牌', accent: 'gold', minutes: 5, controls: 'mouse', addedAt: '2026-11-16', persistent: true, tags: ['德州', '扑克', '狗牛币'], load: () => import('./games/poker'),
 }, {
   id: 'desk-fishing', title: '工位钓鱼', description: '抛一竿，等一点水下的动静。收集小鱼，逛逛河边杂货铺。',

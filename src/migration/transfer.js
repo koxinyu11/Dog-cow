@@ -1,4 +1,5 @@
 import { validatePokerState } from './poker.js';
+import { validateMarketGame } from './market.js';
 import { DESKTOP_NOTES_KEY, validateDesktopNotes } from './desktop-notes.js';
 import { TOILET_KEY, validateToilet } from '../../app/income/src/paid-toilet.js';
 import { OWED_KEY, parseOwed } from '../../app/income/src/owed.js';
@@ -12,8 +13,10 @@ export const TITLES_KEY = 'dogcow.titles.v1';
 export const GAME_PROGRESS_KEY = 'dogcow.games.v1';
 export const POKER_KEY = 'dogcow.poker.v1';
 export const FISHING_KEY = 'dogcow.fishing.v1';
+export const CAFE_KEY = 'dogcow.cafe.v1';
+export const MARKET_KEY = 'dogcow.market.v1';
 export const COINS_KEY = 'dogcow.coins.v1';
-export const allowedKey = key => fixedKeys.includes(key) || key === DESKTOP_NOTES_KEY || key === TOILET_KEY || key === TITLES_KEY || key === COINS_KEY || key === FISHING_KEY || key === POKER_KEY || key === GAME_PROGRESS_KEY || key === OWED_KEY || key === 'dogcow.board.v2' || /^niuma-calculator\.holidays\.v1\.[1-9]\d{3}$/.test(key);
+export const allowedKey = key => fixedKeys.includes(key) || key === DESKTOP_NOTES_KEY || key === TOILET_KEY || key === TITLES_KEY || key === COINS_KEY || key === FISHING_KEY || key === POKER_KEY || key === CAFE_KEY || key === MARKET_KEY || key === GAME_PROGRESS_KEY || key === OWED_KEY || key === 'dogcow.board.v2' || /^niuma-calculator\.holidays\.v1\.[1-9]\d{3}$/.test(key);
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const fail = message => { throw new Error(message); };
 const validDate = value => {
@@ -57,6 +60,15 @@ export function validateLegacy(values, now = new Date()) {
     const poker = JSON.parse(values[POKER_KEY]);
     validatePokerState(poker);
     if (typeof values[COINS_KEY] !== 'string') fail('德州存档需与钱包一起恢复。');
+  }
+  if (values[MARKET_KEY] != null) {
+    validateMarketGame(JSON.parse(values[MARKET_KEY]));
+    if (typeof values[COINS_KEY] !== 'string') fail('狗牛市存档需与钱包一起恢复。');
+  }
+  if (values[CAFE_KEY] != null) {
+    // Full domain validation runs on cafe load; transfer keeps future revisions intact.
+    const cafe = JSON.parse(values[CAFE_KEY]);
+    if (!record(cafe) || cafe.version !== 1 || !record(cafe.finance) || !Array.isArray(cafe.inventory) || !Array.isArray(cafe.reports)) fail('咖啡馆存档格式无效。');
   }
   if (values[FISHING_KEY] != null) {
     const fishing = JSON.parse(values[FISHING_KEY]);

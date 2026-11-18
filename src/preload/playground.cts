@@ -8,6 +8,8 @@ const bridge: PlaygroundBridge = {
   report(value) { return ipcRenderer.invoke('dogcow:playground', 'report', value); },
   diagnostics(id) { return ipcRenderer.invoke('dogcow:playground', 'diagnostics', id); },
   copyDiagnostics(id) { return ipcRenderer.invoke('dogcow:playground', 'copyDiagnostics', id); },
+  cafe(request) { return ipcRenderer.invoke('dogcow:playground', 'cafe', request); },
+  market(request) { return ipcRenderer.invoke('dogcow:playground', 'market', request); },
   fishing(request) { return ipcRenderer.invoke('dogcow:playground', 'fishing', request); },
   poker(request) { return ipcRenderer.invoke('dogcow:playground', 'poker', request); },
   gameActivity(report) { return ipcRenderer.invoke('dogcow:playground', 'gameActivity', report); },
