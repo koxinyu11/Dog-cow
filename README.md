@@ -6,7 +6,7 @@
 
 给打工狗和上班牛的桌面搭子：记待办、养小牛，顺便看看今天赚了几口草。
 
-[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.2.2-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.2/DogCow-arm64-3.2.2.dmg)
+[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.2.3-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.3/DogCow-arm64-3.2.3.dmg)
 [![所有版本](https://img.shields.io/badge/所有版本-Releases-343b36?style=for-the-badge&logo=github&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases)
 
 [怎么安装](#下载安装) &nbsp; · &nbsp; [能做什么](#主要功能) &nbsp; · &nbsp; [最近更新](#最新版更新) &nbsp; · &nbsp; [常见问题](#常见问题) &nbsp; · &nbsp; [技术栈](#技术栈) &nbsp; · &nbsp; [隐私说明](#隐私说明)
@@ -17,13 +17,13 @@
 
 ## 下载安装
 
-**Mac · Apple Silicon（M 系列芯片） · v3.2.2**
+**Mac · Apple Silicon（M 系列芯片） · v3.2.3**
 
 | 安装方式 | 下载 | 怎么装 |
 | :--- | :--- | :--- |
-| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.2/DogCow-arm64-3.2.2.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
-| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.2/DogCow-darwin-arm64-3.2.2.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
-| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.2/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
+| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.3/DogCow-arm64-3.2.3.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
+| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.3/DogCow-darwin-arm64-3.2.3.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
+| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.3/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
 
 > 本次仅提供 **Apple Silicon（arm64）** 安装包，暂不提供 Intel Mac 和 Windows 包。安装包采用本地测试签名，尚未完成 Apple Developer ID 签名和公证；若 macOS 阻止打开，请先确认来源，再查看“系统设置 → 隐私与安全性”的允许打开选项。
 
@@ -66,7 +66,7 @@ npm run dev
 | 🍱 | **午饭不再纠结** | 从 568 道菜中挑选午餐，或开个盲盒；卡片随尺寸调整布局。 |
 | 🧾 | **记下老板欠的账** | 查看打卡对应的加班时间，补记处理消息的时间，并导出欠条 PNG；加班费需在收入设置中开启，默认关闭。 |
 | 📌 | **待办挂到桌面上** | 单条任务贴成便签，多条任务组成清单；挂在淡色晾衣线上，完成状态与主窗口同步，重启后继续留着。 |
-| 🎡 | **班间逛逛游乐场** | 点击主窗口摩天轮，打开独立游戏窗口；钓鱼收集 100 种图鉴、观察当前鱼群动静，和电脑牌手玩德州，或经营咖啡馆、在狗牛市交易 240 家公司与 18 只 ETF。 |
+| 🎡 | **班间逛逛游乐场** | 点击主窗口摩天轮，打开独立游戏窗口；钓鱼收集 100 种图鉴、观察鱼情并探索落点与水层，和电脑牌手玩德州，或经营咖啡馆、在狗牛市交易 240 家公司与 18 只 ETF，累计游玩还能解锁职称。 |
 | 💾 | **小本本留在自己手里** | 任务和设置自动保存在本机，换版本前还能导出备份，给辛苦记下的事留个底。 |
 
 <sub>“工资能买啥”换算卡片支持调整项目，不同尺寸展示快乐货架与月份格子。收入与税费为估算；“偷出金额”是工作时间的价值拆分，不是额外工资。首页默认展示九类卡片，可调整大小、拖动排列或移除。</sub>
@@ -85,15 +85,23 @@ npm run dev
 
 新增 9 张隐藏壁纸，获得对应称号后出现在“设置 → 外观 → 背景”，带 ✨ 的会动：带薪下钱雨 ✨、奶茶自由 ✨、无理小金库、到点跑路 ✨、周五永居 ✨、周一免疫、需求粉碎机 ✨、资本家克星、终身股东 ✨。解锁条件不公开，靠打工自己发现。新获得称号时，解锁提示会一起列出新壁纸；升级前已有的称号对应壁纸直接可用，不再提示。关闭动效或系统减少动态效果时显示静态画面。自 v3.0.15 起包含在正式安装包中。
 
-## 未发布
-
-- **两处新钓场**：发现 10 种鱼后开放「荷风浅荡」，20 种鱼后开放「旧桥深潭」。从「商店 → 钓点与鱼饵」进入，在水面选择三个落点之一，再选择浅钓或沉底，不同组合偏向不同鱼群；原有池塘与河湾保留。
-
 ## 最新版更新
 
-当前正式版为 **v3.2.2**，提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。以下按已发布标签及对应提交整理；测试和维护版本单独注明，历史平台支持不代表当前安装包范围。
+当前正式版为 **v3.2.3**，提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。以下按已发布标签及对应提交整理；测试和维护版本单独注明，历史平台支持不代表当前安装包范围。
 
-### [v3.2.2](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.2.2) · 当前正式版
+### [v3.2.3](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.2.3) · 当前正式版
+
+换个落点，看看水下藏着什么。
+
+- **两处新钓场**：发现 10 种鱼后开放「荷风浅荡」，20 种鱼后开放「旧桥深潭」；从「商店 → 钓点与鱼饵」进入。
+- **落点与水层**：每处新钓场提供三个落点，可选择浅钓或沉底，不同组合偏向不同鱼群。原有午后池塘与芦苇河湾保留。
+- **保留本竿结果**：抛竿后锁定落点、水层和结果，重载与保存重试不会重抽或重复结算；承重、磨损与护线扣规则继续生效。
+- **升级前备份**：已有钱包、鱼篓与图鉴保留；含新钓场的存档不适合交回旧版本读取，升级前建议导出备份。
+
+<details>
+<summary><strong>历史版本 · v3.2.2 及更早</strong></summary>
+
+### [v3.2.2](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.2.2)
 
 水下每天有新动静，偶尔也会热闹起来。
 
@@ -101,9 +109,6 @@ npm run dev
 - **收集节奏调整**：减少空钩和麦穗鱼，鱼群旺盛时更容易遇到其他鱼、稀有鱼与神话。
 - **当前鱼情提示**：钓点旁显示当前鱼群平稳、活跃或旺盛，点开可看普通鱼、稀有鱼与神秘踪迹的动静；不公开具体概率、活跃度数值或时间预告。
 - **保留当前鱼竿**：抛竿时锁定鱼情与结果，暂停、关闭窗口、跨时段或重试保存都不会重新抽取；已有未收回的旧竿保持原结果，鱼饵与补给继续按各自规则生效。
-
-<details>
-<summary><strong>历史版本 · v3.2.1 及更早</strong></summary>
 
 ### [v3.2.1](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.2.1)
 
