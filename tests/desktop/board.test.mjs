@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BACKGROUND_PRESETS, MODULE_IDS, defaultBoard, layoutScore, pack, smartArrange, validBoard } from '../../dist-electron/src/shared/board.js';
+import { BACKGROUND_PRESETS, GOOD_SIZES, MODULE_IDS, defaultBoard, layoutScore, pack, smartArrange, validBoard } from '../../dist-electron/src/shared/board.js';
 import { copyDefaults } from '../../dist-electron/src/domain/tasks/model.js';
 
 const keys = Object.keys(copyDefaults);
+const seeded = seed => () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 2 ** 32; };
 const overlaps = (placed) =>
   placed.some((a, i) => placed.slice(i + 1).some((b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h));
 
@@ -32,7 +33,7 @@ test('smart arrange randomly fills the grid, keeps modules and changes the layou
       const items = ids.map((id) => ({ id, size: 'm' }));
       const seen = new Set();
       for (let run = 0; run < 6; run++) {
-        const { items: result, holes } = smartArrange(items, columns);
+        const { items: result, holes } = smartArrange(items, columns, seeded(run + 1));
         assert.deepEqual([...result.map((i) => i.id)].sort(), [...ids].sort());
         assert.equal(overlaps(pack(result, columns)), false);
         assert.equal(holes, 0, `${columns} cols, ${ids.length} modules`);
@@ -41,6 +42,20 @@ test('smart arrange randomly fills the grid, keeps modules and changes the layou
       }
       assert.ok(seen.size > 1, 'different results across clicks');
     }
+  }
+});
+
+test('seed 244 cannot return a gapped 17-module layout when random search exhausts its budget', () => {
+  const items = MODULE_IDS.map(id => ({ id, size: 'm' }));
+  for (const columns of [12, 6]) {
+    const result = smartArrange(items, columns, seeded(244));
+    assert.equal(result.holes, 0);
+    assert.equal(layoutScore(result.items, columns).holes, 0);
+    assert.equal(overlaps(pack(result.items, columns)), false);
+    assert.deepEqual(result.items.map(i => i.id).sort(), [...MODULE_IDS].sort());
+    assert.ok(result.items.every(i => GOOD_SIZES[i.id].includes(i.size)));
+    assert.notDeepEqual(result.items, items);
+    assert.ok(items.every(i => i.size === 'm'), 'input is not mutated');
   }
 });
 
