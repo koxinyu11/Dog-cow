@@ -1,3 +1,4 @@
+import { fishingMaps } from '../../../../../shared/fishing-maps';
 import { useEffect, useRef, useState } from 'react';
 import { BookOpen, ShoppingBag, Fish, Coins, MapPin, CircleHelp, Waves, X } from 'lucide-react';
 import { Button } from '../../../../ui';
@@ -138,7 +139,7 @@ export default function DeskFishing({ paused, diagnostics, onActivity }: GamePro
     if (event.code !== 'Space' || event.repeat || event.target !== root.current) return;
     event.preventDefault(); primary();
   }}>
-    <Scene hour={new Date(now).getHours()} rod={state.equipped} spot={state.spot} phase={phase} signal={state.round?.signal} paused={paused || !!panel || busy} result={state.last} net={state.tools.includes('net')} float={state.tools.includes('float')} skin={state.gear.skin}/>
+    <Scene hour={new Date(now).getHours()} rod={state.equipped} spot={state.spot} phase={phase} signal={state.round?.signal} paused={paused || !!panel || busy} result={state.last} net={state.tools.includes('net')} float={state.tools.includes('float')} skin={state.gear.skin} location={state.round?.location ?? state.location} locked={controlsLocked} onZone={id => void send('zone', id)}/>
     <div className="df-hud">
       <div className="df-hud-place"><div className="df-chip"><MapPin size={13}/>{spots.find(s => s.id === state.spot)!.name}<span>·</span><button className="df-chip-link" disabled={entryLocked} onClick={() => openPanel('book')}>图鉴 {discovered}/{species.length}</button></div>
         <button className={`df-chip df-tide-chip is-${tide.phase}`} disabled={entryLocked} onClick={() => openPanel('tide')} aria-label="鱼情，查看当前鱼群动静"><Waves size={14}/><b>{tideLabel(tide)}</b></button>
@@ -147,6 +148,11 @@ export default function DeskFishing({ paused, diagnostics, onActivity }: GamePro
     </div>
     {!panel && alert}
     {!panel && notice && <div className="df-toast" role="status">{notice}</div>}
+    {state.location && <div className="df-water-choice">
+      <div className="df-depth-toggle" role="group" aria-label="选择水层">{([['shallow', '浅钓'], ['bottom', '沉底']] as const).map(([id, name]) => <button key={id} aria-pressed={state.location?.layer === id} disabled={controlsLocked} onClick={() => void send('layer', id)}>{name}</button>)}</div>
+      <span>{fishingMaps[state.spot]?.zones.find(z => z.id === state.location?.zone)?.[state.location.layer]}</span>
+      {state.spot === 'bridge' && state.location.layer === 'bottom' && <small>大鱼可能超载断竿 · 当前承重 {rod.capacity} kg</small>}
+    </div>}
     <div className="df-dock">
       <div className="df-tackle-slot"><button className="df-equipped" disabled={entryLocked} onClick={() => openPanel('shop', 'rods')} aria-label={`${rod.name}，打开商店`}>
         <span className="df-rod-dot" style={{ background: look.color }}/>
@@ -166,7 +172,7 @@ export default function DeskFishing({ paused, diagnostics, onActivity }: GamePro
       </div>
       {help && <div className="df-help-pop" role="note">
         <button className="df-help-close" aria-label="关闭帮助" onClick={() => setHelp(false)}><X size={14}/></button>
-        <ul><li>抛竿后等浮标有动静，再点收线，信号不会过期。</li><li>鱼太重会断竿，鱼竿越用越旧也更容易断；鱼篓里的收获不受影响。</li><li>出售收获换狗牛币，锁定的不会被卖掉。</li><li>离开窗口自动暂停，当前这一竿会保留。</li></ul>
+        <ul><li>荷风浅荡与旧桥深潭可点选水面落点，切换浅钓或沉底；每种组合偏好的鱼群不同。</li><li>抛竿后等浮标有动静，再点收线，信号不会过期。</li><li>鱼太重会断竿，鱼竿越用越旧也更容易断；鱼篓里的收获不受影响。</li><li>出售收获换狗牛币，锁定的不会被卖掉。</li><li>离开窗口自动暂停，当前这一竿会保留。</li></ul>
       </div>}
     </div>
     {panel && <Modal label={{ bag: '鱼篓', book: '图鉴', shop: '商店', tide: '鱼情' }[panel]} active={panel} onTab={next => openPanel(next)} onClose={closePanel}

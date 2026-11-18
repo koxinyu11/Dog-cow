@@ -1,3 +1,4 @@
+import { fishingMaps, type FishingLocation } from '../../../../../shared/fishing-maps';
 import { useState } from 'react';
 import { rods, species, rarities, type FishingResult, type RodId, type SpotId } from '../../../../../shared/fishing';
 import { CatchArt, OutcomeArt } from './Art';
@@ -23,11 +24,15 @@ function ResultArt({ result }: { result: FishingResult }) {
   if (entry) return <CatchArt entry={entry}/>;
   return <OutcomeArt kind={result.kind === 'broken' ? 'broken' : result.name.includes('水草') ? 'weed' : 'empty'}/>;
 }
-export function Scene({ hour, rod, spot, phase, signal, paused, result, net, float, skin }: {
+export function Scene({ hour, rod, spot, phase, signal, paused, result, net, float, skin, location, locked, onZone }: {
+  location?: FishingLocation; locked?: boolean; onZone?(id: string): void;
   hour?: number; rod: RodId; spot: SpotId; phase: Phase; signal?: string; paused: boolean; result: FishingResult | null; net: boolean; float: boolean; skin?: RodSkinId;
 }) {
-  const { ref, viewBox, at } = useSceneAnchor();
-  const anchor = at(BOBBER[0], BOBBER[1]);
+  const map = fishingMaps[spot];
+  const { ref, viewBox, at } = useSceneAnchor(!!map);
+  const zone = map?.zones.find(z => z.id === location?.zone);
+  const bobber: readonly [number, number] = zone ? [zone.x, zone.y] : BOBBER;
+  const anchor = at(bobber[0], bobber[1]);
   const time = timeOfDay(hour);
   const p = palettes[time];
   const entry = result && species.find(s => s.id === result.species);
@@ -53,13 +58,14 @@ export function Scene({ hour, rod, spot, phase, signal, paused, result, net, flo
       <Bank spot={spot}/>
       <Dock net={net}/>
       <Angler mood={mood}/>
-      <Tackle phase={phase} color={rods.find(r => r.id === rod)!.color} float={float} skin={skin}/>
+      <Tackle phase={phase} color={rods.find(r => r.id === rod)!.color} float={float} skin={skin} target={bobber}/>
       {time === 'night' && <g className="df-fireflies" fill="#f7f0a2">{[[90, 230], [820, 200], [700, 240], [150, 210], [866, 260], [40, 250]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="2.2" style={{ animationDelay: `${i * 1.1}s` }}/>)}</g>}
       <rect x="-50" y="-50" width="1000" height="500" fill={p.tint} opacity={p.tintOpacity} style={{ mixBlendMode: 'multiply' }}/>
       <rect x="-50" y="-50" width="1000" height="500" filter="url(#df-grain)" opacity=".14" style={{ mixBlendMode: 'multiply' }}/>
       <rect x="-50" y="-50" width="1000" height="500" fill="url(#df-vignette)"/>
     </svg>
-    <div className="df-scene-title"><span>{spot === 'river' ? 'REED RIVER' : 'THE AFTERNOON POND'}</span><strong>{spot === 'river' ? '去水深处，碰碰运气。' : '把时间，放慢一点。'}</strong></div>
+    <div className="df-scene-title"><span>{map?.title ?? (spot === 'river' ? 'REED RIVER' : 'THE AFTERNOON POND')}</span><strong>{map?.subtitle ?? (spot === 'river' ? '去水深处，碰碰运气。' : '把时间，放慢一点。')}</strong></div>
+    {map && <div className="df-cast-zones" role="group" aria-label="选择落点">{map.zones.map(z => <button key={z.id} className="df-cast-zone" style={at(z.x, z.y)} aria-pressed={z.id === location?.zone} disabled={locked} onClick={() => onZone?.(z.id)}><i/><span>{z.name}</span></button>)}</div>}
     {phase === 'signal' && <div className="df-signal" role="status" style={anchor}><i/>{signal}</div>}
     {phase === 'idle' && result && <>
       {caught && fresh && <div className="df-leap" key={`leap-${key}`} style={anchor} onAnimationEnd={() => setSettled(key)}><ResultArt result={result}/></div>}

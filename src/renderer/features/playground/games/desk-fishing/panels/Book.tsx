@@ -1,9 +1,10 @@
+import { fishingMaps } from '../../../../../../shared/fishing-maps';
 import { useState } from 'react';
 import { species, categories, rarities, spots, type Category } from '../../../../../../shared/fishing';
 import { CatchArt } from '../Art';
 import type { PanelProps } from './types';
 const order: Category[] = ['fish', 'creature', 'junk', 'treasure'];
-const spotName = (id: string) => id === 'any' ? '池塘与河湾' : spots.find(s => s.id === id)?.name ?? '';
+const spotName = (id: string) => spots.filter(s => id === 'any' || s.id === id || fishingMaps[s.id]?.source === id).map(s => s.name).join('、');
 export function Book({ view }: PanelProps) {
   const book = view.state.book;
   const [shelf, setShelf] = useState<Category>('fish');
