@@ -376,3 +376,14 @@
 .df-place.is-lotus .df-place-art { background: radial-gradient(ellipse at 65% 65%, #d8a3ac 0 8%, transparent 9%), radial-gradient(ellipse at 45% 75%, #759b72 0 24%, transparent 25%), linear-gradient(#c3d8b4 48%, #81b2a1 49%); }
 .df-place.is-bridge .df-place-art { background: radial-gradient(ellipse at 50% 58%, #3c6868 0 23%, transparent 24%), linear-gradient(175deg, #b5bdb1 30%, #7b8d83 31% 53%, #4e7f7d 54%); }
 @media (max-width: 680px) { .df-water-choice { bottom: 152px; left: 12px; max-width: 210px; padding: 7px; } .df-cast-zone { padding: 7px; gap: 4px; } .df-cast-zone span { font-size: 10px; } }
+
+/* A quiet response to valid conditions, never a promise of this cast's outcome. */
+.df-resonance { position:absolute; left:50%; top:25%; transform:translateX(-50%); display:flex; align-items:center; gap:7px; padding:6px 12px; border:1px solid #e4d4aa60; border-radius:20px; color:#f5e9c7; background:#243e3bc9; font-size:11px; pointer-events:none; animation:df-resonance-in 1s ease-out; }
+.df-resonance > span { color:#e8d295; font-size:17px; }
+@keyframes df-resonance-in { from { opacity:0; translate:0 5px; } to { opacity:1; translate:0 0; } }
+@media (prefers-reduced-motion: reduce) { .df-resonance { animation:none; } }
+.df-game.is-paused .df-resonance { animation-play-state:paused; }
+.df-book-filter select { max-width:150px; }
+.df-recipe { margin-top:8px; font-size:11px; }
+.df-recipe summary { cursor:pointer; }
+.df-recipe p { margin:6px 0; }

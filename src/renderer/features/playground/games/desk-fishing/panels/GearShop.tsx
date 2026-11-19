@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check } from 'lucide-react';
 import { durabilityLeft, fishFound, repairedWear, repairPrice, rods, skinAvailable } from '../../../../../../shared/fishing';
-import { MAX_SUPPLIES, rodLook, rodSkins, supplies, type RodSkinId } from '../../../../../../shared/fishing-gear';
+import { charms, MAX_SUPPLIES, rodLook, rodSkins, supplies, type RodSkinId } from '../../../../../../shared/fishing-gear';
 import { RodArt } from '../Art';
 import { SupplyArt } from '../GearArt';
 import { Price } from './Price';
@@ -55,4 +55,20 @@ export function SupplyShop({ view, controlsLocked, send }: PanelProps) {
         : <Price price={repairPrice(rod.id)} balance={balance} disabled={blocked} onBuy={() => send('repair')} verb="保养"/>}</div>
     </article>
   </div>;
+}
+
+export function CharmShop({ view, controlsLocked, send }: PanelProps) {
+  const { state, balance, walletLocked } = view;
+  const blocked = controlsLocked || walletLocked;
+  const found = fishFound(state.book);
+  return <div className="df-goods">{charms.map(charm => {
+    const owned = state.gear.charms.includes(charm.id);
+    const using = state.gear.charm === charm.id;
+    const closed = found < charm.requiredFish;
+    return <article className={`df-good ${using ? 'is-using' : ''}`} key={charm.id}>
+      <SupplyArt id={charm.id}/><div className="df-good-text"><strong>{charm.name}{using && <em>佩戴中</em>}</strong><small>{charm.note}</small><small>{closed ? `发现 ${charm.requiredFish} 种鱼后开放 · ${found}/${charm.requiredFish}` : '永久拥有 · 一次佩戴一件'}</small></div>
+      <div className="df-good-act">{owned ? <button className="df-ghost" disabled={blocked} onClick={() => send('charm', using ? 'none' : charm.id)}>{using ? '取下' : '佩戴'}</button>
+        : <Price price={charm.price} balance={balance} disabled={blocked || closed} onBuy={() => send('buyCharm', charm.id)}/>}</div>
+    </article>;
+  })}</div>;
 }

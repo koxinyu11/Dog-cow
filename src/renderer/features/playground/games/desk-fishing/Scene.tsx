@@ -24,8 +24,8 @@ function ResultArt({ result }: { result: FishingResult }) {
   if (entry) return <CatchArt entry={entry}/>;
   return <OutcomeArt kind={result.kind === 'broken' ? 'broken' : result.name.includes('水草') ? 'weed' : 'empty'}/>;
 }
-export function Scene({ hour, rod, spot, phase, signal, paused, result, net, float, skin, location, locked, onZone }: {
-  location?: FishingLocation; locked?: boolean; onZone?(id: string): void;
+export function Scene({ hour, rod, spot, phase, signal, paused, result, net, float, skin, location, locked, onZone, resonance }: {
+  location?: FishingLocation; locked?: boolean; resonance?: string; onZone?(id: string): void;
   hour?: number; rod: RodId; spot: SpotId; phase: Phase; signal?: string; paused: boolean; result: FishingResult | null; net: boolean; float: boolean; skin?: RodSkinId;
 }) {
   const map = fishingMaps[spot];
@@ -66,6 +66,7 @@ export function Scene({ hour, rod, spot, phase, signal, paused, result, net, flo
     </svg>
     <div className="df-scene-title"><span>{map?.title ?? (spot === 'river' ? 'REED RIVER' : 'THE AFTERNOON POND')}</span><strong>{map?.subtitle ?? (spot === 'river' ? '去水深处，碰碰运气。' : '把时间，放慢一点。')}</strong></div>
     {map && <div className="df-cast-zones" role="group" aria-label="选择落点">{map.zones.map(z => <button key={z.id} className="df-cast-zone" style={at(z.x, z.y)} aria-pressed={z.id === location?.zone} disabled={locked} onClick={() => onZone?.(z.id)}><i/><span>{z.name}</span></button>)}</div>}
+    {resonance && <div className="df-resonance" key={resonance} role="status"><span aria-hidden="true">✧</span>{resonance}</div>}
     {phase === 'signal' && <div className="df-signal" role="status" style={anchor}><i/>{signal}</div>}
     {phase === 'idle' && result && <>
       {caught && fresh && <div className="df-leap" key={`leap-${key}`} style={anchor} onAnimationEnd={() => setSettled(key)}><ResultArt result={result}/></div>}

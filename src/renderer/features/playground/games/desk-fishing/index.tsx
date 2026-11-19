@@ -1,3 +1,4 @@
+import { eligibleSpecials } from '../../../../../shared/fishing-encounters';
 import { fishingMaps } from '../../../../../shared/fishing-maps';
 import { useEffect, useRef, useState } from 'react';
 import { BookOpen, ShoppingBag, Fish, Coins, MapPin, CircleHelp, Waves, X } from 'lucide-react';
@@ -9,7 +10,7 @@ import { Modal } from './panels/Modal';
 import { Bag, BagFooter } from './panels/Bag';
 import { Book } from './panels/Book';
 import { Shop, type ShopTab } from './panels/Shop';
-import { rodLook, isBaitSupply } from '../../../../../shared/fishing-gear';
+import { charms, rodLook, isBaitSupply } from '../../../../../shared/fishing-gear';
 import { Loadout } from './Loadout';
 import { fishingTide } from '../../../../../shared/fishing-tide';
 import { Tide, tideLabel } from './Tide';
@@ -133,13 +134,15 @@ export default function DeskFishing({ paused, diagnostics, onActivity }: GamePro
   const closePanel = () => { setPanel(null); root.current?.focus(); };
   const props = { view, locked, controlsLocked, send: (action: FishingAction, id?: string) => void send(action, id) };
   const label = busy ? '处理中…' : phase === 'waiting' ? '等一点动静…' : phase === 'signal' ? '收线' : phase === 'reeling' ? '慢慢收线…' : state.last ? '再抛一竿' : '抛竿';
+  const resonance = eligibleSpecials(species, state).length > 0;
+  const charm = charms.find(c => c.id === state.gear.charm);
   const hint = phase === 'signal' ? '慢慢来，信号会等你' : phase === 'waiting' ? '水下的动静，不一定是鱼' : phase === 'reeling' ? '水下会是什么呢' : '空格也可以';
   const alert = (error || view.pending || view.walletLocked) && <div className="df-toast is-error" role="alert"><span>{error || (view.pending ? '本次操作尚未保存' : '钱包暂不可用，请在主界面处理')}{problem && <small>问题编号：{problem}</small>}</span><button disabled={busy || paused} onClick={() => void send(view.pending || retryRequest.current ? 'retry' : 'view')}>{view.pending ? '重试保存' : '重试'}</button></div>;
   return <div className={`df-game ${paused ? 'is-paused' : ''}`} ref={root} tabIndex={0} aria-label="工位钓鱼，空格抛竿或收线" onKeyDown={event => {
     if (event.code !== 'Space' || event.repeat || event.target !== root.current) return;
     event.preventDefault(); primary();
   }}>
-    <Scene hour={new Date(now).getHours()} rod={state.equipped} spot={state.spot} phase={phase} signal={state.round?.signal} paused={paused || !!panel || busy} result={state.last} net={state.tools.includes('net')} float={state.tools.includes('float')} skin={state.gear.skin} location={state.round?.location ?? state.location} locked={controlsLocked} onZone={id => void send('zone', id)}/>
+    <Scene hour={new Date(now).getHours()} rod={state.equipped} spot={state.spot} phase={phase} signal={state.round?.signal} paused={paused || !!panel || busy} result={state.last} net={state.tools.includes('net')} float={state.tools.includes('float')} skin={state.gear.skin} location={state.round?.location ?? state.location} locked={controlsLocked} resonance={resonance ? (charm?.reaction ?? '有鱼影循着饵香靠近') : undefined} onZone={id => void send('zone', id)}/>
     <div className="df-hud">
       <div className="df-hud-place"><div className="df-chip"><MapPin size={13}/>{spots.find(s => s.id === state.spot)!.name}<span>·</span><button className="df-chip-link" disabled={entryLocked} onClick={() => openPanel('book')}>图鉴 {discovered}/{species.length}</button></div>
         <button className={`df-chip df-tide-chip is-${tide.phase}`} disabled={entryLocked} onClick={() => openPanel('tide')} aria-label="鱼情，查看当前鱼群动静"><Waves size={14}/><b>{tideLabel(tide)}</b></button>
@@ -172,19 +175,19 @@ export default function DeskFishing({ paused, diagnostics, onActivity }: GamePro
       </div>
       {help && <div className="df-help-pop" role="note">
         <button className="df-help-close" aria-label="关闭帮助" onClick={() => setHelp(false)}><X size={14}/></button>
-        <ul><li>荷风浅荡与旧桥深潭可点选水面落点，切换浅钓或沉底；每种组合偏好的鱼群不同。</li><li>抛竿后等浮标有动静，再点收线，信号不会过期。</li><li>鱼太重会断竿，鱼竿越用越旧也更容易断；鱼篓里的收获不受影响。</li><li>出售收获换狗牛币，锁定的不会被卖掉。</li><li>离开窗口自动暂停，当前这一竿会保留。</li></ul>
+        <ul><li>鱼饵与挂件可引来特殊鱼；图鉴中有线索。水下的回应表示搭配有反应，不代表本竿必出。</li><li>荷风浅荡与旧桥深潭可点选水面落点，切换浅钓或沉底；每种组合偏好的鱼群不同。</li><li>抛竿后等浮标有动静，再点收线，信号不会过期。</li><li>鱼太重会断竿，鱼竿越用越旧也更容易断；鱼篓里的收获不受影响。</li><li>出售收获换狗牛币，锁定的不会被卖掉。</li><li>离开窗口自动暂停，当前这一竿会保留。</li></ul>
       </div>}
     </div>
     {panel && <Modal label={{ bag: '鱼篓', book: '图鉴', shop: '商店', tide: '鱼情' }[panel]} active={panel} onTab={next => openPanel(next)} onClose={closePanel}
       tabs={[{ id: 'bag', label: '鱼篓', icon: <Fish size={15}/>, badge: state.bag.length }, { id: 'book', label: '图鉴', icon: <BookOpen size={15}/> }, { id: 'shop', label: '商店', icon: <ShoppingBag size={15}/> }, { id: 'tide', label: '鱼情', icon: <Waves size={15}/> }]}
-      footer={panel === 'bag' && state.bag.length ? <BagFooter {...props}/> : panel === 'shop' ? <><span className="df-foot-note">{{ rods: '购买即装备', skins: '通用皮肤 · 永久拥有', tools: '永久工具', supplies: '补给入包后选择使用', spots: '切换钓点与鱼饵' }[shopTab]}</span><span className="df-chip is-wallet is-flat"><Coins size={14}/><b>{view.balance}</b></span></> : undefined}>
+      footer={panel === 'bag' && state.bag.length ? <BagFooter {...props}/> : panel === 'shop' ? <><span className="df-foot-note">{{ rods: '购买即装备', skins: '通用皮肤 · 永久拥有', tools: '永久工具', supplies: '补给入包后选择使用', charms: '永久挂件 · 购买即佩戴', spots: '切换钓点与鱼饵' }[shopTab]}</span><span className="df-chip is-wallet is-flat"><Coins size={14}/><b>{view.balance}</b></span></> : undefined}>
       {alert}
       {notice && <div className="df-toast is-inline" role="status">{notice}</div>}
       {panel === 'tide' && <Tide tide={tide}/>}
       {panel === 'bag' && <Bag {...props}/>}
       {panel === 'book' && <Book {...props}/>}
       {panel === 'shop' && <>
-        <div className="df-seg" role="group" aria-label="商品分类">{([['rods', '鱼竿'], ['skins', '皮肤'], ['tools', '工具'], ['supplies', '补给'], ['spots', '钓点与鱼饵']] as const).map(([id, name]) => <button key={id} aria-pressed={shopTab === id} onClick={() => setShopTab(id)}>{name}</button>)}</div>
+        <div className="df-seg" role="group" aria-label="商品分类">{([['rods', '鱼竿'], ['skins', '皮肤'], ['tools', '工具'], ['supplies', '补给'], ['charms', '挂件'], ['spots', '钓点与鱼饵']] as const).map(([id, name]) => <button key={id} aria-pressed={shopTab === id} onClick={() => setShopTab(id)}>{name}</button>)}</div>
         <Shop {...props} tab={shopTab}/>
       </>}
     </Modal>}

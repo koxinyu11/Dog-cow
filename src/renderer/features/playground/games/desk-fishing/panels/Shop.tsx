@@ -2,11 +2,12 @@ import { rods, tools, spots, fishFound, durabilityLeft } from '../../../../../..
 import { RodArt, ToolArt } from '../Art';
 import type { PanelProps } from './types';
 import { Price } from './Price';
-import { SkinShop, SupplyShop } from './GearShop';
-export type ShopTab = 'rods' | 'skins' | 'tools' | 'supplies' | 'spots';
+import { CharmShop, SkinShop, SupplyShop } from './GearShop';
+export type ShopTab = 'rods' | 'skins' | 'tools' | 'supplies' | 'spots' | 'charms';
 const MAX = rods[rods.length - 1].capacity;
 export function Shop({ tab, ...props }: PanelProps & { tab: ShopTab }) {
   const { view, controlsLocked, send } = props;
+  if (tab === 'charms') return <CharmShop {...props}/>;
   if (tab === 'skins') return <SkinShop {...props}/>;
   if (tab === 'supplies') return <SupplyShop {...props}/>;
   const { state, balance, walletLocked } = view;

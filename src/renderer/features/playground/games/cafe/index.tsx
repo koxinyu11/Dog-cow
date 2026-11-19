@@ -1,34 +1,58 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { BookOpen, ClipboardList, Coffee, Store } from 'lucide-react';
 import { cafeContent, defaultPlan, item, CAMPAIGN_WEEKS } from '../../../../../shared/cafe/content';
 import { yuan } from '../../../../../shared/cafe/finance';
 import type { WeekPlan } from '../../../../../shared/cafe/types';
 import type { GameProps } from '../../registry';
 import { useCafe } from './useCafe';
+import { useServiceClock } from './useServiceClock';
 import { CafeSetup } from './Setup';
-import { CafeScene } from './Scene';
 import { CafePlan } from './Plan';
 import { CafeReport } from './Report';
 import { CafeOffice } from './Office';
+import { Interior } from './interior/Interior';
+import { ManagementDrawer } from './ManagementDrawer';
+import { ServiceToolbar } from './ServiceToolbar';
 import './cafe.css';
+import './interior.css';
+type Panel = 'plan' | 'report' | 'office' | null;
 export default function CafeGame(props: GameProps) {
-  const game = useCafe(props);
-  const [tab, setTab] = useState('plan');
+  const game = useCafe({ ...props, onActivity: undefined });
+  const [panel, setPanel] = useState<Panel>(null);
   const [plan, setPlan] = useState<WeekPlan>(() => defaultPlan());
   const [ready, setReady] = useState(false);
   const state = game.view?.state;
+  const finished = useCallback(() => setPanel('report'), []);
+  const close = useCallback(() => setPanel(null), []);
+  const clock = useServiceClock({
+    run: state?.run,
+    timeline: game.view?.timeline,
+    paused: props.paused || panel !== null,
+    blocked: game.disabled || !!game.error,
+    send: game.send,
+    finished,
+  });
   useEffect(() => {
     if (!ready && state) {
-      setPlan(state.reports.at(-1)?.plan ?? defaultPlan());
+      setPlan(state.run?.plan ?? state.reports.at(-1)?.plan ?? defaultPlan());
       setReady(true);
     }
   }, [state, ready]);
-  const run = async () => {
-    if (await game.send({ action: 'week', plan })) setTab('report');
+  useEffect(() => {
+    props.onActivity?.(
+      game.error || !state
+        ? 'blocked'
+        : (clock.playing && state.run) || game.busy
+          ? 'progressing'
+          : 'decision',
+    );
+  }, [props.onActivity, game.error, state, clock.playing, game.busy]);
+  const open = async () => {
+    if (await game.send({ action: 'open', plan, runId: crypto.randomUUID() })) setPanel(null);
   };
   const location = state?.setup ? item(cafeContent.locations, state.setup.location) : null;
   return (
-    <div className="cf-app" aria-busy={game.busy}>
+    <div className="cf-app cf-live-app">
       {game.error && (
         <div className="cf-error" role="alert">
           <div>
@@ -60,94 +84,123 @@ export default function CafeGame(props: GameProps) {
                 {state.setup.seats} 席
               </span>
             </div>
-            <div className="cf-chapter">
-              <span>经营手记</span>
-              <strong>
-                {Math.min(state.week - 1, CAMPAIGN_WEEKS)
-                  .toString()
-                  .padStart(2, '0')}
-                <small> / 08 周</small>
-              </strong>
-            </div>
-          </header>
-          <div className="cf-overview">
-            <CafeScene color={location!.color} seats={state.setup.seats} compact />
-            <div className="cf-overview-metrics">
-              <div>
-                <span>可用现金</span>
-                <strong>{yuan(state.finance.cash)}</strong>
-              </div>
-              <div>
-                <span>累计损益</span>
-                <strong className={state.finance.retained < 0 ? 'cf-danger' : ''}>
-                  {yuan(state.finance.retained)}
-                </strong>
-              </div>
-              <div>
-                <span>口碑 / 员工士气</span>
+            <div className="cf-live-finance">
+              <span>
+                账面现金<strong>{yuan(state.finance.cash)}</strong>
+              </span>
+              <span>
+                口碑
                 <strong>
                   {state.reputation}
-                  <small> / {state.morale}</small>
+                  <small> / 100</small>
                 </strong>
-              </div>
+              </span>
+              <span>
+                经营手记
+                <strong>
+                  {Math.min(state.week - 1, CAMPAIGN_WEEKS)
+                    .toString()
+                    .padStart(2, '0')}
+                  <small> / 08 周</small>
+                </strong>
+              </span>
             </div>
-          </div>
+          </header>
           <nav className="cf-main-nav" aria-label="咖啡馆经营">
             <button
-              aria-current={tab === 'plan' ? 'page' : undefined}
-              disabled={state.phase === 'closed'}
-              onClick={() => setTab('plan')}
+              disabled={!!state.run || state.phase === 'closed' || game.disabled}
+              onClick={() => setPanel('plan')}
             >
               <ClipboardList size={17} />
               本周计划
             </button>
-            <button aria-current={tab === 'report' ? 'page' : undefined} onClick={() => setTab('report')}>
+            <button onClick={() => setPanel('report')}>
               <BookOpen size={17} />
               经营手记
             </button>
             <button
-              aria-current={tab === 'office' ? 'page' : undefined}
-              disabled={state.phase === 'closed'}
-              onClick={() => setTab('office')}
+              disabled={!!state.run || state.phase === 'closed' || game.disabled}
+              onClick={() => setPanel('office')}
             >
               <Store size={17} />
               店务
             </button>
-            <span>自动存档 {game.view?.pending ? '· 待保存' : '· 已保存'}</span>
+            <span>
+              {state.run ? '营业进度自动保存' : '经营进度已保存'}
+              {game.view?.pending ? ' · 待保存' : ''}
+            </span>
           </nav>
-          {state.phase === 'closed' ? (
-            <>
-              <div className="cf-panel cf-empty">
-                <h2>这间小店，告一段落。</h2>
-                <p>
-                  剩余现金 {yuan(state.finance.cash)} · 未偿债务 {yuan(state.finance.debt)} · 累计损益{' '}
-                  {yuan(state.finance.retained)}
-                </p>
-              </div>
-              <CafeReport state={state} next={() => setTab('report')} />
-            </>
-          ) : tab === 'plan' ? (
-            <CafePlan
-              state={state}
-              plan={plan}
-              change={setPlan}
-              disabled={game.disabled}
-              run={() => void run()}
+          <div className="cf-live-stage">
+            <ServiceToolbar
+              timeline={game.view?.timeline}
+              cursor={clock.cursor}
+              playing={clock.playing}
+              speed={clock.speed}
+              disabled={game.disabled || !!game.error}
+              toggle={clock.toggle}
+              setSpeed={clock.setSpeed}
+              finish={() => void clock.finish()}
             />
-          ) : tab === 'report' ? (
-            <CafeReport state={state} next={() => setTab('plan')} />
-          ) : (
-            <CafeOffice state={state} disabled={game.disabled} send={(action) => void game.send(action)} />
-          )}
+            <Interior
+              state={state}
+              timeline={game.view?.timeline}
+              cursor={clock.cursor}
+              playing={clock.playing}
+            />
+            {!state.run && state.phase !== 'closed' && (
+              <div className="cf-live-start">
+                <span>
+                  {state.reports.length
+                    ? `第 ${state.week - 1} 周已打烊 · 利润 ${yuan(state.reports.at(-1)!.profit)}`
+                    : '菜单、原料和排班就绪后，客人会陆续进店。'}
+                </span>
+                <button className="cf-primary" disabled={game.disabled} onClick={() => setPanel('plan')}>
+                  制定计划，开门营业 →
+                </button>
+              </div>
+            )}
+            {state.phase === 'closed' && (
+              <div className="cf-live-start">
+                <span>
+                  小店已停业 · 现金 {yuan(state.finance.cash)} · 未偿债务 {yuan(state.finance.debt)}
+                </span>
+                <button onClick={() => setPanel('report')}>查看经营手记</button>
+              </div>
+            )}
+          </div>
           <details className="cf-help">
-            <summary>经营规则与计算口径</summary>
+            <summary>营业与结算规则</summary>
             <p>
-              每回合推进七天，所有价格为模拟人民币。价格、客群匹配、品质、推广与口碑共同影响需求；员工、机器、库存和座位决定接待能力。采购款先付，耗用时计成本；装修设备按期折旧。营业计划必须先留足全周支出，避免用尚未发生的收入作担保。
-            </p>
-            <p>
-              第一阶段目标为完成八周经营，之后仍可继续。街区参数和需求系数是游戏模型，未经真实市场数据校准。离开或暂停不会推进经营。
+              顾客进店、制作、取餐和占座来自同一次经营模拟。每周计划锁定后开始营业，资金在完成本周时统一结算。可暂停、加速或直接完成；离开窗口不会继续推进。营业进度每三秒保存，异常关闭后可能回退少量画面，不会重复收款。库存与设备等规则沿用经营手记。
             </p>
           </details>
+          {panel && (
+            <ManagementDrawer
+              title={{ plan: '本周计划', report: '经营手记', office: '店务' }[panel]}
+              close={close}
+            >
+              {panel === 'plan' ? (
+                <CafePlan
+                  state={state}
+                  plan={plan}
+                  change={setPlan}
+                  disabled={game.disabled || !!state.run}
+                  run={() => void open()}
+                />
+              ) : panel === 'report' ? (
+                <CafeReport
+                  state={state}
+                  next={() => setPanel(state.run || state.phase === 'closed' ? null : 'plan')}
+                />
+              ) : (
+                <CafeOffice
+                  state={state}
+                  disabled={game.disabled || !!state.run}
+                  send={(action) => void game.send(action)}
+                />
+              )}
+            </ManagementDrawer>
+          )}
         </>
       )}
     </div>
