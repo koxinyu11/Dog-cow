@@ -1,3 +1,4 @@
+import { serviceSlots } from './service.js';
 import { cafeContent, item, LOAN_LIMIT } from './content.js';
 import { entry, post } from './finance.js';
 import { weekBudget } from './operations.js';
@@ -30,6 +31,20 @@ export function applyCafeAction(
   const journal: JournalEntry[] = [];
   const day = (state.week - 1) * 7;
   if (request.action === 'view' || request.action === 'retry') return state;
+  if (request.action === 'advance' || request.action === 'finish') {
+    if (!state.run || request.runId !== state.run.id) refuse('营业记录已更新，请重新载入。');
+    const run = state.run!;
+    if (request.action === 'advance') {
+      const duration = serviceSlots(run.plan, state.week).length * 60;
+      if (!Number.isSafeInteger(request.cursor) || request.cursor < run.cursor || request.cursor > duration)
+        refuse('营业进度无效。');
+      run.cursor = request.cursor;
+      return state;
+    }
+    delete state.run;
+    return applyCafeAction(state, { action: 'week', plan: run.plan }, content);
+  }
+  if (state.run) refuse('正在营业，请先完成本周再调整经营决策。');
   if (request.action === 'setup') {
     if (state.setup) refuse('店铺已签约，不能重复开店。');
     validateSetup(request.setup, content);
@@ -60,13 +75,17 @@ export function applyCafeAction(
   } else {
     if (!state.setup || state.phase === 'closed') refuse('店铺尚未开业或已清算。');
     const setup = state.setup!;
-    if (request.action === 'week') {
+    if (request.action === 'week' || request.action === 'open') {
       validatePlan(request.plan, content);
       if (!state.machineOwned) refuse('请先购入咖啡机。');
       const budget = weekBudget(state, request.plan, content);
       if (budget.total > state.finance.cash)
         refuse('现金不足以覆盖本周采购和固定支出，请减少支出或申请周转贷款。');
-      state = simulateWeek(state, request.plan, content);
+      if (request.action === 'open') {
+        if (typeof request.runId !== 'string' || !request.runId || request.runId.length > 100)
+          refuse('营业编号无效。');
+        state.run = { id: request.runId, plan: structuredClone(request.plan), cursor: 0 };
+      } else state = simulateWeek(state, request.plan, content);
     } else if (request.action === 'loan' || request.action === 'repay') {
       const amount = request.amount;
       if (!Number.isSafeInteger(amount) || amount <= 0 || amount > LOAN_LIMIT) refuse('贷款或还款金额无效。');

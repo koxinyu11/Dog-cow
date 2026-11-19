@@ -1,6 +1,7 @@
+import { defaultLocation } from '../../dist-electron/src/shared/fishing-maps.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyFishing, parseFishing, rollRound, breakChance, wearChance, durabilityLeft, FISHING_KEY, fishingView, fishingPool, categories, species, rarities, fishCount, MYTHIC_CHANCE, EMPTY_SHARE, TINY_SHARE } from '../../dist-electron/src/shared/fishing.js';
+import { emptyFishing, parseFishing, rollRound, breakChance, wearChance, durabilityLeft, FISHING_KEY, fishingView, fishingPool, fishingCategories, categories, species, rarities, fishCount, MYTHIC_CHANCE, EMPTY_SHARE, TINY_SHARE } from '../../dist-electron/src/shared/fishing.js';
 import { emptyCoins, COINS_KEY, parseCoins } from '../../dist-electron/src/shared/coins.js';
 import { Coins } from '../../dist-electron/src/main/coins.js';
 import { Fishing } from '../../dist-electron/src/main/fishing.js';
@@ -9,10 +10,10 @@ import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 const sequence = (...values) => { let i = 0; return () => values[i++] ?? .5; };
-function poolRoll(spot, category, id, bait = 'plain') {
+function poolRoll(spot, category, id, bait = 'plain', location, charm = null) {
   let before = 0;
-  for (const { entry, chance } of fishingPool(spot, category, bait)) {
-    if (entry.id === id) return (before + chance / 2) / categories.find(c => c.id === category).share;
+  for (const { entry, chance } of fishingPool(spot, category, bait, {}, 0, location, charm)) {
+    if (entry.id === id) return (before + chance / 2) / fishingCategories(bait).find(c => c.id === category).share;
     before += chance;
   }
   throw Error(`Not in pool: ${id}`);
@@ -142,9 +143,9 @@ test('catalog shares sum to one and every category has entries at both spots', (
   assert.ok(Math.abs(total - 1) < 1e-9);
   for (const c of categories) for (const spot of ['pond', 'river']) assert.ok(species.some(s => s.category === c.id && (s.spot === spot || s.spot === 'any') && s.weight > 0), `${c.id}@${spot}`);
   assert.equal(new Set(species.map(s => s.id)).size, species.length);
-  assert.equal(species.length, 100);
-  assert.equal(fishCount, 72);
-  assert.deepEqual(Object.fromEntries(categories.map(c => [c.id, species.filter(s => s.category === c.id).length])), { creature: 10, junk: 8, treasure: 10, fish: 72 });
+  assert.equal(species.length, 250);
+  assert.equal(fishCount, 200);
+  assert.deepEqual(Object.fromEntries(categories.map(c => [c.id, species.filter(s => s.category === c.id).length])), { creature: 18, junk: 14, treasure: 18, fish: 200 });
 });
 test('creatures and objects enter bag and book; visitors only enter book; treasure never breaks', () => {
   const creature = rollRound(emptyFishing(), 'c', sequence(.52, 0, .5));
@@ -188,11 +189,13 @@ test('stable fish activity reduces tiny fish while preserving small sizes and mu
   assert.ok(carp.kg < 1.5);
   let rare = 0, top = new Map();
   const n = 20000; let seed = 7;
+  const samplingState = emptyFishing(); samplingState.equipped = 'collector';
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  for (let i = 0; i < n; i++) { const r = rollRound(emptyFishing(), `r${i}`, rnd).result; if (r.species) top.set(r.species, (top.get(r.species) ?? 0) + 1); const e = species.find(s => s.id === r.species); if (e && e.rarity >= 2) rare++; }
+  for (let i = 0; i < n; i++) { const r = rollRound(samplingState, `r${i}`, rnd).result; if (r.species) top.set(r.species, (top.get(r.species) ?? 0) + 1); const e = species.find(s => s.id === r.species); if (e && e.rarity >= 2) rare++; }
   assert.ok(Math.abs(top.get('wheat') / n - .2) < .02);
   for (const [id, count] of top) if (id !== 'wheat') assert.ok(count / n < .05, id);
-  assert.ok(rare / n > .015 && rare / n < .05);
+  const expectedRare = categories.flatMap(c => fishingPool('pond', c.id, 'plain')).filter(p => p.entry.rarity >= 2).reduce((sum, p) => sum + p.chance, 0);
+  assert.ok(Math.abs(rare / n - expectedRare) < .01, `rare share ${rare / n} vs ${expectedRare}`);
 });
 test('rod wear is free for half its life, then rises and caps; better rods last longer', () => {
   assert.equal(wearChance(19, 40), 0);
@@ -243,9 +246,14 @@ test('every catalog entry is reachable and round-trips through the current save 
     assert.ok(entry.name && entry.note && entry.rarity >= 0 && entry.rarity < rarities.length, entry.id);
     assert.ok(entry.min > 0 && entry.min <= entry.max && entry.max * 1.15 <= 100, entry.id);
     const state = emptyFishing(); state.spot = entry.spot === 'any' ? 'pond' : entry.spot; state.equipped = 'collector';
+    state.location = defaultLocation(state.spot);
+    if (entry.encounter?.zone) state.location.zone = entry.encounter.zone;
+    if (entry.encounter?.layer) state.location.layer = entry.encounter.layer;
+    if (entry.encounter?.bait) { state.bait = entry.encounter.bait; state.gear.stock[state.bait] = 1; }
+    if (entry.encounter?.charm) { state.gear.charm = entry.encounter.charm; state.gear.charms.push(state.gear.charm); }
     const rnd = entry.id === 'wheat' ? sequence(.4, .5)
       : entry.id === 'pearl' ? sequence(.52, poolRoll('river', 'creature', 'mussel'), .5, 0)
-      : sequence(type[entry.category], poolRoll(state.spot, entry.category, entry.id), .5, .999);
+      : sequence(type[entry.category], poolRoll(state.spot, entry.category, entry.id, state.bait, state.location, state.gear.charm), .5, .999);
     state.round = rollRound(state, entry.id, rnd);
     assert.equal(state.round.result.species, entry.id, entry.id);
     assert.equal(state.round.result.value === undefined, !!entry.visitor, entry.id);

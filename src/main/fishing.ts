@@ -1,7 +1,7 @@
 import { fishingMaps, defaultLocation } from '../shared/fishing-maps.js';
 import { randomUUID } from 'node:crypto';
 import { FISHING_KEY, awardSkins, fishFound, fishingView, parseFishing, repairPrice, repairedWear, rods, skinAvailable, tools, spots, rollRound, type FishingRequest, type FishingState, type FishingView, type FishingAction } from '../shared/fishing.js';
-import { isBaitSupply, MAX_SUPPLIES, rodSkins, supplies } from '../shared/fishing-gear.js';
+import { charms, isBaitSupply, MAX_SUPPLIES, rodSkins, supplies } from '../shared/fishing-gear.js';
 import type { Coins } from './coins.js';
 interface Store { getItem(key: string): string | null; setItem(key: string, value: string): void }
 export class FishingError extends Error {
@@ -18,7 +18,7 @@ export class Fishing {
     return fishingView(this.before ?? parseFishing(this.store.getItem(FISHING_KEY)), wallet.balance, !!this.before, !!wallet.error || !!wallet.pendingSave);
   }
   execute(request: FishingRequest) {
-    const actions: FishingAction[] = ['view', 'cast', 'reel', 'buyRod', 'buyTool', 'equip', 'spot', 'bait', 'sell', 'sellAll', 'lock', 'rescue', 'retry', 'buySkin', 'skin', 'buySupply', 'guard', 'repair', 'zone', 'layer'];
+    const actions: FishingAction[] = ['view', 'cast', 'reel', 'buyRod', 'buyTool', 'equip', 'spot', 'bait', 'sell', 'sellAll', 'lock', 'rescue', 'retry', 'buySkin', 'skin', 'buySupply', 'guard', 'repair', 'zone', 'layer', 'buyCharm', 'charm'];
     if (!request || !actions.includes(request.action)) refuse('操作无效。');
     if (request.action === 'view') return;
     if (this.before) refuse('本次操作尚未保存，请先重试保存。');
@@ -100,6 +100,18 @@ export class Fishing {
       if (next.gear.stock[supply.id] + supply.pack > MAX_SUPPLIES) refuse(`这类补给最多存放 ${MAX_SUPPLIES} 份。`);
       delta = -supply.price;
       next.gear.stock[supply.id] += supply.pack;
+    } else if (action === 'buyCharm') {
+      const charm = charms.find(c => c.id === id);
+      if (!charm) refuse('挂件不存在。');
+      if (next.gear.charms.includes(charm.id)) refuse('已经拥有这件挂件。');
+      if (fishFound(next.book) < charm.requiredFish) refuse(`发现 ${charm.requiredFish} 种鱼后可用${charm.name}。`);
+      delta = -charm.price;
+      next.gear.charms.push(charm.id);
+      next.gear.charm = charm.id;
+    } else if (action === 'charm') {
+      const charm = charms.find(c => c.id === id);
+      if (id !== 'none' && (!charm || !next.gear.charms.includes(charm.id))) refuse('这件挂件尚未拥有。');
+      next.gear.charm = id === 'none' ? null : charm!.id;
     } else if (action === 'guard') {
       if (id !== 'on' && id !== 'off') refuse('护线选项无效。');
       if (id === 'on' && next.gear.stock.guard < 1) refuse('请先购买护线扣。');

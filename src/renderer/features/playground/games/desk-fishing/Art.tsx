@@ -1,3 +1,4 @@
+import { findArt } from './FindArt';
 import { useId, type ReactNode } from 'react';
 import type { Species, Shape, ToolId } from '../../../../../shared/fishing';
 import { rodLook, type RodSkinId } from '../../../../../shared/fishing-gear';
@@ -10,6 +11,18 @@ const INK = '#2f463d';
 type Body = { body: ReactNode; fins: ReactNode; eye: [number, number] };
 function fishBody(shape: Shape, c: string): Body {
   switch (shape) {
+    case 'paddle': return { eye:[42,29], fins:<><path d="M89 33 113 16 107 43Z" fill={c}/><path d="M65 23 77 9 84 27M50 39 63 53 70 39" fill={c}/></>, body:<path d="M4 29 8 23 35 27Q49 13 70 26L98 33Q72 47 49 38L34 33 7 34Z"/> };
+    case 'hatchet': return { eye:[27,23], fins:<><path d="M88 27 112 16 106 29 114 42Z" fill={c}/><path d="M45 20 58 7 65 20" fill={c}/></>, body:<path d="M15 22Q48 11 91 25 81 31 65 51 39 62 24 36Z"/> };
+    case 'armored': return { eye:[25,30], fins:<><path d="M91 34 112 20 108 43Z" fill={c}/><path d="M43 21 50 7 66 24M35 43 26 57 60 44" fill={c}/><path d="M20 35 5 42M23 38 13 52" stroke={c} strokeWidth="2"/></>, body:<path d="M12 35 30 19 67 22 97 34 77 47 31 45Z"/> };
+    case 'hillstream': return { eye:[29,28], fins:<><path d="M38 24Q12 3 9 20L23 35Q6 47 20 56L51 40M75 32l36-10-5 15 6 10-34-4" fill={c}/></>, body:<path d="M17 32Q26 13 49 20L91 33 60 48Q26 49 17 32Z"/> };
+    case 'disc': return { eye:[30,29], fins:<><path d="M82 33 108 18 105 45Z" fill={c}/><path d="M36 14Q64-5 80 21M40 49Q65 67 81 43" fill={c}/></>, body:<ellipse cx="55" cy="32" rx="29" ry="26"/> };
+    case 'leaf': return { eye:[25,30], fins:<><path d="M88 31 114 12 105 32 114 50Z" fill={c}/><path d="M46 19 69 3 76 23M46 44 70 61 75 42" fill={c}/></>, body:<path d="M13 32Q43 1 96 32 45 62 13 32Z"/> };
+    case 'pipe': return { eye:[39,28], fins:<><path d="M93 33 112 21 108 43Z" fill={c}/><path d="M67 24 74 11 81 26M67 37 79 50 83 37" fill={c}/></>, body:<path d="M5 29H31Q40 18 56 25L98 29V36L55 40Q39 42 30 33H5Z"/> };
+    case 'ribbon-fish': return { eye:[21,25], fins:<path d="M31 20Q55 2 81 22L107 29Q62 14 31 26Z" fill={c}/>, body:<path d="M9 28Q18 13 35 24 64 48 113 29 78 62 31 35 17 35 9 28Z"/> };
+    case 'lantern': return { eye:[26,25], fins:<><path d="M84 33 109 16 104 48Z" fill={c}/><path d="M45 13 57 4 68 14M41 49 56 61 69 48" fill={c}/><path d="M27 21Q17 3 10 14" fill="none" stroke={c} strokeWidth="2"/><circle cx="10" cy="15" r="4" fill="#fff2be"/></>, body:<path d="M14 30Q28 5 61 14 87 17 88 34 79 58 46 52 22 48 14 30Z"/> };
+    case 'umbrella-fish': return { eye:[24,30], fins:<><path d="M67 27Q92-4 116 12L108 26 117 37 102 45 102 58Q76 56 65 40Z" fill={c}/><path d="M30 23Q40-1 65 12L58 26M32 41Q39 64 65 52L59 39" fill={c}/></>, body:<ellipse cx="43" cy="33" rx="29" ry="15"/> };
+    case 'coin-scale': return { eye:[25,28], fins:<><path d="M86 33 112 16 105 33 112 50Z" fill={c}/><path d="M34 19 58 5 78 23M41 47 58 59 73 45" fill={c}/></>, body:<ellipse cx="54" cy="33" rx="36" ry="22"/> };
+    case 'skeleton': return { eye:[22,27], fins:<path d="M88 30 112 12 105 33 113 47Z" fill={c}/>, body:<path d="M9 30Q17 12 34 24 57 45 102 29L96 40Q53 54 27 35 13 39 9 30Z" opacity=".55"/> };
     case 'tiny': return { eye: [34, 31], fins: <><path d="M82 32 98 24 96 32 98 40Z" fill={c}/><path d="M50 25 58 20 64 25" fill={c}/></>, body: <ellipse cx="56" cy="32" rx="28" ry="8"/> };
     case 'slim': return { eye: [19, 31], fins: <><path d="M93 33 114 20 109 33 114 46Z" fill={c}/><path d="M48 23 60 15 68 23" fill={c}/></>, body: <ellipse cx="55" cy="33" rx="43" ry="12"/> };
     case 'perch': return { eye: [24, 29], fins: <><path d="M92 34 114 16 109 34 114 52Z" fill={c}/><path d="M34 17 40 4 46 15 52 3 58 15 64 5 70 16Z" fill={c}/><path d="M48 50 58 61 66 50" fill={c}/></>, body: <path d="M10 34Q28 11 66 14 92 18 96 34 90 50 60 52 26 53 10 34Z"/> };
@@ -59,7 +72,13 @@ function Fish({ entry }: { entry: Species }) {
       <path d="M20 33Q56 28 100 33" fill="none" stroke={accent} strokeOpacity=".3" strokeWidth="1" strokeDasharray="2 3"/>
       <path d={`M${eye[0] + 9} ${eye[1] - 10}q6 10 0 20`} fill="none" stroke={accent} strokeOpacity=".45" strokeWidth="1.6" strokeLinecap="round"/>
     </g>
-    {entry.shape === 'star-koi' && <g stroke={accent} fill="none" strokeWidth="1.2"><path d="M83 29 109 9M85 33l23 4M83 36l21 18M40 21l10-11M43 45l11 10"/><circle cx="65" cy="31" r="10" strokeDasharray="1 4"/></g>}
+    {entry.shape === 'lantern' && <><ellipse cx="53" cy="36" rx="16" ry="13" fill="#fff2bb" opacity=".7"/><path d="M43 26v20M53 23v25M63 26v20" stroke={accent} strokeWidth="1.5"/><circle cx="53" cy="35" r="5" fill="#fff9dd"/></>}
+    {entry.shape === 'coin-scale' && <g fill={accent} stroke={INK} strokeOpacity=".25">{[39,53,67,81].map((x,i) => <g key={x}><circle cx={x} cy={30+i%2*8} r="7"/><rect x={x-2} y={28+i%2*8} width="4" height="4" fill={entry.color}/></g>)}</g>}
+    {entry.shape === 'skeleton' && <g fill="none" stroke={accent} strokeWidth="2"><path d="M29 29Q58 46 96 33M37 33l4-12m-4 12-3 9M51 38l3-13m-3 13-2 10M67 39l1-12m-1 12 3 9M82 37l-1-10m1 10 4 7"/></g>}
+    {entry.shape === 'umbrella-fish' && <g stroke={accent} strokeWidth="1.4" fill="none"><path d="M68 33 108 13M68 33l41-6M68 33l42 7M68 33l29 20"/><path d="M43 18q10-9 19-5M42 47q9 9 20 4"/></g>}
+    {entry.shape === 'armored' && <path d="M35 25 43 34 35 43M49 25l8 10-8 10M64 27l8 8-8 10M80 31l5 5-6 7" fill="none" stroke={accent} strokeWidth="2"/>}
+    {entry.shape === 'leaf' && <path d="M28 33h56M43 33l9-12m-9 12 11 12M60 33l9-10m-9 10 10 10" fill="none" stroke={accent} strokeWidth="1.5"/>}
+    {entry.shape === 'star-koi'  && <g stroke={accent} fill="none" strokeWidth="1.2"><path d="M83 29 109 9M85 33l23 4M83 36l21 18M40 21l10-11M43 45l11 10"/><circle cx="65" cy="31" r="10" strokeDasharray="1 4"/></g>}
     {entry.shape === 'glass' && <g fill="none" stroke={accent} strokeWidth="1.4"><path d="M32 32h49M40 32l6-7m-6 7 6 7m4-7 6-8m-6 8 6 8m4-8 6-7m-6 7 6 7"/><ellipse cx="53" cy="32" rx="38" ry="12" strokeOpacity=".65"/></g>}
     {entry.shape === 'lotus' && <g fill="none" stroke={accent} strokeWidth="1" opacity=".8"><path d="M70 31 85 9M73 31l27-18M75 32l36-2M73 35l31 16M70 36l10 20M33 20l8-11"/><circle cx="52" cy="25" r="2" fill={accent}/></g>}
     {entry.shape === 'eclipse' && <><circle cx="56" cy="32" r="25" fill="none" stroke={accent} strokeWidth="2.4"/><path d="M56 2v4M56 58v4M26 32h4M82 32h4M34 10l3 3M76 51l3 3M34 54l3-3M76 13l3-3" stroke={accent} strokeWidth="1.5"/><circle cx="60" cy="31" r="17" fill={entry.color}/></>}
@@ -71,6 +90,7 @@ function Fish({ entry }: { entry: Species }) {
   </>;
 }
 const objects: Partial<Record<Shape, (c: string, a: string) => ReactNode>> = {
+  ...findArt,
   frog: (c, a) => <><ellipse cx="60" cy="53" rx="39" ry="6" fill="#8aa87c" opacity=".3"/><path d="M37 39Q13 37 20 51L43 51M83 39Q107 37 100 51L77 51" fill={c}/><ellipse cx="60" cy="37" rx="27" ry="19" fill={c}/><ellipse cx="60" cy="43" rx="18" ry="12" fill={a}/><circle cx="43" cy="19" r="10" fill={c}/><circle cx="77" cy="19" r="10" fill={c}/><circle cx="43" cy="18" r="5" fill={a}/><circle cx="77" cy="18" r="5" fill={a}/><circle cx="43" cy="18" r="2.5" fill={INK}/><circle cx="77" cy="18" r="2.5" fill={INK}/><path d="M47 34q13 10 26 0" fill="none" stroke={INK} strokeWidth="1.5"/><path d="M40 47 33 56M80 47l7 9" stroke={c} strokeWidth="5" strokeLinecap="round"/></>,
   dragonfly: (c, a) => <><g fill={a} stroke={c} strokeWidth="1" opacity=".8"><ellipse cx="36" cy="22" rx="25" ry="8" transform="rotate(18 36 22)"/><ellipse cx="84" cy="22" rx="25" ry="8" transform="rotate(-18 84 22)"/><ellipse cx="38" cy="38" rx="23" ry="7" transform="rotate(-15 38 38)"/><ellipse cx="82" cy="38" rx="23" ry="7" transform="rotate(15 82 38)"/></g><path d="M60 22v33" stroke={c} strokeWidth="6" strokeLinecap="round"/><path d="M57 36h6M57 43h6M57 50h6" stroke={a} strokeWidth="1.2"/><circle cx="60" cy="18" r="7" fill={c}/><circle cx="55" cy="15" r="3" fill={INK}/><circle cx="65" cy="15" r="3" fill={INK}/></>,
   shrimp: (c, a) => <><path d="M30 23Q6 3 5 12M32 25Q8 15 7 23" fill="none" stroke={c} strokeWidth="1.3"/><path d="M25 29Q47 12 76 21 103 31 78 48L67 44Q90 32 68 29 47 25 29 39Z" fill={c}/><path d="M69 46 84 57 89 49 98 51 92 40Z" fill={a}/><path d="M45 23l-3 13M57 21l-2 13M70 24l-4 13M42 38l-6 13M53 38l-1 15M63 38l5 12" fill="none" stroke={a} strokeWidth="1.8"/><circle cx="30" cy="27" r="2.7" fill={INK}/></>,

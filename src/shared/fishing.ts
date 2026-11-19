@@ -1,6 +1,9 @@
+import { extraFinds } from './fishing-finds.js';
+import { extraFish } from './fishing-catalog.js';
+import { encounterMatches, type FishEncounter } from './fishing-encounters.js';
 import { fishingMaps, defaultLocation, validLocation, locationWeight, type FishingLocation } from './fishing-maps.js';
 import { fishingTide, fishingShares, fishingRarityBoost, type FishingTideStamp } from './fishing-tide.js';
-import { emptyGear, isBaitSupply, parseGear, rodSkins, type BaitSupply, type FishingGear, type RodSkin } from './fishing-gear.js';
+import { emptyGear, isBaitSupply, parseGear, rodSkins, type BaitSupply, type FishingGear, type RodSkin, type CharmId } from './fishing-gear.js';
 /** Local fishing rules. Prices and rewards never come from renderer requests. */
 export const FISHING_KEY = 'dogcow.fishing.v1';
 export const rarities = ['常见', '少见', '稀有', '珍奇', '传说', '神话'] as const;
@@ -38,7 +41,7 @@ export const TINY_SHARE = stableShares.tiny;
 export const TINY_ID = 'wheat';
 /** Chance that a mussel carries a pearl; the pearl gets its own book entry. */
 export const PEARL_CHANCE = .08;
-export type Shape = 'tiny' | 'pearl' | 'round' | 'slim' | 'perch' | 'cat' | 'eel' | 'fancy' | 'dragon' | 'crayfish' | 'snail' | 'turtle' | 'crab' | 'mussel' | 'otter'
+export type Shape = 'salamander' | 'beetle' | 'strider' | 'creek-crab' | 'ramshorn' | 'prawn' | 'egret' | 'firefly' | 'earphones' | 'mouse' | 'pencil' | 'ticket' | 'stapler' | 'clock-fragment' | 'dew' | 'amber' | 'bell' | 'porcelain' | 'boat' | 'letter' | 'music-box' | 'hourglass' | 'paddle' | 'hatchet' | 'armored' | 'hillstream' | 'disc' | 'leaf' | 'pipe' | 'ribbon-fish' | 'lantern' | 'umbrella-fish' | 'coin-scale' | 'skeleton' | 'tiny' | 'pearl' | 'round' | 'slim' | 'perch' | 'cat' | 'eel' | 'fancy' | 'dragon' | 'crayfish' | 'snail' | 'turtle' | 'crab' | 'mussel' | 'otter'
   | 'deep' | 'needle' | 'salmon' | 'sturgeon' | 'diamond' | 'sail' | 'fan'
   | 'star-koi' | 'glass' | 'lotus' | 'eclipse' | 'galaxy' | 'frost' | 'cloud-ray' | 'clockwork'
   | 'frog' | 'dragonfly' | 'shrimp' | 'kingfisher'
@@ -46,7 +49,7 @@ export type Shape = 'tiny' | 'pearl' | 'round' | 'slim' | 'perch' | 'cat' | 'eel
   | 'watch' | 'crown' | 'star-bottle' | 'crystal' | 'jade' | 'seal' | 'envelope';
 export type Pattern = 'spots' | 'stripes' | 'scales' | 'glow' | 'stars' | 'mask' | 'ribbon';
 /** `visitor` entries are recorded in the book but never enter the bag. Only fish and creatures can break a rod. */
-export interface Species { id: string; name: string; category: Category; shape: Shape; pattern?: Pattern; accent?: string; rarity: number; price: number; min: number; max: number; color: string; spot: SpotId | 'any'; weight: number; note: string; visitor?: boolean; castChance?: number }
+export interface Species { id: string; name: string; category: Category; shape: Shape; pattern?: Pattern; accent?: string; rarity: number; price: number; min: number; max: number; color: string; spot: SpotId | 'any'; weight: number; note: string; visitor?: boolean; castChance?: number; encounter?: FishEncounter }
 type Entry = Omit<Species, 'category'>;
 const group = (category: Category, list: Entry[]): Species[] => list.map(item => ({ ...item, category }));
 export const species: readonly Species[] = [
@@ -124,6 +127,7 @@ export const species: readonly Species[] = [
     { id: 'cloud-ray', name: '流云银鳐', shape: 'cloud-ray', pattern: 'ribbon', accent: '#eef1ff', rarity: 5, price: 380, min: 1, max: 12, color: '#a6bad8', spot: 'river', weight: 0, castChance: MYTHIC_CHANCE, note: '原创幻想鱼。宽宽的翼鳍合拢时，像一朵慢慢散去的云。' },
     { id: 'clock-fish', name: '时光骨鱼', shape: 'clockwork', pattern: 'glow', accent: '#f5dfac', rarity: 5, price: 460, min: .5, max: 5, color: '#91a4a0', spot: 'river', weight: 0, castChance: MYTHIC_CHANCE, note: '原创幻想鱼。骨架间的小小钟环，只在下班后往前走。' },
   ]),
+  ...extraFish,
   ...group('creature', [
     { id: 'crayfish', name: '小龙虾', shape: 'crayfish', rarity: 0, price: 3, min: .03, max: .1, color: '#c8664e', spot: 'pond', weight: 40, note: '举着钳子，像在申请加薪。' },
     { id: 'snail', name: '田螺', shape: 'snail', accent: '#c9b48a', rarity: 0, price: 2, min: .02, max: .06, color: '#8b7b62', spot: 'pond', weight: 40, note: '慢慢来，比较快。' },
@@ -158,6 +162,7 @@ export const species: readonly Species[] = [
     { id: 'fish-seal', name: '鱼王金印', shape: 'seal', accent: '#f5dba0', rarity: 4, price: 140, min: .3, max: .3, color: '#bb9a54', spot: 'river', weight: 1, note: '印底刻着一条小鱼，还有两个字：收工。' },
     { id: 'year-end-envelope', name: '年终红包', shape: 'envelope', accent: '#f0cf80', rarity: 3, price: 88, min: .02, max: .02, color: '#bd6b60', spot: 'river', weight: 3, note: '防水纸封得严严实实，里面是一点迟来的好消息。' },
   ]),
+  ...extraFinds,
 ];
 export const fishCount = species.filter(s => s.category === 'fish').length;
 /** Spot unlocks count only discovered fish, not creatures or objects. */
@@ -169,7 +174,7 @@ export type Bait = 'plain' | 'worm' | BaitSupply;
 /** `at` (ms epoch) is absent on catches saved before it was recorded. */
 export interface Catch { id: string; species: string; kg: number; value: number; locked: boolean; at?: number }
 export type FishingResult = { kind: Category | 'empty' | 'broken'; name: string; cause?: 'wear'; kg?: number; species?: string; newDiscovery?: boolean; value?: number; protected?: boolean };
-export interface FishingRound { id: string; rod: RodId; signal: '轻轻晃动' | '缓缓横移' | '明显绷紧'; wait: number; result: FishingResult; location?: FishingLocation; supply?: BaitSupply; tide?: FishingTideStamp }
+export interface FishingRound { id: string; rod: RodId; signal: '轻轻晃动' | '缓缓横移' | '明显绷紧'; wait: number; result: FishingResult; location?: FishingLocation; charm?: CharmId | null; supply?: BaitSupply; tide?: FishingTideStamp }
 export interface FishingState {
   version: 1; rods: Record<RodId, number>; equipped: RodId; tools: ToolId[]; spot: SpotId; bait: Bait;
   /** Reels used by the rod currently in hand of each type; spares start fresh. */
@@ -180,10 +185,10 @@ export interface FishingState {
   round: FishingRound | null; last: FishingResult | null; requests: string[];
 }
 export type FishingAction = 'view' | 'cast' | 'reel' | 'buyRod' | 'buyTool' | 'equip' | 'spot' | 'bait' | 'sell' | 'sellAll' | 'lock' | 'rescue' | 'retry'
-  | 'buySkin' | 'skin' | 'buySupply' | 'guard' | 'repair' | 'zone' | 'layer';
+  | 'buySkin' | 'skin' | 'buySupply' | 'guard' | 'repair' | 'zone' | 'layer' | 'buyCharm' | 'charm';
 export interface FishingRequest { action: FishingAction; requestId?: string; id?: string; roundId?: string }
 export interface FishingView {
-  state: Omit<FishingState, 'round' | 'requests'> & { round: Pick<FishingRound, 'id' | 'rod' | 'signal' | 'wait' | 'tide' | 'location'> | null };
+  state: Omit<FishingState, 'round' | 'requests'> & { round: Pick<FishingRound, 'id' | 'rod' | 'signal' | 'wait' | 'tide' | 'location' | 'charm'> | null };
   balance: number; pending: boolean; walletLocked: boolean;
 }
 export interface FishingReply { view?: FishingView; error?: string; errorCode?: string; correlationId?: string }
@@ -211,7 +216,7 @@ export function parseFishing(raw: string | null): FishingState {
   const v: unknown = JSON.parse(raw);
   if (!obj(v) || v.version !== 1 || !obj(v.rods) || !rods.every(r => count((v.rods as Record<string, unknown>)[r.id]) && Number((v.rods as Record<string, unknown>)[r.id]) <= 999)
     || !rods.some(r => r.id === v.equipped) || !Array.isArray(v.tools) || !v.tools.every(t => tools.some(x => x.id === t))
-    || !spots.some(s => s.id === v.spot) || !['plain', 'worm', 'scout', 'magnet'].includes(String(v.bait)) || !count(v.total)
+    || !spots.some(s => s.id === v.spot) || (v.bait !== 'plain' && v.bait !== 'worm' && !isBaitSupply(v.bait)) || !count(v.total)
     || !Array.isArray(v.bag) || v.bag.length > 200 || !v.bag.every(c => obj(c) && typeof c.id === 'string' && c.id.length <= 100 && species.some(s => s.id === c.species && !s.visitor) && finite(c.kg) && count(c.value) && typeof c.locked === 'boolean' && (c.at === undefined || count(c.at)))
     || new Set(v.bag.map(c => c.id)).size !== v.bag.length || !obj(v.book) || Object.entries(v.book).some(([id, entry]) => !species.some(s => s.id === id) || !obj(entry) || !count(entry.count) || !finite(entry.largest))
     || !Array.isArray(v.requests) || v.requests.length > 128 || !v.requests.every(id => typeof id === 'string' && id.length <= 100)
@@ -231,11 +236,13 @@ export function parseFishing(raw: string | null): FishingState {
   if (obj(v.round) && v.round.location !== undefined && (!validLocation(v.spot as SpotId, v.round.location)
     || !obj(v.location) || v.round.location.zone !== v.location.zone || v.round.location.layer !== v.location.layer)) throw Error('当前落点记录异常，已保留原始数据。');
   v.gear = parseGear(v.gear);
+  if (obj(v.round) && v.round.charm !== undefined && v.round.charm !== (v.gear as FishingGear).charm)
+    throw Error('当前挂件记录异常，已保留原始数据。');
   return v as unknown as FishingState;
 }
 export function fishingView(state: FishingState, balance: number, pending = false, walletLocked = false): FishingView {
   const { requests: _requests, round, ...rest } = state;
-  return { state: { ...rest, round: round ? { id: round.id, rod: round.rod, signal: round.signal, wait: round.wait, ...(round.tide ? { tide: round.tide } : {}), ...(round.location ? { location: round.location } : {}) } : null }, balance, pending, walletLocked };
+  return { state: { ...rest, round: round ? { id: round.id, rod: round.rod, signal: round.signal, wait: round.wait, ...(round.tide ? { tide: round.tide } : {}), ...(round.location ? { location: round.location } : {}), ...(round.charm !== undefined ? { charm: round.charm } : {}) } : null }, balance, pending, walletLocked };
 }
 /** Overload has a gradual risk; rods within capacity never break. */
 export function breakChance(kg: number, capacity: number) { return kg <= capacity ? 0 : Math.min(.95, (kg / capacity - 1) * .6); }
@@ -251,18 +258,20 @@ export function fishingCategories(bait: Bait, activity = 0) {
   const shares = fishingShares(activity);
   return categories.map(c => ({ ...c, share: shares[c.id] + (bait === 'magnet' ? c.id === 'treasure' ? .008 : c.id === 'junk' ? -.008 : 0 : 0) }));
 }
-export function fishingPool(spot: SpotId, category: Category, bait: Bait, book: Record<string, unknown> = {}, activity = 0, location?: FishingLocation) {
+export function fishingPool(spot: SpotId, category: Category, bait: Bait, book: Record<string, unknown> = {}, activity = 0, location?: FishingLocation, charm: CharmId | null = null) {
   if (location && !validLocation(spot, location)) throw Error('钓鱼落点无效。');
   const habitat = fishingMaps[spot]?.source ?? spot;
-  const eligible = species.filter(s => (s.spot === habitat || s.spot === 'any') && s.category === category);
-  const fixed = eligible.filter(s => s.castChance !== undefined);
-  const regular = eligible.filter(s => s.castChance === undefined && s.weight > 0);
+  const currentLocation = location ?? defaultLocation(spot);
+  const eligible = species.filter(s => (s.encounter ? s.spot === spot : s.spot === habitat || s.spot === 'any')
+    && s.category === category && encounterMatches(s, spot, currentLocation, bait, charm));
+  const fixed = eligible.filter(s => s.castChance !== undefined || s.encounter?.chance !== undefined);
+  const regular = eligible.filter(s => s.castChance === undefined && s.encounter?.chance === undefined && s.weight > 0);
   const share = fishingCategories(bait, activity).find(c => c.id === category)!.share;
-  const fixedChance = (s: Species) => s.castChance! * (1 + 9 * activity);
+  const fixedChance = (s: Species) => s.encounter?.chance ?? s.castChance! * (1 + 9 * activity);
   const reserved = fixed.reduce((sum, s) => sum + fixedChance(s), 0);
   const weights = regular.map(s => s.weight * (category === 'fish' ? fishingRarityBoost(s.rarity, activity) : 1) * (bait === 'worm' && s.rarity >= 2 ? 1.8 : bait === 'scout' && category === 'fish' && !book[s.id] ? 3 : 1) * locationWeight(spot, location ?? defaultLocation(spot), s));
   const total = weights.reduce((sum, weight) => sum + weight, 0);
-  if (!total || reserved >= share || fixed.some(s => !Number.isFinite(s.castChance) || s.castChance! <= 0)) throw Error('钓获概率配置无效。');
+  if (!total || reserved >= share || fixed.some(s => !Number.isFinite(fixedChance(s)) || fixedChance(s) <= 0)) throw Error('钓获概率配置无效。');
   return [
     ...fixed.map(entry => ({ entry, chance: fixedChance(entry) })),
     ...regular.map((entry, i) => ({ entry, chance: (share - reserved) * weights[i] / total })),
@@ -285,7 +294,7 @@ export function rollRound(state: FishingState, id: string, random = Math.random,
     result = { kind: 'fish', name: tiny.name, species: tiny.id, kg, value: tiny.price, newDiscovery: !state.book[tiny.id] };
   } else {
     // Tiny fish and pearls retain their dedicated branches; fixed entries are not weighted twice.
-    const pool = fishingPool(state.spot, category, state.bait, state.book, activity, state.location);
+    const pool = fishingPool(state.spot, category, state.bait, state.book, activity, state.location, state.gear.charm);
     let point = random() * shares.find(c => c.id === category)!.share;
     const pick = (pool.find(s => (point -= s.chance) < 0) ?? pool[pool.length - 1]).entry;
     const living = category === 'fish' || category === 'creature';
@@ -310,7 +319,7 @@ export function rollRound(state: FishingState, id: string, random = Math.random,
     if (protectedCatch) result.protected = true;
   }
   const heavy = result.kind !== 'treasure' && result.kind !== 'junk' && (result.kg ?? 0) > rod.capacity * .8;
-  return { id, rod: rod.id, ...(state.location ? { location: { ...state.location } } : {}), wait: (5 + random() * 5) * rod.wait * (state.tools.includes('float') ? .85 : 1),
+  return { id, rod: rod.id, charm: state.gear.charm, ...(state.location ? { location: { ...state.location } } : {}), wait: (5 + random() * 5) * rod.wait * (state.tools.includes('float') ? .85 : 1),
     ...(conditions ? { tide: { version: conditions.version, at: conditions.at, activity } } : {}),
     signal: heavy ? '明显绷紧' : random() < .5 ? '轻轻晃动' : '缓缓横移', result,
     ...(isBaitSupply(state.bait) ? { supply: state.bait } : {}) };

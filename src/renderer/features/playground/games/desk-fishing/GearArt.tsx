@@ -1,3 +1,4 @@
+import { charms, specialBaits, type CharmId } from '../../../../../shared/fishing-gear';
 import { useId } from 'react';
 import { rodLook, type SupplyId } from '../../../../../shared/fishing-gear';
 type Look = ReturnType<typeof rodLook>;
@@ -37,9 +38,11 @@ export function RodTrim({ x, y, look, scale = 1 }: { x: number; y: number; look:
     {look.motif === 'bones' && <><path d="M0 0v10" fill="none"/><path d="m0 9 5 4-5 5-5-5Z"/><circle cx="-9" cy="-6" r="1.5" fill={look.color}/></>}
   </g>;
 }
-export function SupplyArt({ id }: { id: SupplyId | 'repair' }) {
+export function SupplyArt({ id }: { id: SupplyId | CharmId | 'repair' }) {
   return <svg className="df-tool-art" viewBox="0 0 48 48" aria-hidden="true">
-    {id === 'scout' && <><path d="M12 9h24l-2 31H14Z" fill="#a7b69b"/><path d="M14 14h20" stroke="#e8ddbb" strokeWidth="4"/><path d="M18 27q6-8 12 0-6 8-12 0Zm12 0 5-4v8Z" fill="#f1e3bd"/><circle cx="21" cy="26" r="1" fill="#536f63"/><path d="m33 5 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z" fill="#d1ad64"/></>}
+    {specialBaits.some(b => b.id === id) && <><path d="M12 10h24l-2 30H14Z" fill={id === 'glow-bait' ? '#a6adc9' : id === 'lotus-bait' ? '#c8a3b3' : id === 'brine-bait' ? '#9caeb6' : id === 'spice-bait' ? '#c7a27d' : '#a9b58c'}/><path d="M14 14h20" stroke="#f4e8ce" strokeWidth="4"/><path d="M17 30q7-15 14 0-7 9-14 0Z" fill="#f5dfae"/><circle cx="24" cy="25" r="3" fill="#fff6da"/></>}
+    {charms.some(c => c.id === id) && <g fill={charms.find(c => c.id === id)!.color} stroke="#667b73" strokeWidth="1.3"><path d="M24 3v10" fill="none"/>{id === 'moon-bell' ? <><path d="M13 33h22l-3-6V21a8 8 0 0 0-16 0v6Z"/><circle cx="24" cy="37" r="3"/></> : id === 'copper-ring' ? <><circle cx="24" cy="26" r="13"/><circle cx="24" cy="26" r="7" fill="#f4ecdc"/></> : id === 'glass-drop' ? <path d="m24 12 11 16-11 15-11-15Z"/> : <><path d="m15 13 18 25M33 13 15 38" strokeWidth="4"/><path d="m14 24 20 3" stroke="#c3a16d" strokeWidth="4"/></>}</g>}
+    {id === 'scout'  && <><path d="M12 9h24l-2 31H14Z" fill="#a7b69b"/><path d="M14 14h20" stroke="#e8ddbb" strokeWidth="4"/><path d="M18 27q6-8 12 0-6 8-12 0Zm12 0 5-4v8Z" fill="#f1e3bd"/><circle cx="21" cy="26" r="1" fill="#536f63"/><path d="m33 5 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z" fill="#d1ad64"/></>}
     {id === 'magnet' && <><path d="M13 9v17a11 11 0 0 0 22 0V9" fill="none" stroke="#a97566" strokeWidth="9"/><path d="M13 9v8M35 9v8" stroke="#bccbd0" strokeWidth="9"/><circle cx="24" cy="38" r="6" fill="#dbbc73"/><path d="m24 35 2 3-2 3-2-3Z" fill="#fff0b3"/></>}
     {id === 'guard' && <><path d="M24 4 40 10v13q0 14-16 22Q8 37 8 23V10Z" fill="#8eaba5"/><path d="M24 9 35 14v10q0 9-11 15-11-6-11-15V14Z" fill="none" stroke="#e3d7ac" strokeWidth="2"/><path d="M18 24h12M24 18v12" stroke="#f5ecd4" strokeWidth="3" strokeLinecap="round"/></>}
     {id === 'repair' && <><path d="M12 37 32 17" stroke="#b69c73" strokeWidth="8" strokeLinecap="round"/><path d="m29 5-3 9 8 8 9-3q0 10-10 10-13-2-11-14 1-7 7-10Z" fill="#95aaa7"/><circle cx="12" cy="37" r="2.5" fill="#eee6cf"/><path d="m10 7 3 5 6 1-5 4 1 6-5-3-5 3 1-6-5-4 6-1Z" fill="#dbc98b"/></>}

@@ -105,7 +105,7 @@ test('supply purchases enforce unlocks, pack sizes, capacity and exactly one wal
   assert.equal(x.game.view().state.gear.stock.scout, 10); assert.equal(x.coins.view().balance, 990);
   x.run('buySupply', 'scout', 'supply-once'); assert.equal(x.coins.view().balance, 990);
   x.run('buySupply', 'magnet'); x.saved(); x.run('buySupply', 'guard'); x.saved();
-  assert.deepEqual(x.game.view().state.gear.stock, { scout: 10, magnet: 10, guard: 1 });
+  assert.deepEqual(x.game.view().state.gear.stock, { ...emptyGear().stock, scout: 10, magnet: 10, guard: 1 });
   assert.equal(x.coins.view().balance, 972); assert.equal(x.game.view().state.gear.guard, false);
   const full = experienced(); full.gear.stock.scout = 995;
   const y = setup(full); assert.throws(() => y.run('buySupply', 'scout'), /最多/); assert.equal(y.coins.view().balance, 1000);

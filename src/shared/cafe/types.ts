@@ -174,6 +174,7 @@ export interface CafeState {
   revision: number;
   seed: number;
   week: number;
+  run?: import('./service.js').ServiceRun;
   setup: Setup | null;
   phase: 'planning' | 'closed';
   finance: Finance;
@@ -189,11 +190,15 @@ export interface CafeState {
 export interface CafeView {
   state: CafeState;
   pending: boolean;
+  timeline?: import('./service.js').ServiceTimeline;
 }
 export type CafeAction =
   | { action: 'view' | 'retry' }
   | { action: 'setup'; setup: Setup }
   | { action: 'week'; plan: WeekPlan }
+  | { action: 'open'; plan: WeekPlan; runId: string }
+  | { action: 'advance'; runId: string; cursor: number }
+  | { action: 'finish'; runId: string }
   | { action: 'loan' | 'repay'; amount: number }
   | { action: 'machine'; machine: ContentId }
   | { action: 'sellMachine' | 'liquidate' };

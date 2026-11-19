@@ -1,3 +1,4 @@
+import { serviceSlots } from './service.js';
 import { cafeContent, STARTING_CAPITAL, item } from './content.js';
 import { balanceDifference } from './finance.js';
 import type { CafeContent, CafeState, WeekPlan, Setup } from './types.js';
@@ -147,6 +148,20 @@ export function parseCafe(raw: string | null, seed = 1, content = cafeContent): 
       throw Error();
     if (s.setup !== null) validateSetup(s.setup, content);
     if (s.machineOwned && !s.setup) throw Error();
+    if (s.run !== undefined) {
+      if (
+        !record(s.run) ||
+        typeof s.run.id !== 'string' ||
+        !s.run.id ||
+        s.run.id.length > 100 ||
+        !s.setup ||
+        !s.machineOwned ||
+        s.phase !== 'planning'
+      )
+        throw Error();
+      validatePlan(s.run.plan, content);
+      if (!integer(s.run.cursor, 0, serviceSlots(s.run.plan, s.week).length * 60)) throw Error();
+    }
     for (const b of s.inventory)
       if (
         !record(b) ||

@@ -1,3 +1,4 @@
+import type { GuestVisit } from './service.js';
 import { cafeContent, item, SHIFTS, SHIFT_HOURS } from './content.js';
 import { chooseDrink, chooseSegment, customerTraits, purchaseChance, randomSource } from './demand.js';
 import { balanceDifference, entry, post, profitOf } from './finance.js';
@@ -10,6 +11,7 @@ export function simulateWeek(
   previous: CafeState,
   plan: WeekPlan,
   content: CafeContent = cafeContent,
+  observe?: (guest: GuestVisit) => void,
 ): CafeState {
   const state = structuredClone(previous);
   if (!state.setup || !state.machineOwned || state.phase !== 'planning') throw Error('请先完成开店配置。');
@@ -80,7 +82,7 @@ export function simulateWeek(
     }
     const weather = rng() < 0.22 ? 'rain' : 'clear';
     // Occupancy carries across hours, while all visitors leave before the next day opens.
-    let occupiedUntil: number[] = [];
+    const seatUntil: number[] = Array.from({ length: state.setup.seats }, () => 0);
     for (const shift of SHIFTS) {
       if (!plan.shifts[shift].open) continue;
       const labor = staffing(plan, shift, state.morale, content);
@@ -122,6 +124,22 @@ export function simulateWeek(
           line.demand++;
           const arrival = hour * 60 + (60 * visitor) / Math.max(1, traffic);
           const traits = customerTraits[segment];
+          const absolute = day * 1440;
+          const visit: GuestVisit = {
+            id: `${state.week}-${day}-${hour}-${visitor}`,
+            day,
+            segment,
+            drink: drink.id,
+            arrival: absolute + arrival,
+            starts: absolute + arrival,
+            ready: absolute + arrival,
+            leaves: absolute + arrival + 2,
+            outcome: 'served',
+            dineIn: false,
+            seat: null,
+            revenue: 0,
+            cost: 0,
+          };
           const workload = drink.minutes / 2;
           const machineMinutes = (60 / machine.cupsPerHour) * workload;
           const laborMinutes = sharedCapacity ? (60 / sharedCapacity) * workload : Infinity;
@@ -129,16 +147,19 @@ export function simulateWeek(
           const wait = begins - arrival;
           if (wait > traits.patience || begins + Math.max(machineMinutes, laborMinutes) > (hour + 1) * 60) {
             line.queueLost++;
+            observe?.({ ...visit, outcome: 'queue', leaves: absolute + arrival + traits.patience });
             continue;
           }
-          occupiedUntil = occupiedUntil.filter((until) => until > arrival);
           const dineIn = rng() < traits.dineIn;
-          if (dineIn && occupiedUntil.length >= state.setup.seats) {
+          const seat = dineIn ? seatUntil.findIndex((until) => until <= arrival) : -1;
+          if (dineIn && seat < 0) {
             line.seatLost++;
+            observe?.({ ...visit, outcome: 'seats', dineIn });
             continue;
           }
           if (!canMake(state.inventory, drink.recipe, day)) {
             line.stockLost++;
+            observe?.({ ...visit, outcome: 'stock', dineIn });
             // Optional local supplier: one pack per missing ingredient, D+1 delivery, 50% premium.
             // Existing incoming orders prevent repeated replenishment for the same shortage.
             for (const [id, needed] of Object.entries(drink.recipe)) {
@@ -167,7 +188,18 @@ export function simulateWeek(
           const cost = consume(state.inventory, drink.recipe, day);
           machineFree = begins + machineMinutes;
           laborFree = begins + laborMinutes;
-          if (dineIn) occupiedUntil.push(begins + traits.stay);
+          if (dineIn) seatUntil[seat] = begins + traits.stay;
+          const ready = begins + Math.max(machineMinutes, laborMinutes);
+          observe?.({
+            ...visit,
+            starts: absolute + begins,
+            ready: absolute + ready,
+            leaves: absolute + (dineIn ? begins + traits.stay : ready + 3),
+            dineIn,
+            seat: dineIn ? seat : null,
+            revenue: plan.prices[drink.id],
+            cost,
+          });
           line.machineUsed += workload;
           line.laborUsed += workload;
           line.waitMinutes += wait;
