@@ -64,14 +64,19 @@ function pose(move: DeskMove, amount: number, ankleFlex: number, cycle: number):
   return baseline;
 }
 
+// Motion timing: seconds held at the peak pose, and which moves alternate left / right each cycle.
+const holdLong: readonly DeskMove[] = ['chest', 'neck', 'twist', 'cross', 'neckSide', 'knee', 'backLeg', 'prayer', 'chinDown', 'headHands',
+  'forwardReach', 'behindClasp', 'overheadBack', 'hipTwist', 'farLook', 'backBend', 'oneLeg', 'quadStretch', 'standTwist', 'kneeHug'];
+const holdShort: readonly DeskMove[] = ['ankle', 'wristSide', 'wristAssist', 'palmTurn', 'shrug', 'backCurl', 'legLift'];
+const alternating: readonly DeskMove[] = ['neck', 'twist', 'march', 'ankle', 'wristSide', 'wristAssist', 'palmTurn', 'cross', 'overheadSide',
+  'seatedHeels', 'knee', 'armRaise', 'elbow', 'sideLeg', 'backLeg', 'neckSide', 'standSide', 'sideStep', 'backCurl', 'legLift', 'hipTwist',
+  'grapevine', 'heelToe', 'oneLeg', 'quadStretch', 'standTwist', 'kneeHug'];
+
 function movementAmount(move: DeskMove, seconds: number) {
   if (move === 'walk') return Math.sin(seconds * 4);
-  const hold = ['chest', 'neck', 'twist', 'cross', 'neckSide', 'knee', 'backLeg', 'prayer'].includes(move) ? 5 :
-    ['ankle', 'wristSide', 'wristAssist', 'palmTurn', 'shrug'].includes(move) ? 3 : 0;
+  const hold = holdLong.includes(move) ? 5 : holdShort.includes(move) ? 3 : 0;
   const duration = hold + 4;
   const phase = seconds % duration;
-  const alternating: readonly DeskMove[] = ['neck', 'twist', 'march', 'ankle', 'wristSide', 'wristAssist', 'palmTurn',
-    'cross', 'overheadSide', 'seatedHeels', 'knee', 'armRaise', 'elbow', 'sideLeg', 'backLeg', 'neckSide', 'standSide', 'sideStep'];
   const direction = alternating.includes(move) && Math.floor(seconds / duration) % 2 === 1 ? -1 : 1;
   return direction * Math.max(0, Math.min(1, phase / 2, (duration - phase) / 2));
 }
@@ -100,6 +105,9 @@ export function MovementDiagram({ move, elapsed = 0, playing = false }: { move: 
       <path d="M48 134h124" className="movement-ground" />
       {support === '稳固无轮椅' && <path className="movement-chair" d={chair} />}
       {support === '墙面' && <path className="movement-chair" d="M151 25v108m0-19 12-11m-12-13 12-11m-12-13 12-11" />}
+      {support === '桌面' && <path className="movement-chair" d="M134 72h46m-40 0v62m34-62v62" />}
+      {support === '台阶' && <path className="movement-chair" d="M116 134v-16h50v16" />}
+      {move === 'farLook' && <path className="movement-direction" d={`M128 ${head[1] - 2}h${18 + 10 * Math.abs(amount)}m26 0a4 4 0 1 0 .1 0`} />}
       <circle cx={head[0]} cy={head[1]} r="12" className="movement-head" />
       <path d={`M${head[0] + (move === 'neck' || move === 'twist' ? amount * 7 : 0)} ${head[1] + 1}h2`} className="movement-person" />
       <polyline points={line([neck, hip])} className="movement-person" />

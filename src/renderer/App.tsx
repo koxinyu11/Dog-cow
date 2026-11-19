@@ -1,4 +1,4 @@
-import { DeskMovementLauncher } from './features/desk-movement/DeskMovementCard';
+import { DeskMovementLauncher } from './features/desk-movement/DeskMovementLauncher';
 import type { ClockOutTarget } from '../shared/contracts';
 import { receiptIsCurrent } from '../shared/offwork';
 import { useDisplayIncome } from './display-income';

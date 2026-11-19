@@ -84,10 +84,10 @@ test('the local store persists plans and records, with a single reminder per sch
   }
 });
 
-test('the catalog contains 30 exercises plus walking and every item has an approved source and MET category', async () => {
+test('the catalog contains 50 exercises plus walking and every item has an approved source and MET category', async () => {
   const { deskMoveIds, movementSourcePages, metCategories, maxMovementSeconds, validDeskPlan, defaultDeskPlan } = await import('../../dist-electron/src/shared/desk-movement.js');
-  assert.equal(deskMoveIds.filter(id => id !== 'walk').length, 30);
-  assert.equal(new Set(deskMoveIds.map(id => deskMoves[id].label)).size, 31);
+  assert.equal(deskMoveIds.filter(id => id !== 'walk').length, 50);
+  assert.equal(new Set(deskMoveIds.map(id => deskMoves[id].label)).size, 51);
   for (const id of deskMoveIds) {
     const move = deskMoves[id];
     assert.ok(movementSourcePages.includes(move.source.split('#')[0]), id);

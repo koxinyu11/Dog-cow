@@ -1,6 +1,6 @@
 export const deskRegions = ['手腕前臂', '手臂', '颈部', '胸肩', '背腰', '髋腿', '脚踝'] as const;
 export type DeskRegion = (typeof deskRegions)[number];
-export const supports = ['无额外支撑', '稳固无轮椅', '墙面', '桌面', '空地'] as const;
+export const supports = ['无额外支撑', '稳固无轮椅', '墙面', '桌面', '空地', '台阶'] as const;
 
 const sources = {
   sitting: 'https://www.nhs.uk/live-well/exercise/sitting-exercises/',
@@ -10,16 +10,19 @@ const sources = {
   office: 'https://www.ccohs.ca/oshanswers/ergonomics/office/stretching.html',
   chair: 'https://www.uhsussex.nhs.uk/resources/chair-exercises-with-seated-arm-exercises/',
   walk: 'https://pubmed.ncbi.nlm.nih.gov/36728338/',
+  mayo: 'https://www.mayoclinichealthsystem.org/hometown-health/speaking-of-health/dont-just-sit-there-exercises-for-the-office',
 } as const;
 
 export const conditioningMetSource = 'https://pacompendium.com/conditioning-exercise/';
 export const walkingMetSource = 'https://pacompendium.com/walking/';
-export const movementSourcePages = [...Object.values(sources), conditioningMetSource, walkingMetSource];
+export const inactivityMetSource = 'https://pacompendium.com/inactivity/';
+export const movementSourcePages = [...Object.values(sources), conditioningMetSource, walkingMetSource, inactivityMetSource];
 export const metCategories = {
   stretch: { value: 2.3, code: '02101', label: '轻柔拉伸', source: conditioningMetSource },
   seated: { value: 2.5, code: '02140', label: '轻量跟练', source: conditioningMetSource },
   strength: { value: 3, code: '02056', label: '自重练习', source: conditioningMetSource },
   stroll: { value: 2.3, code: '17151', label: '平地慢走', source: walkingMetSource },
+  rest: { value: 1, code: '07021', label: '安静坐姿', source: inactivityMetSource },
 } as const;
 
 type MoveOptions = {
@@ -72,6 +75,26 @@ export const deskMoves = {
   standSide: move('站姿侧弯', '双脚与髋同宽，一只手沿身体侧面缓慢向下滑，身体轻轻侧弯，回正换边。', '每侧保持约 2 秒', ['背腰'], { source: 'flexibility', anchor: 'sideways-bend', seated: false, support: '无额外支撑' }),
   calfStretch: move('扶墙小腿拉伸', '双手扶墙，一脚向后迈，前膝弯曲，后腿伸直，双脚踩实。放松后换边。', '保持后脚跟贴地，做到轻微牵拉即可', ['髋腿', '脚踝'], { source: 'flexibility', anchor: 'calf-stretch', seated: false, support: '墙面' }),
   sideStep: move('侧步走', '在平坦空地上，双膝微屈。一脚缓慢向侧面迈，另一脚跟上并拢，再换方向。', '缓慢移动，附近可有墙面作支撑', ['髋腿'], { source: 'balance', anchor: 'sideways-walking', seated: false, support: '空地', met: 'stroll' }),
+  chinDown: move('低头放松颈后', '坐直，肩膀放松。慢慢低头让下巴靠近胸口，颈后有轻微牵拉时停住，再慢慢抬头回正。', '保持 10～20 秒，正常呼吸', ['颈部'], { source: 'office' }),
+  headHands: move('抱头扩胸', '双手放在脑后，手肘向两侧打开，轻轻夹紧肩胛骨，再放松。', '不用力压头，正常呼吸', ['胸肩'], { source: 'office' }),
+  forwardReach: move('双臂前推伸背', '十指交握，手臂伸直向前推，背部微微拱起，感到肩胛之间轻微牵拉。', '保持 10～20 秒，不弹振', ['背腰', '胸肩'], { source: 'office' }),
+  behindClasp: move('背后扣手扩胸', '双手在身后交握，手臂向后下方伸，胸口轻轻向前打开。', '保持 10～20 秒，肩膀放松', ['胸肩'], { source: 'office' }),
+  overheadBack: move('双臂上举后伸', '十指交握，手臂伸直举过头顶，在舒适范围内把手臂向后推。', '手肘伸直但不锁死，正常呼吸', ['胸肩', '背腰'], { source: 'office' }),
+  backCurl: move('抱腿卷背', '坐稳，双手抱住一侧小腿，把脚抬离地面。背部向前卷，额头靠近膝盖，放下后换腿。', '幅度以舒适为限，慢慢做', ['背腰', '髋腿'], { source: 'office' }),
+  legLift: move('坐姿直腿抬起', '坐在椅子前部，背不靠椅背，双脚平放。一条腿伸直，把脚抬离地面几厘米，稍停后放下，再换腿。', '每次稍停，左右交替', ['髋腿'], { source: 'office', met: 'seated' }),
+  hipTwist: move('坐姿跷腿转体', '一条腿搭在另一条腿上，用手臂或手肘抵住上方腿的外侧，轻轻施压，同时看向反方向，再换边。', '每侧保持 10～20 秒', ['髋腿', '背腰'], { source: 'office' }),
+  farLook: move('远眺放松眼睛', '视线离开屏幕，看向远处的物体，放松眼睛、肩膀和呼吸。', '看远处约 20 秒', ['颈部'], { source: 'office', met: 'rest' }),
+  backBend: move('站姿扶腰后仰', '站立，双膝微屈，双手放在后腰。手轻轻向前推，身体稍向后仰，再回正。', '幅度小，保持 10～20 秒', ['背腰'], { source: 'office', seated: false, support: '无额外支撑' }),
+  grapevine: move('交叉步', '站直，右脚从左脚前方交叉跨过，左脚跟上并拢，向侧面移动，再换方向。', '每侧约 5 步，需要时用手指扶墙', ['髋腿'], { source: 'balance', anchor: 'simple-grapevine', seated: false, support: '空地', met: 'stroll' }),
+  heelToe: move('脚跟接脚尖走', '站直，把右脚跟放在左脚尖正前方，再把左脚跟放到右脚尖前，视线始终朝前。', '至少 5 步，需要时用手指扶墙', ['髋腿', '脚踝'], { source: 'balance', anchor: 'heel-to-toe-walk', seated: false, support: '空地', met: 'stroll' }),
+  oneLeg: move('扶墙单腿站', '面向墙站立，手臂前伸、指尖触墙。抬起一条腿，髋部保持水平，支撑腿微屈，再轻放回地面。', '每次 5～10 秒，每侧 3 次', ['髋腿', '脚踝'], { source: 'balance', anchor: 'one-leg-stand', seated: false, support: '墙面', met: 'seated' }),
+  stepUp: move('台阶上下', '找一级稳固的台阶，最好有扶手或靠墙。右脚踏上，左脚跟上，再依次退下。', '每侧最多 5 次，慢慢做', ['髋腿'], { source: 'balance', anchor: 'step-up', seated: false, support: '台阶', met: 'strength' }),
+  freeCalves: move('原地提踵', '不扶椅子站稳，双脚与髋同宽。缓慢抬起双脚脚跟，再慢慢落下。', '最多 5 次，身边留好可扶的墙或椅子', ['髋腿', '脚踝'], { source: 'strength', anchor: 'calf-raises', seated: false, support: '无额外支撑', met: 'seated' }),
+  bottleCurl: move('水瓶屈臂', '双手各握一瓶装满水的瓶子，手臂贴在身侧。慢慢屈肘把瓶子抬向肩部，再慢慢放下。', '每侧约 5 次，慢上慢下', ['手臂'], { source: 'strength', anchor: 'biceps-curls', met: 'strength' }),
+  quadStretch: move('扶桌拉伸大腿前侧', '站立，一手扶稳桌子。弯曲一条腿，用同侧手抓住脚踝，轻轻拉向臀部，再换边。', '每侧保持 15 秒左右', ['髋腿'], { source: 'mayo', seated: false, support: '桌面' }),
+  standTwist: move('站姿抱臂转体', '双脚与髋同宽，双臂交叉抱在胸前。上身缓慢转向一侧，停住，再转向另一侧。', '髋部朝前，按舒适幅度转', ['背腰'], { source: 'mayo', seated: false, support: '无额外支撑' }),
+  deskPush: move('扶桌俯卧撑', '双手撑在稳固的桌沿，双脚后退，身体成一条直线。屈肘让胸口靠近桌沿，再推回。', '背部保持平直，以舒适幅度慢慢做', ['胸肩', '手臂'], { source: 'mayo', seated: false, support: '桌面', met: 'strength' }),
+  kneeHug: move('坐姿抱膝', '坐直，把一侧膝盖抬向胸口，双手抱住大腿后侧轻轻拉近。背保持挺直，不前倾，再换腿。', '每侧保持约 15 秒', ['髋腿', '背腰'], { source: 'mayo' }),
 } as const;
 
 export type DeskMove = keyof typeof deskMoves;
