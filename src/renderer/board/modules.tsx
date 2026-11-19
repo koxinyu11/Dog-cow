@@ -1,6 +1,7 @@
 import { useDisplayIncome } from '../display-income';
 import { PaidToilet } from '../features/toilet/PaidToilet';
 import { OwedModule } from '../features/owed/OwedModule';
+import { DeskMovementCard } from '../features/desk-movement/DeskMovementCard';
 import { FunModule } from '../features/fun/FunModules';
 import { defaultFun, estimateMealCalories } from '../../shared/fun';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
@@ -12,7 +13,7 @@ import { dateLabel, duration, labels, time, weekNames } from '../format';
 import { command } from '../state';
 import { fx } from '../motion/fx';
 import {
-  AlarmClock, ArrowLeft, ArrowRight, Bed, Briefcase, Building2, CalendarDays, CalendarRange, ChartColumn, Clock, Coffee,
+  Accessibility, AlarmClock, ArrowLeft, ArrowRight, Bed, Briefcase, Building2, CalendarDays, CalendarRange, ChartColumn, Clock, Coffee,
   Check as CheckIcon, Drama, Flag, Flame, Hourglass, House, Landmark, ListTodo, LogIn, LogOut, Moon, Plus, Rabbit, Settings2, Sprout, Star, Sun,
   Target, TreePalm, Turtle, UtensilsCrossed, Wallet, Zap, ClipboardList, PencilLine, History, PiggyBank, Trophy, HandCoins, type LucideIcon,
 } from 'lucide-react';
@@ -605,6 +606,7 @@ export const MODULES: Record<ModuleId, ModuleDef> = {
   mood: { id: 'mood', name: '今日精神状态', icon: Coffee, accent: '#dd858a', titleKey: 'moodTitle', blurb: '今天是哪一种牛', defaultSize: 'm', render: c => <FunModule kind="mood" {...c} /> },
   lunch: { id: 'lunch', name: '今天吃什么', icon: UtensilsCrossed, accent: '#e28b47', titleKey: 'lunchTitle', blurb: '午餐选择困难救星', defaultSize: 'm', render: c => <FunModule kind="lunch" {...c} /> },
   calories: { id: 'calories', name: '热量爆表', icon: Flame, accent: '#ef6c3e', titleKey: 'caloriesTitle', blurb: '选完午餐自动估算热量', defaultSize: 'm', render: c => <CaloriesModule {...c} /> },
+  'desk-movement': { id: 'desk-movement', name: '工位动一动', icon: Accessibility, accent: '#29866e', titleKey: 'deskMovementTitle', blurb: '坐姿跟练和步行休息', defaultSize: 'm', render: ({ size }) => <DeskMovementCard size={size} /> },
   hopes: { id: 'hopes', name: '盼头清单', icon: TreePalm, accent: '#46a898', titleKey: 'hopesTitle', blurb: '给生活留个盼头', defaultSize: 'm', render: c => <FunModule kind="hopes" {...c} /> },
   pasture: { id: 'pasture', name: '工位小牧场', icon: Sprout, accent: '#72a651', titleKey: 'pastureTitle', blurb: '一件事，一丛草', defaultSize: 'm', render: c => <FunModule kind="pasture" {...c} /> },
   converter: { id: 'converter', name: '工资能买啥', icon: Wallet, accent: '#bd84b9', titleKey: 'converterTitle', blurb: '今天赚了几份快乐', defaultSize: 'm', render: c => <FunModule kind="converter" {...c} /> },

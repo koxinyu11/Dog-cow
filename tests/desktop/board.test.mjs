@@ -45,7 +45,7 @@ test('smart arrange randomly fills the grid, keeps modules and changes the layou
   }
 });
 
-test('seed 244 cannot return a gapped 17-module layout when random search exhausts its budget', () => {
+test('seed 244 cannot return a gapped full-module layout when random search exhausts its budget', () => {
   const items = MODULE_IDS.map(id => ({ id, size: 'm' }));
   for (const columns of [12, 6]) {
     const result = smartArrange(items, columns, seeded(244));
@@ -72,7 +72,7 @@ test('every background theme key is valid, unknown keys are rejected', () => {
 
 test('default home keeps original nine cards and new fun cards stay optional', () => {
   const board = defaultBoard();
-  assert.deepEqual([...board.items.map((item) => item.id)].sort(), MODULE_IDS.filter(id => !['paid-toilet','owed','mood','receipt','lunch','calories','hopes','pasture','converter'].includes(id)).sort());
+  assert.deepEqual([...board.items.map((item) => item.id)].sort(), MODULE_IDS.filter(id => !['paid-toilet','owed','mood','receipt','lunch','calories','hopes','pasture','converter','desk-movement'].includes(id)).sort());
   for (const columns of [12, 6]) {
     assert.equal(overlaps(pack(board.items, columns)), false);
   }

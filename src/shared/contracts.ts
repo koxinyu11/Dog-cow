@@ -220,6 +220,7 @@ export interface Result {
   trayPanel?: import('./tray.js').TrayPanelData;
   offwork?: { income: IncomeState; date: string };
 
+  deskMovement?: import('./desk-movement.js').DeskMovementData;
   applied: boolean;
   persisted: boolean;
   message: string;
@@ -273,12 +274,15 @@ export const methods = [
   'installUpdate',
   'copyUpdateDiagnostics',
   'openSource',
+  'deskMovement',
   'quit',
 ] as const;
 export type Method = (typeof methods)[number];
 export interface Bridge {
   openDesktopNotes(callback: (id?: string) => void): () => void;
   playgroundError(callback: (value: { message: string; correlationId: string }) => void): () => void;
+  openDeskMovement(callback: () => void): () => void;
+  deskMovementInterrupt(callback: () => void): () => void;
   openHopes(callback: () => void): () => void;
   openIncomeSettings(callback: () => void): () => void;
   trayPanel(callback: (value: import('./tray.js').TrayPanelEvent) => void): () => void;

@@ -44,6 +44,7 @@ const allowed = new Set([
   'installUpdate',
   'copyUpdateDiagnostics',
   'openSource',
+  'deskMovement',
   'quit',
 ]);
 const bridge: Bridge = {
@@ -56,6 +57,16 @@ const bridge: Bridge = {
     const handler = (_event: Electron.IpcRendererEvent, value: { message: string; correlationId: string }) => callback(value);
     ipcRenderer.on('dogcow:playground-error', handler);
     return () => ipcRenderer.removeListener('dogcow:playground-error', handler);
+  },
+  openDeskMovement(callback) {
+    const handler = () => callback();
+    ipcRenderer.on('dogcow:open-desk-movement', handler);
+    return () => ipcRenderer.removeListener('dogcow:open-desk-movement', handler);
+  },
+  deskMovementInterrupt(callback) {
+    const handler = () => callback();
+    ipcRenderer.on('dogcow:desk-movement-interrupt', handler);
+    return () => ipcRenderer.removeListener('dogcow:desk-movement-interrupt', handler);
   },
   openHopes(callback) {
     const handler = () => callback();

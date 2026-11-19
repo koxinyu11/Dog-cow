@@ -1,3 +1,4 @@
+import { DeskMovementLauncher } from './features/desk-movement/DeskMovementCard';
 import type { ClockOutTarget } from '../shared/contracts';
 import { receiptIsCurrent } from '../shared/offwork';
 import { useDisplayIncome } from './display-income';
@@ -56,7 +57,7 @@ const COPY_LABELS: Record<string, string> = {
   owedTitle: '老板欠我钱',
   moodTitle: '今日精神状态', receiptTitle: '下班小票', lunchTitle: '今天吃什么',
   caloriesTitle: '热量爆表',
-  hopesTitle: '盼头清单', pastureTitle: '工位小牧场', converterTitle: '工资能买啥',
+  hopesTitle: '盼头清单', pastureTitle: '工位小牧场', converterTitle: '工资能买啥', deskMovementTitle: '工位动一动',
 };
 type Tab = 'look' | 'income' | 'records' | 'data' | 'titles';
 const taskNode = (id: string) => document.querySelector(`[data-task-id="${CSS.escape(id)}"]`);
@@ -275,6 +276,7 @@ export function App() {
   return (
     <MenuProvider>
       <BoardContext.Provider value={{ metrics, bindings: board.bindings, bind }}>
+        <DeskMovementLauncher />
         <HopeManagerLauncher state={state} notify={notify} />
         <div className={`app-bg ${bg.className}`} style={bg.style} aria-hidden="true">
           {!state.compact && board.background.kind === 'preset' && <Scene preset={board.background.value} />}

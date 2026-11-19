@@ -1,0 +1,118 @@
+.desk-movement-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  height: 100%;
+  min-width: 0;
+}
+
+.desk-movement-card .desk-movement-diagram {
+  min-height: 0;
+  flex: 1;
+  width: 100%;
+}
+
+.desk-movement-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.desk-movement-card.layout-s .desk-movement-actions {
+  display: grid;
+  justify-items: start;
+}
+
+.desk-movement-card.layout-tall .desk-movement-actions {
+  display: grid;
+  justify-items: stretch;
+}
+
+.desk-movement-dialog {
+  width: min(490px, 94vw);
+}
+
+.desk-movement-session,
+.desk-movement-list {
+  display: grid;
+  gap: 10px;
+  padding: 16px 22px 22px;
+}
+
+.desk-movement-session p,
+.desk-movement-stage h3 {
+  margin: 0;
+}
+
+.desk-movement-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.desk-movement-diagram {
+  display: block;
+  max-height: 190px;
+  color: inherit;
+}
+
+.movement-ground, .movement-chair, .movement-person, .movement-direction {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.movement-ground { opacity: .18; }
+.movement-chair { opacity: .45; }
+.movement-direction { stroke-width: 2.5; opacity: .7; }
+.movement-head { fill: none; stroke: currentColor; stroke-width: 4; }
+
+.desk-movement-time {
+  font-size: clamp(27px, 5vw, 48px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.desk-movement-next, .desk-movement-dose, .desk-movement-safety {
+  font-size: 13px;
+}
+
+.desk-movement-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.desk-movement-source { margin-inline-start: auto; }
+
+.desk-movement-list button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  padding: 10px 12px;
+}
+
+.movement-picture { min-height: 0; }
+.desk-movement-card .movement-picture { flex: 1; display: grid; place-items: center; }
+.movement-progress { width: 100%; accent-color: #29866e; }
+.movement-plan-order { margin: 0; padding-inline-start: 24px; }
+.movement-plan-order li { margin-block: 4px; }
+.movement-plan-order button { margin-inline-start: 6px; }
+.movement-calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+.movement-calendar span { padding: 6px 0; border-radius: 6px; }
+.movement-calendar .movement-day-complete { color: #143b30; background: #b9eadb; font-weight: 700; }
+
+.movement-catalog { display: grid; gap: 8px; }
+.movement-catalog-results { display: grid; max-height: 260px; overflow-y: auto; gap: 4px; }
+.movement-catalog-results button { display: flex; justify-content: space-between; gap: 8px; padding: 8px; text-align: start; }
+.movement-catalog-results button[aria-pressed="true"] { outline: 2px solid #29866e; outline-offset: -2px; }
+.movement-energy { display: flex; gap: 16px; flex-wrap: wrap; margin: 0; }
+.movement-energy dt { font-size: 13px; }
+.movement-energy dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }

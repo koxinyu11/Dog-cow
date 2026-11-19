@@ -25,6 +25,7 @@ export interface TrayPanelData {
   sequence: number;
   view: TrayView;
   summary: import('./tray-summary.js').TraySummary;
+  movementDue?: boolean;
   configured: boolean;
   calculationError: boolean;
   revision: number;
