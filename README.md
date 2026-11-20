@@ -6,7 +6,7 @@
 
 给打工狗和上班牛的桌面搭子：记待办、养小牛，顺便看看今天赚了几口草。
 
-[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.2.4-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.4/DogCow-arm64-3.2.4.dmg)
+[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.2.5-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.5/DogCow-arm64-3.2.5.dmg)
 [![所有版本](https://img.shields.io/badge/所有版本-Releases-343b36?style=for-the-badge&logo=github&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases)
 
 [怎么安装](#下载安装) &nbsp; · &nbsp; [能做什么](#主要功能) &nbsp; · &nbsp; [最近更新](#最新版更新) &nbsp; · &nbsp; [常见问题](#常见问题) &nbsp; · &nbsp; [技术栈](#技术栈) &nbsp; · &nbsp; [隐私说明](#隐私说明)
@@ -17,13 +17,13 @@
 
 ## 下载安装
 
-**Mac · Apple Silicon（M 系列芯片） · v3.2.4**
+**Mac · Apple Silicon（M 系列芯片） · v3.2.5**
 
 | 安装方式 | 下载 | 怎么装 |
 | :--- | :--- | :--- |
-| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.4/DogCow-arm64-3.2.4.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
-| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.4/DogCow-darwin-arm64-3.2.4.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
-| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.4/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
+| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.5/DogCow-arm64-3.2.5.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
+| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.5/DogCow-darwin-arm64-3.2.5.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
+| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.5/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
 
 > 本次仅提供 **Apple Silicon（arm64）** 安装包，暂不提供 Intel Mac 和 Windows 包。安装包采用本地测试签名，尚未完成 Apple Developer ID 签名和公证；若 macOS 阻止打开，请先确认来源，再查看“系统设置 → 隐私与安全性”的允许打开选项。
 
@@ -45,7 +45,7 @@ npm run dev
 
 开发实例使用独立的 `DogCow-dev` 数据目录，不下载正式版更新。请用 `npm run dev` 启动，无需保留 `build/`、`out/` 中的旧打包应用。正式版与开发实例可以分别保留；遇到启动冲突时，不要为了启动开发版而强制关闭正式版。
 
-「狗牛咖啡馆」：从主窗口摩天轮进入游乐场，体验选址、周计划与经营复盘。机制与扩展说明见[咖啡馆实施记录](docs/feature-plans/implemented/dogcow-cafe.md)。
+「狗牛咖啡馆」：从主窗口摩天轮进入游乐场，体验选址、客人进店与堂食、周计划和经营复盘。机制与扩展说明见[咖啡馆实施记录](docs/feature-plans/implemented/dogcow-cafe.md)。
 
 </details>
 
@@ -66,7 +66,7 @@ npm run dev
 | 🍱 | **午饭不再纠结** | 从 568 道菜中挑选午餐，或开个盲盒；卡片随尺寸调整布局。 |
 | 🧾 | **记下老板欠的账** | 查看打卡对应的加班时间，补记处理消息的时间，并导出欠条 PNG；加班费需在收入设置中开启，默认关闭。 |
 | 📌 | **待办挂到桌面上** | 单条任务贴成便签，多条任务组成清单；挂在淡色晾衣线上，完成状态与主窗口同步，重启后继续留着。 |
-| 🎡 | **班间逛逛游乐场** | 点击主窗口摩天轮，打开独立游戏窗口；钓鱼收集 100 种图鉴、观察鱼情并探索落点与水层，和电脑牌手玩德州，或经营咖啡馆、在狗牛市交易 240 家公司与 18 只 ETF，累计游玩还能解锁职称。 |
+| 🎡 | **班间逛逛游乐场** | 点击主窗口摩天轮，打开独立游戏窗口；钓鱼收集 250 条图鉴、观察鱼情并探索落点与水层，和电脑牌手玩德州，或经营咖啡馆、在狗牛市交易 240 家公司与 18 只 ETF，累计游玩还能解锁职称。 |
 | 💾 | **小本本留在自己手里** | 任务和设置自动保存在本机，换版本前还能导出备份，给辛苦记下的事留个底。 |
 
 <sub>“工资能买啥”换算卡片支持调整项目，不同尺寸展示快乐货架与月份格子。收入与税费为估算；“偷出金额”是工作时间的价值拆分，不是额外工资。首页默认展示九类卡片，可调整大小、拖动排列或移除。</sub>
@@ -87,15 +87,23 @@ npm run dev
 
 ## 待发布更新
 
-- **工位钓鱼**：200 种鱼、共 250 条图鉴，新增 6 种鱼饵、4 件永久挂件、32 种道具限定鱼及 4 件搭配限定宝物。图鉴提供线索，首次发现后可查看搭配。
-- **咖啡馆店内营业**：顾客进店、排队、制作、取餐与堂食，支持营业速度切换、进度恢复及一次性周结算。
-- **工位动一动**：50 个动作和步行跟练，可编辑计划与提醒，查看活动月历和热量估算。界面分「计划 / 动作库 / 记录」三页：动作库用部位、姿势、场地筛选并显示动作缩略图；跟练页用环形倒计时，支持空格开始或暂停、左右方向键切换动作；记录页按活动时长显示月历深浅和连续天数。
+- **工位动一动**：从模块库加入后，可从 50 个动作和步行中跟练，编辑计划与提醒，查看活动月历和热量估算。界面分「计划 / 动作库 / 记录」三页：动作库用部位、姿势、场地筛选并显示动作缩略图；跟练页用环形倒计时，支持空格开始或暂停、左右方向键切换动作；记录页按活动时长显示月历深浅和连续天数。
 
 ## 最新版更新
 
-当前正式版为 **v3.2.4**，提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。以下按已发布标签及对应提交整理；测试和维护版本单独注明，历史平台支持不代表当前安装包范围。
+当前正式版为 **v3.2.5**，提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。以下按已发布标签及对应提交整理；测试和维护版本单独注明，历史平台支持不代表当前安装包范围。
 
-### [v3.2.4](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.2.4) · 当前正式版
+### [v3.2.5](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.2.5) · 当前正式版
+
+水下多一些惊喜，咖啡馆里多一些热闹。
+
+- **250 条钓鱼图鉴**：200 种鱼、18 种水边生物、14 件工位旧物和 18 件宝物，新增独立插画与收集筛选。
+- **鱼饵与挂件搭配**：新增 6 种鱼饵、4 件永久挂件，32 种道具限定鱼和 4 件搭配限定宝物。图鉴提供线索，发现后可展开已验证搭配；符合条件时有场景回应，仍需等待实际收获。
+- **结果与存档保留**：沿用承重、磨损和护线规则，抛竿后锁定结果与补给，重载和保存重试不重抽、不重复扣除。旧神话遇见方式保留；升级前请备份，含新增条目的存档不适合交给旧版本读取。
+- **咖啡馆店内营业**：顾客进店、排队、制作、取餐、堂食和离店按实际模拟结果呈现，支持 1× / 4× / 12× 速度与暂停。
+- **营业进度与周结算**：支持关窗恢复、直接完成本周；营业中锁定经营计划，完成后统一结算，重复请求不重复记账。
+
+### [v3.2.4](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.2.4)
 
 - **狗牛市**：240 家公司、18 只 ETF 和多种 NPC 策略；狗牛币转入证券账户，支持市价、限价、撤单和持仓。
 - **行情分析**：K 线与趋势切换、5/15/30/60 分钟周期、MA5/10/20/60、成交量、MACD 和十字光标。
