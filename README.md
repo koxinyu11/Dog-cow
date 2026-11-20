@@ -6,7 +6,7 @@
 
 给打工狗和上班牛的桌面搭子：记待办、养小牛，顺便看看今天赚了几口草。
 
-[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.2.5-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.5/DogCow-arm64-3.2.5.dmg)
+[![下载 Mac 版](https://img.shields.io/badge/下载_Mac_版-v3.2.6-56865b?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.6/DogCow-arm64-3.2.6.dmg)
 [![所有版本](https://img.shields.io/badge/所有版本-Releases-343b36?style=for-the-badge&logo=github&logoColor=white)](https://github.com/koxinyu11/Dog-cow/releases)
 
 [怎么安装](#下载安装) &nbsp; · &nbsp; [能做什么](#主要功能) &nbsp; · &nbsp; [最近更新](#最新版更新) &nbsp; · &nbsp; [常见问题](#常见问题) &nbsp; · &nbsp; [技术栈](#技术栈) &nbsp; · &nbsp; [隐私说明](#隐私说明)
@@ -17,13 +17,13 @@
 
 ## 下载安装
 
-**Mac · Apple Silicon（M 系列芯片） · v3.2.5**
+**Mac · Apple Silicon（M 系列芯片） · v3.2.6**
 
 | 安装方式 | 下载 | 怎么装 |
 | :--- | :--- | :--- |
-| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.5/DogCow-arm64-3.2.5.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
-| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.5/DogCow-darwin-arm64-3.2.5.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
-| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.5/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
+| **DMG · 推荐** | [⬇ 下载 DMG](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.6/DogCow-arm64-3.2.6.dmg) | 打开镜像，将狗牛拖入 Applications，再从“应用程序”打开。 |
+| ZIP | [⬇ 下载 ZIP](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.6/DogCow-darwin-arm64-3.2.6.zip) | 解压后，将狗牛.app 放入“应用程序”，双击打开。 |
+| 文件校验 | [SHA256SUMS.txt](https://github.com/koxinyu11/Dog-cow/releases/download/v3.2.6/SHA256SUMS.txt) | 核对下载文件的 SHA-256 校验值。 |
 
 > 本次仅提供 **Apple Silicon（arm64）** 安装包，暂不提供 Intel Mac 和 Windows 包。安装包采用本地测试签名，尚未完成 Apple Developer ID 签名和公证；若 macOS 阻止打开，请先确认来源，再查看“系统设置 → 隐私与安全性”的允许打开选项。
 
@@ -85,15 +85,23 @@ npm run dev
 
 新增 9 张隐藏壁纸，获得对应称号后出现在“设置 → 外观 → 背景”，带 ✨ 的会动：带薪下钱雨 ✨、奶茶自由 ✨、无理小金库、到点跑路 ✨、周五永居 ✨、周一免疫、需求粉碎机 ✨、资本家克星、终身股东 ✨。解锁条件不公开，靠打工自己发现。新获得称号时，解锁提示会一起列出新壁纸；升级前已有的称号对应壁纸直接可用，不再提示。关闭动效或系统减少动态效果时显示静态画面。自 v3.0.15 起包含在正式安装包中。
 
-## 待发布更新
-
-- **工位动一动**：从模块库加入后，可从 50 个动作和步行中跟练，编辑计划与提醒，查看活动月历和热量估算。界面分「计划 / 动作库 / 记录」三页：动作库用部位、姿势、场地筛选并显示动作缩略图；跟练页用环形倒计时，支持空格开始或暂停、左右方向键切换动作；记录页按活动时长显示月历深浅和连续天数。
-
 ## 最新版更新
 
-当前正式版为 **v3.2.5**，提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。以下按已发布标签及对应提交整理；测试和维护版本单独注明，历史平台支持不代表当前安装包范围。
+当前正式版为 **v3.2.6**，提供 Apple Silicon 的 DMG、ZIP 和 SHA-256 校验文件。以下按已发布标签及对应提交整理；测试和维护版本单独注明，历史平台支持不代表当前安装包范围。
 
-### [v3.2.5](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.2.5) · 当前正式版
+### [v3.2.6](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.2.6) · 当前正式版
+
+坐久了，起来动一动。
+
+- **工位动一动**：从模块库加入卡片，可从 50 个动作和步行中选择跟练，动作出处来自 NHS、CCOHS 与 Mayo Clinic。看板卡片显示今日活动时长，一键开始计划。
+- **计划 / 动作库 / 记录**：动作库按部位、姿势、场地筛选并显示动作缩略图；计划可调整顺序、避开部位，并设置提醒日和时间。
+- **跟练**：环形倒计时与动作动画，支持空格开始或暂停、左右方向键切换动作；附讲解、来源和安全提示。
+- **记录与热量**：月历按活动时长显示深浅，统计连续天数和本月时长；选填体重后显示活动净热量估算，数据只保存在本机。
+
+<details>
+<summary><strong>历史版本 · v3.2.5 及更早</strong></summary>
+
+### [v3.2.5](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.2.5)
 
 水下多一些惊喜，咖啡馆里多一些热闹。
 
@@ -119,9 +127,6 @@ npm run dev
 - **落点与水层**：每处新钓场提供三个落点，可选择浅钓或沉底，不同组合偏向不同鱼群。原有午后池塘与芦苇河湾保留。
 - **保留本竿结果**：抛竿后锁定落点、水层和结果，重载与保存重试不会重抽或重复结算；承重、磨损与护线扣规则继续生效。
 - **升级前备份**：已有钱包、鱼篓与图鉴保留；含新钓场的存档不适合交回旧版本读取，升级前建议导出备份。
-
-<details>
-<summary><strong>历史版本 · v3.2.2 及更早</strong></summary>
 
 ### [v3.2.2](https://github.com/koxinyu11/Dog-cow/releases/tag/v3.2.2)
 
@@ -341,7 +346,7 @@ v3.0.2 采用以下技术：
 <details>
 <summary><strong>下载链接打不开，或者下载失败怎么办？</strong></summary>
 
-可以从 [Releases 页面](https://github.com/koxinyu11/Dog-cow/releases) 展开对应版本的 Assets，选择 `DogCow-arm64-3.2.4.dmg` 或 `DogCow-darwin-arm64-3.2.4.zip`。下载中断时请重新下载并完整解压，仍有问题可在 Issues 反馈。
+可以从 [Releases 页面](https://github.com/koxinyu11/Dog-cow/releases) 展开对应版本的 Assets，选择 `DogCow-arm64-3.2.6.dmg` 或 `DogCow-darwin-arm64-3.2.6.zip`。下载中断时请重新下载并完整解压，仍有问题可在 Issues 反馈。
 
 </details>
 
@@ -367,7 +372,7 @@ macOS 可能同时识别“应用程序”中的正式版、挂载安装镜像�
 <details>
 <summary><strong>支持 Windows 和 Intel Mac 吗？</strong></summary>
 
-当前 v3.2.4 只提供 Apple Silicon（M 系列芯片）的 Mac 安装包。Intel Mac 与 Windows 安装包暂未发布，请勿下载 arm64 包用于这些设备。
+当前 v3.2.6 只提供 Apple Silicon（M 系列芯片）的 Mac 安装包。Intel Mac 与 Windows 安装包暂未发布，请勿下载 arm64 包用于这些设备。
 
 </details>
 
