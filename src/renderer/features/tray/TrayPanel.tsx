@@ -30,6 +30,14 @@ export function TrayPanel() {
         <TrayMetrics data={data} onSettings={() => action('settings')} busy={busy || !data.canSwitch} />
         <TrayTaskSummary tasks={data.summary.tasks} />
         <TrayCountdowns hopes={data.summary.hopes} busy={busy || !data.canSwitch} onManage={() => action('hopes')} />
+        {data.movementDue && <section aria-label="工位动一动">
+          <strong>工位动一动</strong>
+          <div className="desk-movement-actions">
+            <button disabled={busy || !data.canSwitch} onClick={() => action('movement')}>打开计划</button>
+            <button disabled={busy} onClick={() => action('movement-snooze')}>稍后 10 分钟</button>
+            <button disabled={busy} onClick={() => action('movement-skip')}>跳过</button>
+          </div>
+        </section>}
         <TrayDisplayPicker value={data.view.display} busy={busy} onChange={choose} />
       </> : <div className="tray-panel-loading" aria-label="正在读取状态"><span /><span /></div>}
       {feedback && <TrayFeedback message={feedback.message} code={feedback.code} correlationId={feedback.correlationId} busy={busy} onRetry={retry} onCopy={copy} />}

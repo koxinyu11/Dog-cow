@@ -1,3 +1,5 @@
+import { DeskMovementStore } from './desk-movement-store.js';
+import { movementSourcePages, validDeskPlan, validDeskSegments, validMovementWeight } from '../shared/desk-movement.js';
 import { Cafe, CafeError } from './cafe.js';
 import { StockMarket, MarketError } from './market.js';
 import { MARKET_KEY, type MarketRequest, type MarketReply } from '../shared/market/game.js';
@@ -39,6 +41,7 @@ import {
   ipcMain,
   Menu,
   net,
+  Notification,
   powerMonitor,
   protocol,
   shell,
@@ -180,6 +183,17 @@ let stealDay = '';
 let releaseUpdater: ReleaseUpdater | null = null;
 const taskKey = 'work-todolist-generic-v1';
 const layoutKey = 'dogcow.home.v1';
+const movementStore = new DeskMovementStore(path.join(profile, 'desk-movement.json'));
+let movementActive = false;
+let movementSuspended = false;
+let movementLocked = false;
+let movementNotification: Notification | undefined;
+async function openDeskMovement() {
+  revealWindow();
+  const result = await windows.request('expanded');
+  if (result.applied) win?.webContents.send('dogcow:open-desk-movement');
+  return result;
+}
 const official = 'https://github.com/koxinyu11/Dog-cow/releases';
 const windowBackground = (dark: boolean) => dark ? '#141c19' : '#f6f5ef';
 const toastResult = (message: string): Result => ({
@@ -223,6 +237,7 @@ function snapshot(): Snapshot {
 function panelData(): TrayPanelData {
   return { sequence: ++panelSequence, view: trayView({ income, tasks, taskError }, windowStore.value.tray?.display ?? 'icon'),
     summary: traySummary({ income, tasks, taskError, board, hopeHolidays: hopeHolidays() }),
+    movementDue: movementStore.due,
     configured: !!income.settings, calculationError: !!income.calculationError,
     revision: windowStore.value.revision, dirty: windowStore.dirty, warning: windowStore.warning,
     correlationId: windowStore.correlationId, canSwitch: windows.phase === 'idle' && !quitPending && !quitting,
@@ -464,6 +479,32 @@ function validPayload(payload: unknown): payload is Fields {
   return record(payload) && JSON.stringify(payload).length <= 20 * 1024 * 1024;
 }
 async function invoke(method: string, p: Fields): Promise<Result> {
+  if (method === 'deskMovement') {
+    if (p.action === 'active') {
+      movementActive = p.active === true;
+      if (movementActive && movementStore.due) {
+        movementStore.dismiss(false);
+        movementNotification?.close();
+        trayPanel?.publish();
+      }
+      return { applied: true, persisted: false, message: '' };
+    }
+    if (p.action === 'plan') {
+      if (!validDeskPlan(p.plan)) return toastResult('请选择至少一个可用动作，并检查提醒时间。');
+      await movementStore.setPlan(p.plan);
+      if (!movementStore.due) movementNotification?.close();
+      trayPanel?.publish();
+    } else if (p.action === 'weight') {
+      if (p.weightKg !== null && !validMovementWeight(p.weightKg)) return toastResult('请检查体重输入。');
+      await movementStore.setWeight(p.weightKg === null ? undefined : p.weightKg);
+    } else if (p.action === 'record') {
+      if (typeof p.id !== 'string' || !/^[0-9a-f-]{36}$/.test(p.id) || !validDeskSegments(p.segments) ||
+        (p.weightKg !== undefined && !validMovementWeight(p.weightKg)))
+        return toastResult('活动记录无效。');
+      await movementStore.record(p.id, p.segments, p.weightKg);
+    } else if (p.action !== 'read') return toastResult('活动操作无效。');
+    return { applied: true, persisted: p.action !== 'read', message: '', deskMovement: movementStore.view() };
+  }
   if (method === 'receiptImage') {
     if (!win || typeof p.png !== 'string' || p.png.length > 4_000_000 || !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(p.png)) throw Error('小票图片无效，请重试。');
     const image = nativeImage.createFromDataURL(p.png);
@@ -517,16 +558,18 @@ async function invoke(method: string, p: Fields): Promise<Result> {
   if (method === 'openSource') {
     const url = String(p.url || official);
     const parsed = new URL(url);
+    const isDeskMovementSource =
+      movementSourcePages.includes(parsed.origin + parsed.pathname);
     if (
       parsed.protocol !== 'https:' ||
-      ![
+      (!isDeskMovementSource && ![
         'github.com',
         'rlsbt.zj.gov.cn',
         'gjj.hangzhou.gov.cn',
         'zfgb.hangzhou.gov.cn',
         'zhejiang.chinatax.gov.cn',
         'fgk.chinatax.gov.cn',
-      ].includes(parsed.hostname)
+      ].includes(parsed.hostname))
     )
       throw Error('链接来源不受信任。');
     await shell.openExternal(url);
@@ -1138,6 +1181,7 @@ async function start() {
   }
   repo = new Repository(path.join(profile, 'data'));
   await repo.load();
+  await movementStore.load();
   if (repo.migration?.phase === 'pending' && !repo.readError) {
     try {
       validateLegacy(
@@ -1282,12 +1326,41 @@ async function start() {
     gameInterrupted = false;
     gameProgress.clock.environmentChanged({ foreground: !!playground?.window?.isFocused(), interrupted: false });
   };
+  const interruptDeskMovement = () => {
+    if (win && !win.isDestroyed()) win.webContents.send('dogcow:desk-movement-interrupt');
+  };
+  const movementSleep = () => { movementSuspended = true; interruptDeskMovement(); };
+  const movementWake = () => { movementSuspended = false; };
+  const movementLock = () => { movementLocked = true; interruptDeskMovement(); };
+  const movementUnlock = () => { movementLocked = false; };
+  powerMonitor.on('suspend', movementSleep);
+  powerMonitor.on('resume', movementWake);
+  powerMonitor.on('lock-screen', movementLock);
+  powerMonitor.on('unlock-screen', movementUnlock);
+  const movementTick = setInterval(() => {
+    const job = commands.then(async () => {
+      if (quitting || movementActive || movementSuspended || movementLocked || !await movementStore.tick(new Date())) return;
+      trayPanel?.publish();
+      if (Notification.isSupported()) {
+        movementNotification = new Notification({ title: '工位动一动', body: '你的活动计划准备好了。', silent: true });
+        movementNotification.on('click', () => { void openDeskMovement().catch(error => console.error('[desk-movement:open]', error)); });
+        movementNotification.show();
+      }
+    }).catch(error => console.error('[desk-movement:reminder]', error instanceof Error ? error.name : 'unknown'));
+    commands = job;
+  }, 5000);
   powerMonitor.on('suspend', interruptGames);
   powerMonitor.on('lock-screen', interruptGames);
   powerMonitor.on('resume', resumeGames);
   powerMonitor.on('unlock-screen', resumeGames);
   app.once('will-quit', () => {
     clearInterval(gameTick);
+    clearInterval(movementTick);
+    movementNotification?.close();
+    powerMonitor.removeListener('suspend', movementSleep);
+    powerMonitor.removeListener('resume', movementWake);
+    powerMonitor.removeListener('lock-screen', movementLock);
+    powerMonitor.removeListener('unlock-screen', movementUnlock);
     powerMonitor.removeListener('suspend', interruptGames);
     powerMonitor.removeListener('lock-screen', interruptGames);
     powerMonitor.removeListener('resume', resumeGames);
@@ -1471,6 +1544,20 @@ async function start() {
           if (p.action === 'resize') { trayPanel.resize(p.height); return toastResult(''); }
           if (p.action === 'hide') { trayPanel.hide(); return toastResult(''); }
           if (p.action === 'quit') { trayPanel.hide(true); setImmediate(() => void requestQuit()); return toastResult(''); }
+          if (p.action === 'movement') {
+            await openDeskMovement();
+            return { ...toastResult(''), trayPanel: panelData() };
+          }
+          if (p.action === 'movement-snooze' || p.action === 'movement-skip') {
+            const job = commands.then(() => {
+              movementStore.dismiss(p.action === 'movement-snooze');
+              movementNotification?.close();
+              trayPanel?.publish();
+              return { ...toastResult(''), trayPanel: panelData() };
+            });
+            commands = job;
+            return job;
+          }
           if (p.action === 'open' || p.action === 'settings' || p.action === 'hopes') {
             revealWindow();
             const result = await windows.request('expanded');

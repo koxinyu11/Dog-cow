@@ -29,7 +29,7 @@ export const MODULE_IDS = [
   'stolen',
   'paid-toilet',
   'owed',
-  'mood', 'lunch', 'calories', 'hopes', 'pasture', 'converter',
+  'mood', 'lunch', 'calories', 'hopes', 'pasture', 'converter', 'desk-movement',
 ] as const;
 export type ModuleId = (typeof MODULE_IDS)[number];
 
@@ -225,7 +225,7 @@ export const GOOD_SIZES: Record<ModuleId, SizeKey[]> = {
   stolen: ['m', 's', 'tall'],
   'paid-toilet': ['m', 'l', 'tall', 'wide', 's'],
   owed: ['m', 'l', 'tall', 'wide'],
-  mood: ['m', 'l'], lunch: ['m', 'l', 's', 'tall', 'wide'], calories: ['m', 's', 'l'], hopes: ['m', 'l'], pasture: ['m', 'l'], converter: ['m', 'l'],
+  mood: ['m', 'l'], lunch: ['m', 'l', 's', 'tall', 'wide'], calories: ['m', 's', 'l'], hopes: ['m', 'l'], pasture: ['m', 'l'], converter: ['m', 'l'], 'desk-movement': ['s', 'm', 'l', 'wide', 'tall'],
 };
 /** Lower comes first: actions and live money on top, reference views below. */
 const IMPORTANCE: ModuleId[] = ['clock', 'income', 'work-time', 'week-summary', 'next-task', 'progress', 'tasks', 'calendar', 'stolen', 'paid-toilet', 'owed', 'mood', 'lunch', 'calories', 'hopes', 'pasture', 'converter'];
